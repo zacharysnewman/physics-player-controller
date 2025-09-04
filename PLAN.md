@@ -11,11 +11,19 @@
 - Debug / Gizmos Config:
   - Optionally visualize Rigidbody and CapsuleCollider bounds in editor [Code]
 
+### Task 1a: Camera Setup
+- Add Main Camera to scene or player prefab [Editor]
+- Configure camera position and rotation (e.g., third-person follow) [Editor]
+- Optionally integrate Cinemachine Virtual Camera for smooth tracking [Editor]
+- Ensure Camera.main is accessible in code [Editor]
+
 ### Task 2: Input System Integration
 - Create InputActions asset using new Input System [Editor]
-- Define actions: Move (Vector2), Run (Button), Crouch (Button), Jump (Button), Interact (Button) [Editor]
+- Define actions: Move (Vector2), Look (Vector2), Run (Button), Crouch (Button), Jump (Button), Interact (Button) [Editor]
 - Add PlayerInput component to player prefab and link script [Editor]
-- Write handler methods in script (OnMove, OnRun, etc.) [Code]
+- Write handler methods in script (OnMove, OnLook, OnRun, etc.) [Code]
+- Implement camera look integration: rotate camera based on Look input (mouse delta) [Code]
+- Configurable: mouseSensitivity, invertY
 - Debug / Gizmos Config:
   - Optionally log input vector, button presses for testing [Code]
 

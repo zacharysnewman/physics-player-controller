@@ -50,12 +50,19 @@ namespace ZacharysNewman.PPC
         // Rotation Settings
         [SerializeField] private bool freezeYRotation = true;
 
+        // Camera Settings
+        [SerializeField] private float mouseSensitivity = 12f;
+        [SerializeField] private bool invertY = false;
+        [SerializeField] private float minVerticalAngle = -80f;
+        [SerializeField] private float maxVerticalAngle = 80f;
+
         private Rigidbody rb;
         private CapsuleCollider capsule;
         private PlayerControls playerControls;
 
         // Input values
         private Vector2 moveInput;
+        private Vector2 lookInput;
         private bool runInput;
         private bool crouchInput;
         private bool jumpInput;
@@ -72,6 +79,11 @@ namespace ZacharysNewman.PPC
 
         // Rotation state
         private bool previousFreezeYRotation;
+
+        // Camera look state
+        private float cameraYaw = 0f;
+        private float cameraPitch = 0f;
+        private bool isMouseLocked = true;
 
         private void Awake()
         {
@@ -115,9 +127,21 @@ namespace ZacharysNewman.PPC
             // Setup new input system
             playerControls = new PlayerControls();
 
+            // Initialize camera angles and mouse lock
+            if (Camera.main != null)
+            {
+                cameraYaw = Camera.main.transform.eulerAngles.y;
+                cameraPitch = Camera.main.transform.eulerAngles.x;
+            }
+            Cursor.lockState = CursorLockMode.Locked;
+            Cursor.visible = false;
+
             // Set up input callbacks
             playerControls.Player.Move.performed += ctx => moveInput = ctx.ReadValue<Vector2>();
             playerControls.Player.Move.canceled += ctx => moveInput = Vector2.zero;
+
+            playerControls.Player.Look.performed += ctx => { if (isMouseLocked) lookInput = ctx.ReadValue<Vector2>(); };
+            playerControls.Player.Look.canceled += ctx => { if (isMouseLocked) lookInput = Vector2.zero; };
 
             playerControls.Player.Run.performed += ctx => runInput = true;
             playerControls.Player.Run.canceled += ctx => runInput = false;
@@ -131,9 +155,11 @@ namespace ZacharysNewman.PPC
             playerControls.Player.Interact.performed += ctx => interactInput = true;
             playerControls.Player.Interact.canceled += ctx => interactInput = false;
 
-            // Unused actions - just subscribe to avoid warnings
-            playerControls.Player.Look.performed += ctx => { };
-            playerControls.Player.Use.performed += ctx => { };
+            // Menu action unlocks mouse
+            playerControls.Player.Menu.performed += ctx => { if (isMouseLocked) ToggleMouseLock(); };
+
+            // Use action locks mouse when unlocked
+            playerControls.Player.Use.performed += ctx => { if (!isMouseLocked) ToggleMouseLock(); };
         }
 
         private void OnEnable()
@@ -169,6 +195,7 @@ namespace ZacharysNewman.PPC
                 previousFreezeYRotation = freezeYRotation;
             }
 
+            HandleCameraLook();
             CheckGrounded();
             CheckCeiling();
         }
@@ -220,6 +247,28 @@ namespace ZacharysNewman.PPC
             rb.AddForce(velocityChange, ForceMode.VelocityChange);
 
             currentVelocity = rb.linearVelocity;
+        }
+
+        private void HandleCameraLook()
+        {
+            if (Camera.main == null || !isMouseLocked) return;
+
+            // Update yaw and pitch
+            cameraYaw += lookInput.x * mouseSensitivity * Time.deltaTime;
+            cameraPitch += (invertY ? 1 : -1) * lookInput.y * mouseSensitivity * Time.deltaTime;
+
+            // Clamp pitch
+            cameraPitch = Mathf.Clamp(cameraPitch, minVerticalAngle, maxVerticalAngle);
+
+            // Apply rotation
+            Camera.main.transform.rotation = Quaternion.Euler(cameraPitch, cameraYaw, 0f);
+        }
+
+        private void ToggleMouseLock()
+        {
+            isMouseLocked = !isMouseLocked;
+            Cursor.lockState = isMouseLocked ? CursorLockMode.Locked : CursorLockMode.None;
+            Cursor.visible = !isMouseLocked;
         }
 
         private void CheckGrounded()
