@@ -47,6 +47,9 @@ namespace ZacharysNewman.PPC
         [SerializeField] private bool visualizeGroundCeilingChecks = false;
         [SerializeField] private bool visualizeVelocity = false;
 
+        // Rotation Settings
+        [SerializeField] private bool freezeYRotation = true;
+
         private Rigidbody rb;
         private CapsuleCollider capsule;
         private PlayerControls playerControls;
@@ -67,6 +70,9 @@ namespace ZacharysNewman.PPC
         private Vector3 targetVelocity;
         private Vector3 currentVelocity;
 
+        // Rotation state
+        private bool previousFreezeYRotation;
+
         private void Awake()
         {
             rb = GetComponent<Rigidbody>();
@@ -78,7 +84,8 @@ namespace ZacharysNewman.PPC
             rb.angularDamping = angularDrag;
             rb.interpolation = interpolation;
             rb.collisionDetectionMode = collisionDetectionMode;
-            rb.constraints = RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationZ;
+            rb.constraints = RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationZ | (freezeYRotation ? RigidbodyConstraints.FreezeRotationY : 0);
+            previousFreezeYRotation = freezeYRotation;
 
             // Setup CapsuleCollider
             capsule.height = height;
@@ -153,6 +160,13 @@ namespace ZacharysNewman.PPC
             if (debugInput)
             {
                 Debug.Log($"Move Input: {moveInput}, Run: {runInput}, Crouch: {crouchInput}, Jump: {jumpInput}, Interact: {interactInput}");
+            }
+
+            // Update Y rotation constraints if changed
+            if (previousFreezeYRotation != freezeYRotation)
+            {
+                rb.constraints = RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationZ | (freezeYRotation ? RigidbodyConstraints.FreezeRotationY : 0);
+                previousFreezeYRotation = freezeYRotation;
             }
 
             CheckGrounded();
@@ -233,6 +247,11 @@ namespace ZacharysNewman.PPC
             {
                 // Store if ceiling is hit, but for now just check
             }
+        }
+
+        public void SetFreezeYRotation(bool freeze)
+        {
+            freezeYRotation = freeze;
         }
 
         private void OnDrawGizmos()
