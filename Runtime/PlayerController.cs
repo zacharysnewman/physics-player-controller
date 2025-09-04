@@ -24,6 +24,7 @@ namespace ZacharysNewman.PPC
         [SerializeField] private float runSpeed = 10f;
         [SerializeField] private float acceleration = 10f;
         [SerializeField] private float deceleration = 10f;
+        [SerializeField] private float reverseDeceleration = 20f;
         [SerializeField] private float maxVelocityChange = 10f;
 
         [Header("Ceiling Check Settings")]
@@ -221,8 +222,19 @@ namespace ZacharysNewman.PPC
                 velocityChange = velocityChange.normalized * maxVelocityChange;
             }
 
-            // Apply acceleration/deceleration
-            float accel = moveInput.magnitude > 0.1f ? acceleration : deceleration;
+            // Apply acceleration/deceleration with faster reverse deceleration
+            Vector3 currentHorizontalVelocity = new Vector3(rb.linearVelocity.x, 0, rb.linearVelocity.z);
+            Vector3 targetHorizontalVelocity = new Vector3(targetVelocity.x, 0, targetVelocity.z);
+            float dot = Vector3.Dot(currentHorizontalVelocity.normalized, targetHorizontalVelocity.normalized);
+            float accel;
+            if (moveInput.magnitude > 0.1f)
+            {
+                accel = (dot < -0.1f) ? reverseDeceleration : acceleration;
+            }
+            else
+            {
+                accel = deceleration;
+            }
             velocityChange = Vector3.MoveTowards(Vector3.zero, velocityChange, accel * Time.fixedDeltaTime);
 
             // Apply to rigidbody

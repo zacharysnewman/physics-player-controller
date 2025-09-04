@@ -8,7 +8,7 @@ This document tracks the progress of implementing the player system from PLAN.md
 - **Task 2: Input System Integration** - Created PlayerControls.inputactions asset, generated PlayerControls.cs class, integrated input handling in PlayerController.cs with handler methods, camera look, and debug logging.
 - **Task 3: Ground / Ceiling Checks** - Implemented CheckGrounded() using Physics.SphereCast, CheckCeiling() using upward spherecast, added configurable parameters, and debug gizmos for visualizing checks and ground normal.
 - **Task 4: Walk & Run** - Implemented HandleMovement() for input to velocity conversion, added configurable walkSpeed and runSpeed, and debug gizmos for velocity vector.
-- **Task 4a: Direction Responsiveness** - Implemented velocity smoothing with acceleration/deceleration logic, added configurable parameters, and debug for smoothed vs raw velocity.
+- **Task 4a: Direction Responsiveness** - Implemented velocity smoothing with acceleration/deceleration logic, added faster deceleration on direction reversal, configurable parameters, and debug gizmos for smoothed vs raw velocity.
 
 ## In Progress
 
