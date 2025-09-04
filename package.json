@@ -4,6 +4,9 @@
   "displayName": "Physics Player Controller",
   "description": "A reactive physics player controller.",
   "unity": "2020.3",
+  "dependencies": {
+    "com.unity.inputsystem": "1.0.0"
+  },
   "author": {
     "name": "zacharysnewman",
     "url": "https://github.com/zacharysnewman"
