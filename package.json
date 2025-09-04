@@ -2,7 +2,7 @@
   "name": "com.zacharysnewman.ppc",
   "version": "0.0.1",
   "displayName": "Physics Player Controller",
-  "description": "A physics player controller.",
+  "description": "A reactive physics player controller.",
   "unity": "2020.3",
   "author": {
     "name": "zacharysnewman",
