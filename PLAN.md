@@ -4,9 +4,9 @@
 
 ### Task 1: Player Setup
 - Add Rigidbody (interpolate, continuous collision, freeze X/Z rotation) [Editor]
-- Configurable: mass, drag, angularDrag, interpolation, collisionDetectionMode
+- Configure Rigidbody properties (mass, drag, angularDrag, interpolation, collisionDetectionMode) on component [Editor]
 - Add CapsuleCollider [Editor]
-- Configurable: height, radius, center
+- Configure CapsuleCollider properties (height, radius, center) on component [Editor]
 - Create child transforms: GroundCheck, CeilingCheck, FrontCheck (for ladder detection) [Editor]
 - Debug / Gizmos Config:
   - Optionally visualize Rigidbody and CapsuleCollider bounds in editor [Code]
