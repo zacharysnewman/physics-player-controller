@@ -17,8 +17,15 @@ namespace ZacharysNewman.PPC
         private bool debugInput;
         private bool visualizeGroundCeilingChecks;
         private bool visualizeVelocity;
+        private bool visualizeJump;
 
-        public DebugVisualizer(Transform playerTransform, CapsuleCollider cap, Transform gCheck, Transform cCheck, bool visBounds, bool dbgInput, bool visChecks, bool visVel)
+        // Jump debug info
+        private float jumpBufferTimer;
+        private float coyoteTimer;
+        private float jumpApexHeight;
+        private bool isJumping;
+
+        public DebugVisualizer(Transform playerTransform, CapsuleCollider cap, Transform gCheck, Transform cCheck, bool visBounds, bool dbgInput, bool visChecks, bool visVel, bool visJump, float groundCheckRadius)
         {
             transform = playerTransform;
             capsule = cap;
@@ -28,14 +35,19 @@ namespace ZacharysNewman.PPC
             debugInput = dbgInput;
             visualizeGroundCeilingChecks = visChecks;
             visualizeVelocity = visVel;
+            visualizeJump = visJump;
         }
 
-        public void UpdateDebugInfo(bool grounded, Vector3 gNormal, Vector3 currVel, Vector3 targVel)
+        public void UpdateDebugInfo(bool grounded, Vector3 gNormal, Vector3 currVel, Vector3 targVel, float jumpBufTimer, float coyTimer, float jumpApex, bool jumping)
         {
             isGrounded = grounded;
             groundNormal = gNormal;
             currentVelocity = currVel;
             targetVelocity = targVel;
+            jumpBufferTimer = jumpBufTimer;
+            coyoteTimer = coyTimer;
+            jumpApexHeight = jumpApex;
+            isJumping = jumping;
         }
 
         public void LogInput(Vector2 moveInput, bool runInput, bool crouchInput, bool jumpInput, bool interactInput)
@@ -82,6 +94,30 @@ namespace ZacharysNewman.PPC
                 Gizmos.DrawLine(transform.position, transform.position + currentVelocity);
                 Gizmos.color = Color.red;
                 Gizmos.DrawLine(transform.position, transform.position + targetVelocity);
+            }
+
+            if (visualizeJump)
+            {
+                // Draw jump apex line
+                if (isJumping)
+                {
+                    Gizmos.color = Color.green;
+                    Vector3 apexPosition = new Vector3(transform.position.x, jumpApexHeight, transform.position.z);
+                    Gizmos.DrawLine(transform.position, apexPosition);
+                    Gizmos.DrawSphere(apexPosition, 0.1f);
+                }
+
+                // Draw jump buffer and coyote time indicators
+                if (jumpBufferTimer > 0)
+                {
+                    Gizmos.color = Color.yellow;
+                    Gizmos.DrawSphere(transform.position + Vector3.up * 2f, jumpBufferTimer * 0.5f);
+                }
+                if (coyoteTimer > 0)
+                {
+                    Gizmos.color = Color.cyan;
+                    Gizmos.DrawSphere(transform.position + Vector3.up * 2.5f, coyoteTimer * 0.5f);
+                }
             }
         }
     }

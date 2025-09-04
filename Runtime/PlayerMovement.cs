@@ -20,7 +20,26 @@ namespace ZacharysNewman.PPC
         public Vector3 TargetVelocity { get; private set; }
         public Vector3 CurrentVelocity { get; private set; }
 
-        public PlayerMovement(Rigidbody rigidbody, Transform playerTransform, float walkSpd, float runSpd, float accel, float decel, float revDecel, float maxVelChange)
+        // Jump settings
+        private float jumpForce;
+        private float jumpBufferTime;
+        private float coyoteTime;
+        private bool debugInput;
+
+        // Jump state
+        private float jumpBufferTimer;
+        private float coyoteTimer;
+        private float jumpApexHeight;
+        private bool isJumping;
+        private bool wasGrounded;
+        private bool wasJumpPressed;
+
+        public float JumpBufferTimer => jumpBufferTimer;
+        public float CoyoteTimer => coyoteTimer;
+        public float JumpApexHeight => jumpApexHeight;
+        public bool IsJumping => isJumping;
+
+        public PlayerMovement(Rigidbody rigidbody, Transform playerTransform, float walkSpd, float runSpd, float accel, float decel, float revDecel, float maxVelChange, float jumpF, float jumpBufTime, float coyTime, bool debug)
         {
             rb = rigidbody;
             transform = playerTransform;
@@ -30,6 +49,10 @@ namespace ZacharysNewman.PPC
             deceleration = decel;
             reverseDeceleration = revDecel;
             maxVelocityChange = maxVelChange;
+            jumpForce = jumpF;
+            jumpBufferTime = jumpBufTime;
+            coyoteTime = coyTime;
+            debugInput = debug;
         }
 
         public void UpdateGrounded(bool grounded, Vector3 normal)
@@ -91,6 +114,73 @@ namespace ZacharysNewman.PPC
             rb.AddForce(velocityChange, ForceMode.VelocityChange);
 
             CurrentVelocity = rb.linearVelocity;
+        }
+
+        public void HandleJump(bool jumpInput)
+        {
+            // Update timers
+            if (jumpBufferTimer > 0)
+            {
+                jumpBufferTimer -= Time.deltaTime;
+            }
+            if (coyoteTimer > 0)
+            {
+                coyoteTimer -= Time.deltaTime;
+            }
+
+            // Set jump buffer only on initial press (not while held)
+            if (jumpInput && !wasJumpPressed && jumpBufferTimer <= 0)
+            {
+                jumpBufferTimer = jumpBufferTime;
+                if (debugInput)
+                {
+                    Debug.Log($"PlayerMovement: Jump buffer set. Timer: {jumpBufferTimer}");
+                }
+            }
+
+            // Coyote time starts when leaving ground
+            if (!isGrounded && wasGrounded)
+            {
+                coyoteTimer = coyoteTime;
+                if (debugInput)
+                {
+                    Debug.Log($"PlayerMovement: Coyote time started. Timer: {coyoteTimer}");
+                }
+            }
+
+            // Perform jump
+            bool canJump = (isGrounded || coyoteTimer > 0) && jumpBufferTimer > 0;
+            if (debugInput && jumpInput && !wasJumpPressed)
+            {
+                Debug.Log($"PlayerMovement: Jump input detected. Can jump: {canJump}, IsGrounded: {isGrounded}, CoyoteTimer: {coyoteTimer}, JumpBufferTimer: {jumpBufferTimer}");
+            }
+
+            if (canJump)
+            {
+                // Reset vertical velocity
+                rb.linearVelocity = new Vector3(rb.linearVelocity.x, 0, rb.linearVelocity.z);
+                // Apply jump force
+                rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
+                // Reset timers
+                jumpBufferTimer = 0;
+                coyoteTimer = 0;
+                isJumping = true;
+                jumpApexHeight = transform.position.y + (jumpForce * jumpForce) / (2 * Physics.gravity.magnitude); // Approximate apex
+
+                if (debugInput)
+                {
+                    Debug.Log($"PlayerMovement: Jump performed with force {jumpForce}. New velocity: {rb.linearVelocity}");
+                }
+            }
+
+            // Check if landed
+            if (isGrounded && isJumping && rb.linearVelocity.y <= 0)
+            {
+                isJumping = false;
+            }
+
+            wasGrounded = isGrounded;
+            wasJumpPressed = jumpInput;
         }
     }
 }

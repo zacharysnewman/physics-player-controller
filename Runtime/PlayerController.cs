@@ -15,8 +15,8 @@ namespace ZacharysNewman.PPC
         [SerializeField] private Transform frontCheck;
 
         [Header("Ground Check Settings")]
-        [SerializeField] private float groundCheckRadius = 0.4f;
-        [SerializeField] private float groundCheckDistance = 0.1f;
+        [SerializeField] private float groundCheckRadius = 0.2f; // Reduced from 0.4f to prevent wall detection
+        [SerializeField] private float groundCheckDistance = 0.15f; // Reduced to be more precise
         [SerializeField] private LayerMask groundLayerMask = -1;
 
         [Header("Movement Settings")]
@@ -41,11 +41,17 @@ namespace ZacharysNewman.PPC
         [SerializeField] private float minVerticalAngle = -80f;
         [SerializeField] private float maxVerticalAngle = 80f;
 
+        [Header("Jump Settings")]
+        [SerializeField] private float jumpForce = 10f;
+        [SerializeField] private float jumpBufferTime = 0.2f;
+        [SerializeField] private float coyoteTime = 0.1f;
+
         [Header("Debug")]
         [SerializeField] private bool visualizeBounds = false;
-        [SerializeField] private bool debugInput = false;
-        [SerializeField] private bool visualizeGroundCeilingChecks = false;
+        [SerializeField] private bool debugInput = true; // Enable debug logging by default
+        [SerializeField] private bool visualizeGroundCeilingChecks = true; // Enable ground check visualization
         [SerializeField] private bool visualizeVelocity = false;
+        [SerializeField] private bool visualizeJump = true; // Enable jump visualization by default
 
         private Rigidbody rb;
         private CapsuleCollider capsule;
@@ -60,6 +66,8 @@ namespace ZacharysNewman.PPC
 
         // Rotation state
         private bool previousFreezeYRotation;
+
+
 
         private void Awake()
         {
@@ -77,7 +85,7 @@ namespace ZacharysNewman.PPC
             {
                 groundCheck = new GameObject("GroundCheck").transform;
                 groundCheck.parent = transform;
-                groundCheck.localPosition = Vector3.down * (capsule.height / 2f - capsule.radius);
+                groundCheck.localPosition = capsule.center + Vector3.down * (capsule.height / 2f - capsule.radius * 0.1f);
             }
             if (ceilingCheck == null)
             {
@@ -98,9 +106,9 @@ namespace ZacharysNewman.PPC
             inputHandler = new PlayerInputHandler(playerControls,
                 () => { if (cameraController.IsMouseLocked) cameraController.ToggleMouseLock(); }, // Menu: unlock if locked
                 () => { if (!cameraController.IsMouseLocked) cameraController.ToggleMouseLock(); }); // Use: lock if unlocked
-            movement = new PlayerMovement(rb, transform, walkSpeed, runSpeed, acceleration, deceleration, reverseDeceleration, maxVelocityChange);
-            groundChecker = new GroundChecker(groundCheck, ceilingCheck, groundCheckRadius, groundCheckDistance, groundLayerMask, ceilingCheckRadius, ceilingCheckDistance, ceilingLayerMask);
-            debugVisualizer = new DebugVisualizer(transform, capsule, groundCheck, ceilingCheck, visualizeBounds, debugInput, visualizeGroundCeilingChecks, visualizeVelocity);
+            movement = new PlayerMovement(rb, transform, walkSpeed, runSpeed, acceleration, deceleration, reverseDeceleration, maxVelocityChange, jumpForce, jumpBufferTime, coyoteTime, debugInput);
+            groundChecker = new GroundChecker(groundCheck, ceilingCheck, groundCheckRadius, groundCheckDistance, groundLayerMask, ceilingCheckRadius, ceilingCheckDistance, ceilingLayerMask, debugInput, capsule);
+            debugVisualizer = new DebugVisualizer(transform, capsule, groundCheck, ceilingCheck, visualizeBounds, debugInput, visualizeGroundCeilingChecks, visualizeVelocity, visualizeJump, groundCheckRadius);
 
             cameraController.InitializeAngles();
         }
@@ -148,11 +156,14 @@ namespace ZacharysNewman.PPC
             // Update movement with ground info
             movement.UpdateGrounded(groundChecker.IsGrounded, groundChecker.GroundNormal);
 
+            // Handle jump
+            movement.HandleJump(inputHandler.JumpInput);
+
             // Debug logging
             debugVisualizer.LogInput(inputHandler.MoveInput, inputHandler.RunInput, inputHandler.CrouchInput, inputHandler.JumpInput, inputHandler.InteractInput);
 
             // Update debug visualizer
-            debugVisualizer.UpdateDebugInfo(groundChecker.IsGrounded, groundChecker.GroundNormal, movement.CurrentVelocity, movement.TargetVelocity);
+            debugVisualizer.UpdateDebugInfo(groundChecker.IsGrounded, groundChecker.GroundNormal, movement.CurrentVelocity, movement.TargetVelocity, movement.JumpBufferTimer, movement.CoyoteTimer, movement.JumpApexHeight, movement.IsJumping);
         }
 
         private void FixedUpdate()
