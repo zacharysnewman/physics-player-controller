@@ -12,13 +12,7 @@ namespace ZacharysNewman.PPC
         [SerializeField] private Transform groundCheck;
         [SerializeField] private Transform ceilingCheck;
 
-        [Header("Fallback Settings")]
-        [SerializeField] private float groundCheckRadius = 0.4f;
-        [SerializeField] private float groundCheckDistance = 0.1f;
-        [SerializeField] private LayerMask groundLayerMask = -1;
-        [SerializeField] private float ceilingCheckRadius = 0.4f;
-        [SerializeField] private float ceilingCheckDistance = 0.1f;
-        [SerializeField] private LayerMask ceilingLayerMask = -1;
+
         [SerializeField] private bool debugLogging = false;
 
         // Component references
@@ -50,6 +44,12 @@ namespace ZacharysNewman.PPC
                 ceilingCheck.parent = transform;
                 ceilingCheck.localPosition = Vector3.up * (capsule.height / 2f - capsule.radius);
             }
+
+            // Ensure config is set
+            if (config == null)
+            {
+                Debug.LogError("GroundChecker: Config is required. Please assign a GroundCheckerConfig.");
+            }
         }
 
         private void Update()
@@ -63,22 +63,24 @@ namespace ZacharysNewman.PPC
             RaycastHit hit;
 
             // Debug: Draw the actual sphere cast ray
-            bool debugEnabled = config != null ? config.DebugLogging : false;
-            if (debugEnabled)
+            if (debugLogging)
             {
-                float distance = config != null ? config.GroundCheckDistance : groundCheckDistance;
+                float distance = config.GroundCheckDistance;
                 Debug.DrawRay(groundCheck.position, Vector3.down * distance, Color.yellow, 0.1f);
                 Debug.DrawLine(groundCheck.position, groundCheck.position + Vector3.down * distance, Color.yellow, 0.1f);
             }
 
             // Try Raycast first (simpler)
-            float checkDistance = config != null ? config.GroundCheckDistance : groundCheckDistance;
-            LayerMask layerMask = config != null ? config.GroundLayerMask : groundLayerMask;
+            float checkDistance = config.GroundCheckDistance;
+            LayerMask layerMask = config.GroundLayerMask;
             if (Physics.Raycast(groundCheck.position, Vector3.down, out hit, checkDistance, layerMask))
             {
                 IsGrounded = true;
                 GroundNormal = hit.normal;
                 GroundSlopeAngle = Vector3.Angle(Vector3.up, GroundNormal);
+
+                // Check for player self-collision
+                CheckForPlayerCollision(hit.collider.gameObject, "ground");
 
                 // Debug logging
                 if (debugLogging)
@@ -87,23 +89,26 @@ namespace ZacharysNewman.PPC
                 }
             }
             // Fallback: Try SphereCast
-            else if (Physics.SphereCast(groundCheck.position, (config != null ? config.GroundCheckRadius : groundCheckRadius), Vector3.down, out hit, checkDistance, layerMask))
+            else if (Physics.SphereCast(groundCheck.position, config.GroundCheckRadius, Vector3.down, out hit, checkDistance, layerMask))
             {
                 IsGrounded = true;
                 GroundNormal = hit.normal;
                 GroundSlopeAngle = Vector3.Angle(Vector3.up, GroundNormal);
 
+                // Check for player self-collision
+                CheckForPlayerCollision(hit.collider.gameObject, "ground");
+
                 // Debug logging
                 if (debugLogging)
                 {
-                    Debug.Log($"Ground detected with SphereCast! Position: {groundCheck.position}, Distance: {hit.distance}, Hit point: {hit.point}, Normal: {GroundNormal}");
+                    // Debug.Log($"Ground detected with SphereCast! Position: {groundCheck.position}, Distance: {hit.distance}, Hit point: {hit.point}, Normal: {GroundNormal}");
                 }
             }
             else
             {
                 // Fallback: Try OverlapSphere at the bottom of the cast
                 Vector3 checkPosition = groundCheck.position + Vector3.down * checkDistance;
-                Collider[] colliders = Physics.OverlapSphere(checkPosition, (config != null ? config.GroundCheckRadius : groundCheckRadius), layerMask);
+                Collider[] colliders = Physics.OverlapSphere(checkPosition, config.GroundCheckRadius, layerMask);
 
                 if (colliders.Length > 0)
                 {
@@ -113,6 +118,8 @@ namespace ZacharysNewman.PPC
                     {
                         if (col != null && col.gameObject != gameObject)
                         {
+                            // Check for player collision warning
+                            CheckForPlayerCollision(col.gameObject, "ground");
                             hasValidCollider = true;
                             break;
                         }
@@ -140,7 +147,7 @@ namespace ZacharysNewman.PPC
                     // Debug logging (more frequent for troubleshooting)
                     if (debugLogging)
                     {
-                        Debug.Log($"No ground detected. GroundCheck worldPos: {groundCheck.position}, OverlapSphere position: {checkPosition}, distance: {groundCheckDistance}, radius: {groundCheckRadius}, layerNames: {GetLayerNames(groundLayerMask)}");
+                        Debug.Log($"No ground detected. GroundCheck worldPos: {groundCheck.position}, OverlapSphere position: {checkPosition}, distance: {config.GroundCheckDistance}, radius: {config.GroundCheckRadius}, layerNames: {GetLayerNames(config.GroundLayerMask)}");
                     }
                 }
             }
@@ -153,7 +160,7 @@ namespace ZacharysNewman.PPC
         {
             // Check for walls in all horizontal directions
             Vector3[] directions = { Vector3.forward, Vector3.back, Vector3.left, Vector3.right };
-            float wallCheckDistance = groundCheckRadius * 0.8f; // Slightly less than radius
+            float wallCheckDistance = config.GroundCheckRadius * 0.8f; // Slightly less than radius
 
             IsTouchingWall = false;
             WallNormal = Vector3.zero;
@@ -163,8 +170,11 @@ namespace ZacharysNewman.PPC
                 RaycastHit hit;
                 Vector3 checkPosition = groundCheck.position + direction * (capsule.radius * 0.9f);
 
-                if (Physics.Raycast(checkPosition, direction, out hit, wallCheckDistance, groundLayerMask))
+                if (Physics.Raycast(checkPosition, direction, out hit, wallCheckDistance, config.GroundLayerMask))
                 {
+                    // Check for player self-collision
+                    CheckForPlayerCollision(hit.collider.gameObject, "wall");
+
                     // Make sure it's not the ground (check angle)
                     float angle = Vector3.Angle(Vector3.up, hit.normal);
                     if (angle > 45f) // Not ground, must be wall
@@ -186,9 +196,10 @@ namespace ZacharysNewman.PPC
         {
             // For ceiling check, we can use a similar spherecast upward
             RaycastHit hit;
-            if (Physics.SphereCast(ceilingCheck.position, ceilingCheckRadius, Vector3.up, out hit, ceilingCheckDistance, ceilingLayerMask))
+            if (Physics.SphereCast(ceilingCheck.position, config.CeilingCheckRadius, Vector3.up, out hit, config.CeilingCheckDistance, config.CeilingLayerMask))
             {
-                // Store if ceiling is hit, but for now just check
+                // Check for player self-collision
+                CheckForPlayerCollision(hit.collider.gameObject, "ceiling");
             }
         }
 
@@ -206,23 +217,26 @@ namespace ZacharysNewman.PPC
         }
 
         // Public methods for configuration
-        public void SetGroundCheckParameters(float radius, float distance, LayerMask layerMask)
-        {
-            groundCheckRadius = radius;
-            groundCheckDistance = distance;
-            groundLayerMask = layerMask;
-        }
-
-        public void SetCeilingCheckParameters(float radius, float distance, LayerMask layerMask)
-        {
-            ceilingCheckRadius = radius;
-            ceilingCheckDistance = distance;
-            ceilingLayerMask = layerMask;
-        }
 
         public void SetDebugLogging(bool enabled)
         {
             debugLogging = enabled;
+        }
+
+        private void CheckForPlayerCollision(GameObject hitObject, string checkType)
+        {
+            // Debug: Log what we hit (only if debug logging is enabled)
+            if (debugLogging)
+            {
+                Debug.Log($"GroundChecker: {checkType} check hit object '{hitObject.name}' with tag '{hitObject.tag}' on layer {hitObject.layer}");
+            }
+
+            if (hitObject.CompareTag("Player"))
+            {
+                Debug.LogWarning($"GroundChecker: {checkType} check hit object tagged 'Player' ({hitObject.name}). " +
+                    "Consider putting the player object on a separate layer excluded from ground/ceiling checks to prevent self-collision. " +
+                    "Current layer mask may include the player's layer.");
+            }
         }
     }
 }

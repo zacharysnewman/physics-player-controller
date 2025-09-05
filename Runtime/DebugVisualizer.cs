@@ -62,7 +62,7 @@ namespace ZacharysNewman.PPC
         {
             if (debugLogging)
             {
-                Debug.Log($"Move Input: {moveInput}, Run: {runInput}, Crouch: {crouchInput}, Jump: {jumpInput}, Interact: {interactInput}");
+                // Debug.Log($"Move Input: {moveInput}, Run: {runInput}, Crouch: {crouchInput}, Jump: {jumpInput}, Interact: {interactInput}");
             }
         }
 

@@ -10,14 +10,10 @@ namespace ZacharysNewman.PPC
         [SerializeField] private float jumpBufferTime = 0.2f;
         [SerializeField] private float coyoteTime = 0.1f;
 
-        [Header("Debug Settings")]
-        [SerializeField] private bool debugLogging = false;
-
         // Public properties
         public float JumpForce => jumpForce;
         public float JumpBufferTime => jumpBufferTime;
         public float CoyoteTime => coyoteTime;
-        public bool DebugLogging => debugLogging;
 
         // Public methods for runtime modification
         public void SetJumpParameters(float force, float bufferTime, float coyote)
@@ -27,9 +23,6 @@ namespace ZacharysNewman.PPC
             coyoteTime = coyote;
         }
 
-        public void SetDebugLogging(bool enabled)
-        {
-            debugLogging = enabled;
-        }
+
     }
 }

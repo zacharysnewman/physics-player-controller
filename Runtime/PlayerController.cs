@@ -82,16 +82,7 @@ namespace ZacharysNewman.PPC
                 // Apply ground checker config
             }
 
-            if (debugVisualizer != null)
-            {
-                debugVisualizer.SetVisualizationToggles(
-                    config.VisualizeBounds,
-                    config.DebugLogging,
-                    config.VisualizeGroundCeilingChecks,
-                    config.VisualizeVelocity,
-                    config.VisualizeJump
-                );
-            }
+
 
             if (playerInput != null)
             {

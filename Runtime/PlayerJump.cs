@@ -23,10 +23,7 @@ namespace ZacharysNewman.PPC
         private bool wasGrounded;
         private bool wasJumpPressed;
 
-        // Configuration fallbacks
-        private float jumpForce;
-        private float jumpBufferTime;
-        private float coyoteTime;
+        // Configuration
         private bool debugLogging;
 
         // Public properties for other components
@@ -40,10 +37,10 @@ namespace ZacharysNewman.PPC
             rb = GetComponent<Rigidbody>();
             groundChecker = GetComponent<GroundChecker>();
 
-            // Apply config values
-            if (config != null)
+            // Ensure config is set
+            if (config == null)
             {
-                // Config values are used in jump calculations
+                Debug.LogError("PlayerJump: Config is required. Please assign a PlayerJumpConfig.");
             }
         }
 
@@ -64,7 +61,7 @@ namespace ZacharysNewman.PPC
             // Coyote time starts when leaving ground
             if (!groundChecker.IsGrounded && wasGrounded)
             {
-                coyoteTimer = coyoteTime;
+                coyoteTimer = config.CoyoteTime;
                 if (debugLogging)
                 {
                     Debug.Log($"PlayerJump: Coyote time started. Timer: {coyoteTimer}");
@@ -87,8 +84,8 @@ namespace ZacharysNewman.PPC
             // Set jump buffer only on initial press (not while held)
             if (jumpInput && !wasJumpPressed && jumpBufferTimer <= 0)
             {
-                jumpBufferTimer = config != null ? config.JumpBufferTime : jumpBufferTime;
-                if ((config != null ? config.DebugLogging : debugLogging))
+                jumpBufferTimer = config.JumpBufferTime;
+                if (debugLogging)
                 {
                     Debug.Log($"PlayerJump: Jump buffer set. Timer: {jumpBufferTimer}");
                 }
@@ -97,8 +94,8 @@ namespace ZacharysNewman.PPC
             // Coyote time starts when leaving ground
             if (!groundChecker.IsGrounded && wasGrounded)
             {
-                coyoteTimer = config != null ? config.CoyoteTime : coyoteTime;
-                if ((config != null ? config.DebugLogging : debugLogging))
+                coyoteTimer = config.CoyoteTime;
+                if (debugLogging)
                 {
                     Debug.Log($"PlayerJump: Coyote time started. Timer: {coyoteTimer}");
                 }
@@ -116,8 +113,7 @@ namespace ZacharysNewman.PPC
                 PerformJump();
             }
 
-            bool debugEnabled = config != null ? config.DebugLogging : debugLogging;
-            if (debugEnabled && jumpInput && !wasJumpPressed)
+            if (debugLogging && jumpInput && !wasJumpPressed)
             {
                 Debug.Log($"PlayerJump: Jump input detected. Can jump: {canJump}, IsGrounded: {groundChecker.IsGrounded}, CoyoteTimer: {coyoteTimer}, JumpBufferTimer: {jumpBufferTimer}");
             }
@@ -127,8 +123,7 @@ namespace ZacharysNewman.PPC
 
         private void PerformJump()
         {
-            float force = config != null ? config.JumpForce : jumpForce;
-            bool debugEnabled = config != null ? config.DebugLogging : debugLogging;
+            float force = config.JumpForce;
 
             // Reset vertical velocity
             rb.linearVelocity = new Vector3(rb.linearVelocity.x, 0, rb.linearVelocity.z);
@@ -140,19 +135,13 @@ namespace ZacharysNewman.PPC
             isJumping = true;
             jumpApexHeight = transform.position.y + (force * force) / (2 * Physics.gravity.magnitude); // Approximate apex
 
-            if (debugEnabled)
+            if (debugLogging)
             {
                 Debug.Log($"PlayerJump: Jump performed with force {force}. New velocity: {rb.linearVelocity}");
             }
         }
 
         // Public methods for configuration
-        public void SetJumpParameters(float force, float bufferTime, float coyote)
-        {
-            jumpForce = force;
-            jumpBufferTime = bufferTime;
-            coyoteTime = coyote;
-        }
 
         public void SetDebugLogging(bool enabled)
         {

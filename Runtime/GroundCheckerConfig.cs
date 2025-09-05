@@ -15,9 +15,6 @@ namespace ZacharysNewman.PPC
         [SerializeField] private float ceilingCheckDistance = 0.1f;
         [SerializeField] private LayerMask ceilingLayerMask = -1;
 
-        [Header("Debug Settings")]
-        [SerializeField] private bool debugLogging = false;
-
         // Public properties
         public float GroundCheckRadius => groundCheckRadius;
         public float GroundCheckDistance => groundCheckDistance;
@@ -25,7 +22,6 @@ namespace ZacharysNewman.PPC
         public float CeilingCheckRadius => ceilingCheckRadius;
         public float CeilingCheckDistance => ceilingCheckDistance;
         public LayerMask CeilingLayerMask => ceilingLayerMask;
-        public bool DebugLogging => debugLogging;
 
         // Public methods for runtime modification
         public void SetGroundCheckParameters(float radius, float distance, LayerMask layerMask)
@@ -42,9 +38,6 @@ namespace ZacharysNewman.PPC
             ceilingLayerMask = layerMask;
         }
 
-        public void SetDebugLogging(bool enabled)
-        {
-            debugLogging = enabled;
-        }
+
     }
 }

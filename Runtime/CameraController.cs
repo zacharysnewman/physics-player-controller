@@ -13,11 +13,7 @@ namespace ZacharysNewman.PPC
         // Component references (auto-assigned)
         private PlayerInput playerInput;
 
-        [Header("Fallback Settings")]
-        [SerializeField] private float mouseSensitivity = 12f;
-        [SerializeField] private bool invertY = false;
-        [SerializeField] private float minVerticalAngle = -80f;
-        [SerializeField] private float maxVerticalAngle = 80f;
+
 
         // Camera state
         private float cameraYaw = 0f;
@@ -35,6 +31,12 @@ namespace ZacharysNewman.PPC
 
             playerInput = GetComponent<PlayerInput>();
             InitializeAngles();
+
+            // Ensure config is set
+            if (config == null)
+            {
+                Debug.LogError("CameraController: Config is required. Please assign a CameraControllerConfig.");
+            }
         }
 
         public void InitializeAngles()
@@ -60,11 +62,11 @@ namespace ZacharysNewman.PPC
         {
             if (mainCamera == null || !isMouseLocked) return;
 
-            // Use config values if available
-            float sensitivity = config != null ? config.MouseSensitivity : mouseSensitivity;
-            bool invert = config != null ? config.InvertY : invertY;
-            float minAngle = config != null ? config.MinVerticalAngle : minVerticalAngle;
-            float maxAngle = config != null ? config.MaxVerticalAngle : maxVerticalAngle;
+            // Use config values
+            float sensitivity = config.MouseSensitivity;
+            bool invert = config.InvertY;
+            float minAngle = config.MinVerticalAngle;
+            float maxAngle = config.MaxVerticalAngle;
 
             // Update yaw and pitch
             cameraYaw += lookInput.x * sensitivity * Time.deltaTime;
@@ -85,20 +87,5 @@ namespace ZacharysNewman.PPC
         }
 
         // Public methods for configuration
-        public void SetSensitivity(float sensitivity)
-        {
-            mouseSensitivity = sensitivity;
-        }
-
-        public void SetVerticalLimits(float minAngle, float maxAngle)
-        {
-            minVerticalAngle = minAngle;
-            maxVerticalAngle = maxAngle;
-        }
-
-        public void SetInvertY(bool invert)
-        {
-            invertY = invert;
-        }
     }
 }

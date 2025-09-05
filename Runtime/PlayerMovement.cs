@@ -13,13 +13,7 @@ namespace ZacharysNewman.PPC
         [Header("Dependencies")]
         [SerializeField] private Camera mainCamera;
 
-        [Header("Fallback Settings")]
-        [SerializeField] private float walkSpeed = 5f;
-        [SerializeField] private float runSpeed = 10f;
-        [SerializeField] private float acceleration = 10f;
-        [SerializeField] private float deceleration = 10f;
-        [SerializeField] private float reverseDeceleration = 15f;
-        [SerializeField] private float maxVelocityChange = 10f;
+
 
         // Component references
         private Rigidbody rb;
@@ -44,10 +38,10 @@ namespace ZacharysNewman.PPC
                 mainCamera = Camera.main;
             }
 
-            // Apply config values if available
-            if (config != null)
+            // Ensure config is set
+            if (config == null)
             {
-                // Config values are used in the movement calculations
+                Debug.LogError("PlayerMovement: Config is required. Please assign a PlayerMovementConfig.");
             }
         }
 
@@ -110,7 +104,7 @@ namespace ZacharysNewman.PPC
             }
 
             // Compute target velocity
-            float speed = runInput ? (config != null ? config.RunSpeed : runSpeed) : (config != null ? config.WalkSpeed : walkSpeed);
+            float speed = runInput ? config.RunSpeed : config.WalkSpeed;
             TargetVelocity = moveDirection * speed;
 
             // Smooth velocity
@@ -118,7 +112,7 @@ namespace ZacharysNewman.PPC
             velocityChange.y = 0f; // Don't affect vertical velocity
 
             // Limit velocity change
-            float maxChange = config != null ? config.MaxVelocityChange : maxVelocityChange;
+            float maxChange = config.MaxVelocityChange;
             if (velocityChange.magnitude > maxChange)
             {
                 velocityChange = velocityChange.normalized * maxChange;
@@ -131,11 +125,11 @@ namespace ZacharysNewman.PPC
             float accel;
             if (moveInput.magnitude > 0.1f)
             {
-                accel = (dot < -0.1f) ? (config != null ? config.ReverseDeceleration : reverseDeceleration) : (config != null ? config.Acceleration : acceleration);
+                accel = (dot < -0.1f) ? config.ReverseDeceleration : config.Acceleration;
             }
             else
             {
-                accel = (config != null ? config.Deceleration : deceleration);
+                accel = config.Deceleration;
             }
             velocityChange = Vector3.MoveTowards(Vector3.zero, velocityChange, accel * Time.fixedDeltaTime);
 
@@ -146,17 +140,5 @@ namespace ZacharysNewman.PPC
         }
 
         // Public methods for configuration
-        public void SetMovementSpeeds(float walk, float run)
-        {
-            walkSpeed = walk;
-            runSpeed = run;
-        }
-
-        public void SetAcceleration(float accel, float decel, float revDecel)
-        {
-            acceleration = accel;
-            deceleration = decel;
-            reverseDeceleration = revDecel;
-        }
     }
 }
