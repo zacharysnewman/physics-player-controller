@@ -10,14 +10,12 @@ namespace ZacharysNewman.PPC
         [SerializeField] private LayerMask groundLayerMask = -1;
 
         [Header("Ceiling Check Settings")]
-        [SerializeField] private float ceilingCheckRadius = 0.4f;
         [SerializeField] private float ceilingCheckDistance = 0.1f;
         [SerializeField] private LayerMask ceilingLayerMask = -1;
 
         // Public properties
         public float GroundCheckDistance => groundCheckDistance;
         public LayerMask GroundLayerMask => groundLayerMask;
-        public float CeilingCheckRadius => ceilingCheckRadius;
         public float CeilingCheckDistance => ceilingCheckDistance;
         public LayerMask CeilingLayerMask => ceilingLayerMask;
 
@@ -28,9 +26,8 @@ namespace ZacharysNewman.PPC
             groundLayerMask = layerMask;
         }
 
-        public void SetCeilingCheckParameters(float radius, float distance, LayerMask layerMask)
+        public void SetCeilingCheckParameters(float distance, LayerMask layerMask)
         {
-            ceilingCheckRadius = radius;
             ceilingCheckDistance = distance;
             ceilingLayerMask = layerMask;
         }

@@ -95,8 +95,8 @@ namespace ZacharysNewman.PPC
                 Gizmos.DrawLine(groundCheck.position, groundCheck.position + Vector3.down * 0.15f);
 
                 // Ceiling check
-                Gizmos.color = Color.yellow;
-                Gizmos.DrawWireSphere(ceilingCheck.position + Vector3.up * 0.1f, 0.4f);
+                Gizmos.color = groundChecker.IsCeilingBlocked ? Color.red : Color.green;
+                Gizmos.DrawLine(ceilingCheck.position, ceilingCheck.position + Vector3.up * 0.15f);
 
                 // Ground normal
                 if (groundChecker.IsGrounded)

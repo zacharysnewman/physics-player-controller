@@ -67,13 +67,10 @@ namespace ZacharysNewman.PPC
                     StartCrouch();
                 }
             }
-            else if (!crouchInput && wasCrouchPressed)
+            else if (!crouchInput && isCrouching && canUncrouch)
             {
-                // Try to stop crouching
-                if (isCrouching && canUncrouch)
-                {
-                    StopCrouch();
-                }
+                // Stop crouching if not blocked
+                StopCrouch();
             }
 
             wasCrouchPressed = crouchInput;

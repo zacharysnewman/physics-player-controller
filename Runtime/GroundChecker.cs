@@ -57,6 +57,16 @@ namespace ZacharysNewman.PPC
 
         private void Update()
         {
+            // Update check positions based on current capsule
+            if (groundCheck != null)
+            {
+                groundCheck.localPosition = capsule.center + Vector3.down * (capsule.height / 2f - capsule.radius * 0.1f);
+            }
+            if (ceilingCheck != null)
+            {
+                ceilingCheck.localPosition = capsule.center + Vector3.up * (capsule.height / 2f - capsule.radius * 0.1f);
+            }
+
             CheckGround();
             CheckCeiling();
         }
@@ -205,14 +215,64 @@ namespace ZacharysNewman.PPC
 
         public void CheckCeiling()
         {
-            // For ceiling check, we can use a similar spherecast upward
-            RaycastHit hit;
-            IsCeilingBlocked = Physics.SphereCast(ceilingCheck.position, config.CeilingCheckRadius, Vector3.up, out hit, config.CeilingCheckDistance, config.CeilingLayerMask);
-            if (IsCeilingBlocked)
+            float checkDistance = config.CeilingCheckDistance;
+            LayerMask layerMask = config.CeilingLayerMask;
+            float radius = capsule.radius;
+
+            RaycastHit closestHit = new RaycastHit();
+            bool foundCeiling = false;
+            float minDistance = float.MaxValue;
+
+            // Center raycast upward
             {
-                // Check for player self-collision
-                CheckForPlayerCollision(hit.collider.gameObject, "ceiling");
+                Vector3 checkPosition = ceilingCheck.position;
+
+                if (debugLogging)
+                {
+                    Debug.DrawRay(checkPosition, Vector3.up * checkDistance, Color.yellow, 0.1f);
+                }
+
+                RaycastHit hit;
+                if (Physics.Raycast(checkPosition, Vector3.up, out hit, checkDistance, layerMask))
+                {
+                    CheckForPlayerCollision(hit.collider.gameObject, "ceiling");
+
+                    if (hit.distance < minDistance)
+                    {
+                        minDistance = hit.distance;
+                        closestHit = hit;
+                        foundCeiling = true;
+                    }
+                }
             }
+
+            // Perform 8 raycasts in a circle upward
+            for (int i = 0; i < 8; i++)
+            {
+                float angle = i * 45f * Mathf.Deg2Rad;
+                Vector3 offset = new Vector3(Mathf.Cos(angle) * radius, 0f, Mathf.Sin(angle) * radius);
+                Vector3 checkPosition = ceilingCheck.position + offset;
+
+                if (debugLogging)
+                {
+                    Debug.DrawRay(checkPosition, Vector3.up * checkDistance, Color.yellow, 0.1f);
+                }
+
+                RaycastHit hit;
+                if (Physics.Raycast(checkPosition, Vector3.up, out hit, checkDistance, layerMask))
+                {
+                    CheckForPlayerCollision(hit.collider.gameObject, "ceiling");
+
+                    if (hit.distance < minDistance)
+                    {
+                        minDistance = hit.distance;
+                        closestHit = hit;
+                        foundCeiling = true;
+                    }
+                }
+            }
+
+            IsCeilingBlocked = foundCeiling;
         }
 
         private string GetLayerNames(LayerMask mask)
