@@ -30,6 +30,9 @@ namespace ZacharysNewman.PPC
         // Ceiling detection
         public bool IsCeilingBlocked { get; private set; }
 
+        // Public access to config
+        public LayerMask GetGroundLayerMask() => config.GroundLayerMask;
+
         private void Awake()
         {
             capsule = GetComponent<CapsuleCollider>();
@@ -113,10 +116,10 @@ namespace ZacharysNewman.PPC
                 }
             }
 
-            // Perform 8 raycasts in a circle
-            for (int i = 0; i < 8; i++)
+            // Perform 16 raycasts in a circle
+            for (int i = 0; i < 16; i++)
             {
-                float angle = i * 45f * Mathf.Deg2Rad;
+                float angle = i * 22.5f * Mathf.Deg2Rad;
                 Vector3 offset = new Vector3(Mathf.Cos(angle) * radius, 0f, Mathf.Sin(angle) * radius);
                 Vector3 checkPosition = groundCheck.position + offset;
 
@@ -150,9 +153,11 @@ namespace ZacharysNewman.PPC
 
             if (foundGround)
             {
-                IsGrounded = true;
                 GroundNormal = closestHit.normal;
                 GroundSlopeAngle = Vector3.Angle(Vector3.up, GroundNormal);
+
+                // Check if slope is traversable
+                IsGrounded = GroundSlopeAngle <= config.MaxSlopeAngle;
 
                 // Debug logging for closest hit
                 if (debugLogging)
@@ -246,10 +251,10 @@ namespace ZacharysNewman.PPC
                 }
             }
 
-            // Perform 8 raycasts in a circle upward
-            for (int i = 0; i < 8; i++)
+            // Perform 16 raycasts in a circle upward
+            for (int i = 0; i < 16; i++)
             {
-                float angle = i * 45f * Mathf.Deg2Rad;
+                float angle = i * 22.5f * Mathf.Deg2Rad;
                 Vector3 offset = new Vector3(Mathf.Cos(angle) * radius, 0f, Mathf.Sin(angle) * radius);
                 Vector3 checkPosition = ceilingCheck.position + offset;
 

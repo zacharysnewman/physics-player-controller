@@ -90,12 +90,15 @@
 
 ### Task 7a: Smooth Terrain Navigation
 
-- Use multiple ground raycasts in all directions [Code]
-- Average ground heights for smooth following [Code]
-- Lerp player position to follow terrain contours [Code]
-- Configurable: follow radius, speed, ray count [Code]
+- Transform player's movement velocity to align with terrain normals for slope matching [Code]
+- Use raycasts in movement direction to determine slope and adjust velocity accordingly [Code]
+- Ensure movement on x/z axis follows terrain contours, not flat horizontal velocity [Code]
+- Configurable: raycast distance, number of rays, slope alignment strength [Code]
+- Raycast diagonally from player's center to ground to detect walls, steps, and slopes [Code]
+- Account for player height (2m standing, 1m crouching) and configurable offsets [Code]
+- Handle cases where raycast hits nothing (e.g., fall or edge detection) [Code]
 - Debug / Gizmos Config:
-  - Visualize terrain following rays [Code]
+  - Visualize slope detection rays and adjusted velocity vectors [Code]
 
 ### Task 7b: Step Handling
 

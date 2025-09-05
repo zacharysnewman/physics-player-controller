@@ -18,3 +18,11 @@ MonoBehaviour:
   deceleration: 10
   reverseDeceleration: 20
   maxVelocityChange: 10
+  raycastDistance: 100
+  numberOfRays: 5
+  slopeAlignmentStrength: 1
+  standingHeight: 2
+  crouchingHeight: 1
+  maxSlopeAngle: 30
+  forwardRayDownAngle: 60
+  slopeDetectionRayDistance: 3

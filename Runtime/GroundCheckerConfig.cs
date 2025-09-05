@@ -12,12 +12,14 @@ namespace ZacharysNewman.PPC
         [Header("Ceiling Check Settings")]
         [SerializeField] private float ceilingCheckDistance = 0.1f;
         [SerializeField] private LayerMask ceilingLayerMask = -1;
+        [SerializeField] private float maxSlopeAngle = 45f;
 
         // Public properties
         public float GroundCheckDistance => groundCheckDistance;
         public LayerMask GroundLayerMask => groundLayerMask;
         public float CeilingCheckDistance => ceilingCheckDistance;
         public LayerMask CeilingLayerMask => ceilingLayerMask;
+        public float MaxSlopeAngle => maxSlopeAngle;
 
         // Public methods for runtime modification
         public void SetGroundCheckParameters(float distance, LayerMask layerMask)

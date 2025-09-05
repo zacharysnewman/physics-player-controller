@@ -15,6 +15,13 @@ namespace ZacharysNewman.PPC
         [SerializeField] private float reverseDeceleration = 20f;
         [SerializeField] private float maxVelocityChange = 10f;
 
+        [Header("Terrain Navigation")]
+        [SerializeField] private float slopeAlignmentStrength = 0.5f;
+        [SerializeField] private float standingHeight = 2f;
+        [SerializeField] private float crouchingHeight = 1f;
+        [SerializeField] private float slopeDetectionRayDistance = 3f;
+
+
         // Public properties
         public float WalkSpeed => walkSpeed;
         public float RunSpeed => runSpeed;
@@ -22,6 +29,11 @@ namespace ZacharysNewman.PPC
         public float Deceleration => deceleration;
         public float ReverseDeceleration => reverseDeceleration;
         public float MaxVelocityChange => maxVelocityChange;
+        public float SlopeAlignmentStrength => slopeAlignmentStrength;
+        public float StandingHeight => standingHeight;
+        public float CrouchingHeight => crouchingHeight;
+        public float SlopeDetectionRayDistance => slopeDetectionRayDistance;
+
 
         // Public methods for runtime modification
         public void SetMovementSpeeds(float walk, float run)

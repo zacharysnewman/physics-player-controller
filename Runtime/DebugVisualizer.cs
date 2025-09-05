@@ -17,6 +17,7 @@ namespace ZacharysNewman.PPC
         [SerializeField] private bool visualizeVelocity = false;
         [SerializeField] private bool visualizeJump = true;
         [SerializeField] private bool visualizeCrouch = true;
+        [SerializeField] private bool visualizeTerrainNavigation = false;
 
 
 
@@ -148,10 +149,15 @@ namespace ZacharysNewman.PPC
                 Gizmos.color = playerCrouch.IsCrouching ? Color.green : Color.red;
                 Gizmos.DrawSphere(transform.position + Vector3.up * 3f, 0.1f);
             }
+
+            if (visualizeTerrainNavigation)
+            {
+                playerMovement.VisualizeTerrainRays();
+            }
         }
 
         // Public methods for configuration
-        public void SetVisualizationToggles(bool bounds, bool logging, bool groundChecks, bool velocity, bool jump, bool crouch)
+        public void SetVisualizationToggles(bool bounds, bool logging, bool groundChecks, bool velocity, bool jump, bool crouch, bool terrain)
         {
             visualizeBounds = bounds;
             debugLogging = logging;
@@ -159,6 +165,7 @@ namespace ZacharysNewman.PPC
             visualizeVelocity = velocity;
             visualizeJump = jump;
             visualizeCrouch = crouch;
+            visualizeTerrainNavigation = terrain;
         }
     }
 }

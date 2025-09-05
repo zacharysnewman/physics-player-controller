@@ -19,6 +19,8 @@ namespace ZacharysNewman.PPC
         private Rigidbody rb;
         private GroundChecker groundChecker;
         private PlayerInput playerInput;
+        private PlayerCrouch playerCrouch;
+        private CapsuleCollider capsule;
 
         // Movement state
         private bool isGrounded;
@@ -27,12 +29,18 @@ namespace ZacharysNewman.PPC
 
         public Vector3 TargetVelocity { get; private set; }
         public Vector3 CurrentVelocity { get; private set; }
+        private Vector3 currentMoveDirection;
+        private Vector3 debugFootPoint;
+        private Vector3 debugSlopePoint;
+        private float debugSlopeAngle;
 
         private void Awake()
         {
             rb = GetComponent<Rigidbody>();
             groundChecker = GetComponent<GroundChecker>();
             playerInput = GetComponent<PlayerInput>();
+            playerCrouch = GetComponent<PlayerCrouch>();
+            capsule = GetComponent<CapsuleCollider>();
 
             if (mainCamera == null)
             {
@@ -97,20 +105,30 @@ namespace ZacharysNewman.PPC
 
             // Convert input to world space
             Vector3 moveDirection = cameraForward * moveInput.y + cameraRight * moveInput.x;
+            currentMoveDirection = moveDirection;
 
-            // Project onto ground plane
+            // Terrain navigation: adjust movement to follow terrain contours
             if (isGrounded && groundChecker != null)
             {
-                moveDirection = moveDirection - Vector3.Project(moveDirection, groundNormal);
+                moveDirection = AdjustForTerrain(moveDirection);
             }
 
             // Compute target velocity
             float speed = (runInput ? config.RunSpeed : config.WalkSpeed) * crouchSpeedMultiplier;
+
+            // Toggle gravity based on grounded state
+            rb.useGravity = !isGrounded;
+
             TargetVelocity = moveDirection * speed;
 
             // Smooth velocity
             Vector3 velocityChange = TargetVelocity - rb.linearVelocity;
-            velocityChange.y = 0f; // Don't affect vertical velocity
+
+            // When airborne, preserve vertical velocity for natural gravity
+            if (!isGrounded)
+            {
+                velocityChange.y = 0f;
+            }
 
             // Limit velocity change
             float maxChange = config.MaxVelocityChange;
@@ -138,6 +156,48 @@ namespace ZacharysNewman.PPC
             rb.AddForce(velocityChange, ForceMode.VelocityChange);
 
             CurrentVelocity = rb.linearVelocity;
+            DebugMovementForce = TargetVelocity;
+        }
+
+        private Vector3 AdjustForTerrain(Vector3 moveDirection)
+        {
+            if (moveDirection.magnitude < 0.01f) return moveDirection;
+
+            // Get current player height
+            float playerHeight = (playerCrouch != null && playerCrouch.IsCrouching) ? config.CrouchingHeight : config.StandingHeight;
+
+            Vector3 center = transform.position + capsule.center;
+            LayerMask groundLayer = groundChecker.GetGroundLayerMask();
+
+            Vector3 adjustedDirection = moveDirection;
+
+            // Offset raycast position in movement direction when moving
+            Vector3 offset = moveDirection.magnitude > 0.01f ? moveDirection.normalized * 0.5f : Vector3.zero;
+            Vector3 rayOrigin = center + offset;
+
+            // Single raycast down from offset position
+            RaycastHit groundHit;
+            Vector3 groundPoint = rayOrigin + Vector3.down * config.SlopeDetectionRayDistance; // default
+            if (Physics.Raycast(rayOrigin, Vector3.down, out groundHit, config.SlopeDetectionRayDistance, groundLayer))
+            {
+                groundPoint = groundHit.point;
+                Vector3 groundNormal = groundHit.normal;
+
+                // Calculate slope angle
+                float slopeAngle = Vector3.Angle(Vector3.up, groundNormal);
+                debugSlopeAngle = slopeAngle;
+
+                // Align movement with ground normal
+                adjustedDirection = Vector3.ProjectOnPlane(moveDirection, groundNormal);
+
+                // Blend with original direction
+                adjustedDirection = Vector3.Lerp(moveDirection, adjustedDirection, config.SlopeAlignmentStrength);
+            }
+
+            debugFootPoint = groundPoint;
+            debugSlopePoint = groundPoint; // Same point for single ray
+
+            return adjustedDirection;
         }
 
         // Public methods for configuration
@@ -147,5 +207,31 @@ namespace ZacharysNewman.PPC
         }
 
         public float WalkSpeed => config.WalkSpeed;
+
+        // Debug live values
+        public Vector3 DebugMovementForce;
+
+        // Debug visualization
+        public void VisualizeTerrainRays()
+        {
+            if (!isGrounded) return;
+
+            Vector3 center = transform.position + capsule.center;
+            Vector3 offset = currentMoveDirection.magnitude > 0.01f ? currentMoveDirection.normalized * 0.5f : Vector3.zero;
+            Vector3 rayOrigin = center + offset;
+
+            // Visualize ray from offset position
+            Gizmos.color = Color.blue;
+            Gizmos.DrawLine(rayOrigin, debugFootPoint);
+            Gizmos.DrawSphere(debugFootPoint, 0.05f);
+
+            // Visualize ground normal
+            Gizmos.color = Color.green;
+            Gizmos.DrawLine(debugFootPoint, debugFootPoint + Vector3.up * 0.5f); // Approximate normal direction
+
+            // Show offset position
+            Gizmos.color = Color.yellow;
+            Gizmos.DrawSphere(rayOrigin, 0.03f);
+        }
     }
 }
