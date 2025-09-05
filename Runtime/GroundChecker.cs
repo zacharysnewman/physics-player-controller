@@ -60,32 +60,91 @@ namespace ZacharysNewman.PPC
 
         public void CheckGround()
         {
-            RaycastHit hit;
-
-            // Debug: Draw the sphere cast
-            if (debugLogging)
-            {
-                float distance = config.GroundCheckDistance;
-                Debug.DrawRay(groundCheck.position, Vector3.down * distance, Color.yellow, 0.1f);
-                Debug.DrawLine(groundCheck.position, groundCheck.position + Vector3.down * distance, Color.yellow, 0.1f);
-            }
-
-            // Use Raycast for ground detection
             float checkDistance = config.GroundCheckDistance;
             LayerMask layerMask = config.GroundLayerMask;
-            if (Physics.Raycast(groundCheck.position, Vector3.down, out hit, checkDistance, layerMask))
+            float radius = capsule.radius;
+
+            RaycastHit closestHit = new RaycastHit();
+            bool foundGround = false;
+            float minDistance = float.MaxValue;
+
+            // Center raycast
             {
-                IsGrounded = true;
-                GroundNormal = hit.normal;
-                GroundSlopeAngle = Vector3.Angle(Vector3.up, GroundNormal);
+                Vector3 checkPosition = groundCheck.position;
 
-                // Check for player self-collision
-                CheckForPlayerCollision(hit.collider.gameObject, "ground");
-
-                // Debug logging
+                // Debug: Draw the raycast
                 if (debugLogging)
                 {
-                    Debug.Log($"Ground detected with Raycast! Position: {groundCheck.position}, Distance: {hit.distance}, Hit point: {hit.point}, Normal: {GroundNormal}");
+                    Debug.DrawRay(checkPosition, Vector3.down * checkDistance, Color.yellow, 0.1f);
+                }
+
+                RaycastHit hit;
+                if (Physics.Raycast(checkPosition, Vector3.down, out hit, checkDistance, layerMask))
+                {
+                    // Check for player self-collision
+                    CheckForPlayerCollision(hit.collider.gameObject, "ground");
+
+                    // Track the closest hit
+                    if (hit.distance < minDistance)
+                    {
+                        minDistance = hit.distance;
+                        closestHit = hit;
+                        foundGround = true;
+                    }
+
+                    // Debug logging for center hit
+                    if (debugLogging)
+                    {
+                        Debug.Log($"Ground detected with Center Raycast! Position: {checkPosition}, Distance: {hit.distance}, Hit point: {hit.point}, Normal: {hit.normal}");
+                    }
+                }
+            }
+
+            // Perform 8 raycasts in a circle
+            for (int i = 0; i < 8; i++)
+            {
+                float angle = i * 45f * Mathf.Deg2Rad;
+                Vector3 offset = new Vector3(Mathf.Cos(angle) * radius, 0f, Mathf.Sin(angle) * radius);
+                Vector3 checkPosition = groundCheck.position + offset;
+
+                // Debug: Draw the raycast
+                if (debugLogging)
+                {
+                    Debug.DrawRay(checkPosition, Vector3.down * checkDistance, Color.yellow, 0.1f);
+                }
+
+                RaycastHit hit;
+                if (Physics.Raycast(checkPosition, Vector3.down, out hit, checkDistance, layerMask))
+                {
+                    // Check for player self-collision
+                    CheckForPlayerCollision(hit.collider.gameObject, "ground");
+
+                    // Track the closest hit
+                    if (hit.distance < minDistance)
+                    {
+                        minDistance = hit.distance;
+                        closestHit = hit;
+                        foundGround = true;
+                    }
+
+                    // Debug logging for each hit
+                    if (debugLogging)
+                    {
+                        Debug.Log($"Ground detected with Raycast {i}! Position: {checkPosition}, Distance: {hit.distance}, Hit point: {hit.point}, Normal: {hit.normal}");
+                    }
+                }
+            }
+
+            if (foundGround)
+            {
+                IsGrounded = true;
+                GroundNormal = closestHit.normal;
+                GroundSlopeAngle = Vector3.Angle(Vector3.up, GroundNormal);
+
+                // Debug logging for closest hit
+                if (debugLogging)
+                {
+                    Debug.Log($"Ground detected! Closest hit - Position: {closestHit.point}, Distance: {closestHit.distance}, Normal: {GroundNormal}");
                 }
             }
             else
