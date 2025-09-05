@@ -174,6 +174,7 @@ GameObject:
   - component: {fileID: 1384292208879968185}
   - component: {fileID: 7550552320392940736}
   - component: {fileID: 1116763360299352154}
+  - component: {fileID: 6026259275593641203}
   m_Layer: 6
   m_Name: PPC
   m_TagString: Player
@@ -331,12 +332,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   config: {fileID: 11400000, guid: 7e5dc6a4902974d8181842693dc8adda, type: 2}
   mainCamera: {fileID: 3847610494993908214}
-  walkSpeed: 5
-  runSpeed: 10
-  acceleration: 10
-  deceleration: 10
-  reverseDeceleration: 15
-  maxVelocityChange: 10
 --- !u!114 &3328062567781585833
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -365,17 +360,7 @@ MonoBehaviour:
   config: {fileID: 11400000, guid: d257b9a6bd7df4e29a5186a967b8820d, type: 2}
   groundCheck: {fileID: 7540897855728754020}
   ceilingCheck: {fileID: 4606087182710894023}
-  groundCheckRadius: 0.4
-  groundCheckDistance: 0.1
-  groundLayerMask:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  ceilingCheckRadius: 0.4
-  ceilingCheckDistance: 0.1
-  ceilingLayerMask:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  debugLogging: 0
+  debugLogging: 1
 --- !u!114 &1384292208879968185
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -392,8 +377,9 @@ MonoBehaviour:
   debugLogging: 1
   visualizeGroundCeilingChecks: 1
   visualizeVelocity: 0
-  visualizeJump: 1
-  groundCheckRadius: 0.2
+  visualizeJump: 0
+  visualizeCrouch: 1
+  visualizeSteps: 1
 --- !u!114 &7550552320392940736
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -422,10 +408,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   config: {fileID: 11400000, guid: 40fe8788595ba4f16aa4f215a7d9ad72, type: 2}
   mainCamera: {fileID: 3847610494993908214}
-  mouseSensitivity: 12
-  invertY: 0
-  minVerticalAngle: -80
-  maxVerticalAngle: 80
+--- !u!114 &6026259275593641203
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6860739329674613150}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f56255a30b01d4f45ae644600c19bd71, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  config: {fileID: 11400000, guid: 74564bada8735441c80198e2c1788b88, type: 2}
 --- !u!1 &8962942725810952844
 GameObject:
   m_ObjectHideFlags: 0
@@ -451,7 +446,7 @@ Transform:
   m_GameObject: {fileID: 8962942725810952844}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 1, z: 0}
+  m_LocalPosition: {x: 0, y: 0.55, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []

@@ -88,17 +88,22 @@
 
 ## Phase 3 – Environment-Driven Interactions
 
-### Task 7: Terrain Following + Step Handling
+### Task 7a: Smooth Terrain Navigation
 
-- Use multiple ground raycasts (center + edges) [Code]
-- Average normals for smoother slope transitions [Code]
-- Step Handling:
-  - Detect obstacle in front [Code]
-  - Adjust vertical position if height ≤ maxStepHeight [Code]
-  - Configurable: maxStepHeight
-  - Update movement vector projection onto ground plane [Code]
+- Use multiple ground raycasts in all directions [Code]
+- Average ground heights for smooth following [Code]
+- Lerp player position to follow terrain contours [Code]
+- Configurable: follow radius, speed, ray count [Code]
 - Debug / Gizmos Config:
-  - Draw raycasts for terrain detection [Code]
+  - Visualize terrain following rays [Code]
+
+### Task 7b: Step Handling
+
+- Detect obstacle in front [Code]
+- Adjust vertical position if height ≤ maxStepHeight [Code]
+- Configurable: maxStepHeight
+- Update movement vector projection onto ground plane [Code]
+- Debug / Gizmos Config:
   - Highlight stepped obstacles in scene [Code]
 
 ### Task 8: Ladder Climb
