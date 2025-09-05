@@ -42,13 +42,13 @@ namespace ZacharysNewman.PPC
             {
                 groundCheck = new GameObject("GroundCheck").transform;
                 groundCheck.parent = transform;
-                groundCheck.localPosition = capsule.center + Vector3.down * (capsule.height / 2f - capsule.radius * 0.1f);
+                groundCheck.localPosition = capsule.center;
             }
             if (ceilingCheck == null)
             {
                 ceilingCheck = new GameObject("CeilingCheck").transform;
                 ceilingCheck.parent = transform;
-                ceilingCheck.localPosition = Vector3.up * (capsule.height / 2f - capsule.radius);
+                ceilingCheck.localPosition = capsule.center;
             }
 
             // Ensure config is set
@@ -63,11 +63,11 @@ namespace ZacharysNewman.PPC
             // Update check positions based on current capsule
             if (groundCheck != null)
             {
-                groundCheck.localPosition = capsule.center + Vector3.down * (capsule.height / 2f - capsule.radius * 0.1f);
+                groundCheck.localPosition = capsule.center;
             }
             if (ceilingCheck != null)
             {
-                ceilingCheck.localPosition = capsule.center + Vector3.up * (capsule.height / 2f - capsule.radius * 0.1f);
+                ceilingCheck.localPosition = capsule.center;
             }
 
             CheckGround();

@@ -47,11 +47,11 @@ namespace ZacharysNewman.PPC
             // Create debug check transforms
             groundCheck = new GameObject("DebugGroundCheck").transform;
             groundCheck.parent = transform;
-            groundCheck.localPosition = capsule.center + Vector3.down * (capsule.height / 2f - capsule.radius * 0.1f);
+            groundCheck.localPosition = capsule.center;
 
             ceilingCheck = new GameObject("DebugCeilingCheck").transform;
             ceilingCheck.parent = transform;
-            ceilingCheck.localPosition = Vector3.up * (capsule.height / 2f - capsule.radius);
+            ceilingCheck.localPosition = capsule.center;
         }
 
         private void Update()
