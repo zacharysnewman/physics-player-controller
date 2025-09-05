@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dda63653c477849b4aa3fea25b2bd892, type: 3}
+  m_Name: PlayerControllerConfig
+  m_EditorClassIdentifier: 
+  movementConfig: {fileID: 11400000, guid: 7e5dc6a4902974d8181842693dc8adda, type: 2}
+  jumpConfig: {fileID: 11400000, guid: eb3e6fd1e0cde4312b2201cef646dd8b, type: 2}
+  cameraConfig: {fileID: 11400000, guid: 40fe8788595ba4f16aa4f215a7d9ad72, type: 2}
+  groundCheckerConfig: {fileID: 11400000, guid: d257b9a6bd7df4e29a5186a967b8820d, type: 2}
+  inputSensitivity: 1
+  visualizeBounds: 0
+  debugLogging: 1
+  visualizeGroundCeilingChecks: 1
+  visualizeVelocity: 0
+  visualizeJump: 1

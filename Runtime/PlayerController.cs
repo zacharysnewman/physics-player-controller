@@ -1,140 +1,115 @@
 using UnityEngine;
-using UnityEngine.InputSystem;
 
 namespace ZacharysNewman.PPC
 {
     [RequireComponent(typeof(Rigidbody))]
     [RequireComponent(typeof(CapsuleCollider))]
+    [RequireComponent(typeof(PlayerInput))]
+    [RequireComponent(typeof(PlayerMovement))]
+    [RequireComponent(typeof(PlayerJump))]
+    [RequireComponent(typeof(GroundChecker))]
+    [RequireComponent(typeof(CameraController))]
+    [RequireComponent(typeof(DebugVisualizer))]
     public class PlayerController : MonoBehaviour
     {
-        // Rigidbody and CapsuleCollider settings are configured directly on the components
+        [Header("Configuration")]
+        [SerializeField] private PlayerControllerConfig config;
 
-        [Header("Child Transforms")]
-        [SerializeField] private Transform groundCheck;
-        [SerializeField] private Transform ceilingCheck;
-        [SerializeField] private Transform frontCheck;
-
-        [Header("Ground Check Settings")]
-        [SerializeField] private float groundCheckRadius = 0.2f; // Reduced from 0.4f to prevent wall detection
-        [SerializeField] private float groundCheckDistance = 0.15f; // Reduced to be more precise
-        [SerializeField] private LayerMask groundLayerMask = -1;
-
-        [Header("Movement Settings")]
-        [SerializeField] private float walkSpeed = 5f;
-        [SerializeField] private float runSpeed = 10f;
-        [SerializeField] private float acceleration = 10f;
-        [SerializeField] private float deceleration = 10f;
-        [SerializeField] private float reverseDeceleration = 20f;
-        [SerializeField] private float maxVelocityChange = 10f;
-
-        [Header("Ceiling Check Settings")]
-        [SerializeField] private float ceilingCheckRadius = 0.4f;
-        [SerializeField] private float ceilingCheckDistance = 0.1f;
-        [SerializeField] private LayerMask ceilingLayerMask = -1;
-
-        [Header("Rotation Settings")]
-        [SerializeField] private bool freezeYRotation = true;
-
-        [Header("Camera Settings")]
-        [SerializeField] private float mouseSensitivity = 12f;
-        [SerializeField] private bool invertY = false;
-        [SerializeField] private float minVerticalAngle = -80f;
-        [SerializeField] private float maxVerticalAngle = 80f;
-
-        [Header("Jump Settings")]
-        [SerializeField] private float jumpForce = 10f;
-        [SerializeField] private float jumpBufferTime = 0.2f;
-        [SerializeField] private float coyoteTime = 0.1f;
-
-        [Header("Debug")]
-        [SerializeField] private bool visualizeBounds = false;
-        [SerializeField] private bool debugInput = true; // Enable debug logging by default
-        [SerializeField] private bool visualizeGroundCeilingChecks = true; // Enable ground check visualization
-        [SerializeField] private bool visualizeVelocity = false;
-        [SerializeField] private bool visualizeJump = true; // Enable jump visualization by default
-
-        private Rigidbody rb;
-        private CapsuleCollider capsule;
-        private PlayerControls playerControls;
-
-        // Utility classes
-        private PlayerInputHandler inputHandler;
-        private PlayerMovement movement;
+        // Component references (auto-assigned, private so hidden from inspector)
+        private PlayerInput playerInput;
+        private PlayerMovement playerMovement;
+        private PlayerJump playerJump;
         private GroundChecker groundChecker;
         private CameraController cameraController;
         private DebugVisualizer debugVisualizer;
 
-        // Rotation state
+        [Header("Settings")]
+        [SerializeField] private bool freezeYRotation = true;
+
+        private Rigidbody rb;
         private bool previousFreezeYRotation;
-
-
 
         private void Awake()
         {
             rb = GetComponent<Rigidbody>();
-            capsule = GetComponent<CapsuleCollider>();
 
-            // Setup Rigidbody constraints (other settings configured on component)
+            // Auto-assign required components
+            playerInput = GetComponent<PlayerInput>();
+            playerMovement = GetComponent<PlayerMovement>();
+            playerJump = GetComponent<PlayerJump>();
+            groundChecker = GetComponent<GroundChecker>();
+            cameraController = GetComponent<CameraController>();
+            debugVisualizer = GetComponent<DebugVisualizer>();
+
+            // Setup Rigidbody constraints
             rb.constraints = RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationZ | (freezeYRotation ? RigidbodyConstraints.FreezeRotationY : 0);
             previousFreezeYRotation = freezeYRotation;
+        }
 
-            // CapsuleCollider settings configured on component
-
-            // Create child transforms if not assigned
-            if (groundCheck == null)
+        private void Start()
+        {
+            // Apply configuration if available
+            if (config != null)
             {
-                groundCheck = new GameObject("GroundCheck").transform;
-                groundCheck.parent = transform;
-                groundCheck.localPosition = capsule.center + Vector3.down * (capsule.height / 2f - capsule.radius * 0.1f);
-            }
-            if (ceilingCheck == null)
-            {
-                ceilingCheck = new GameObject("CeilingCheck").transform;
-                ceilingCheck.parent = transform;
-                ceilingCheck.localPosition = Vector3.up * (capsule.height / 2f - capsule.radius);
-            }
-            if (frontCheck == null)
-            {
-                frontCheck = new GameObject("FrontCheck").transform;
-                frontCheck.parent = transform;
-                frontCheck.localPosition = Vector3.forward * capsule.radius;
+                ApplyConfiguration();
             }
 
-            // Initialize utility classes
-            playerControls = new PlayerControls();
-            cameraController = new CameraController(mouseSensitivity, invertY, minVerticalAngle, maxVerticalAngle, freezeYRotation);
-            inputHandler = new PlayerInputHandler(playerControls,
-                () => { if (cameraController.IsMouseLocked) cameraController.ToggleMouseLock(); }, // Menu: unlock if locked
-                () => { if (!cameraController.IsMouseLocked) cameraController.ToggleMouseLock(); }); // Use: lock if unlocked
-            movement = new PlayerMovement(rb, transform, walkSpeed, runSpeed, acceleration, deceleration, reverseDeceleration, maxVelocityChange, jumpForce, jumpBufferTime, coyoteTime, debugInput);
-            groundChecker = new GroundChecker(groundCheck, ceilingCheck, groundCheckRadius, groundCheckDistance, groundLayerMask, ceilingCheckRadius, ceilingCheckDistance, ceilingLayerMask, debugInput, capsule);
-            debugVisualizer = new DebugVisualizer(transform, capsule, groundCheck, ceilingCheck, visualizeBounds, debugInput, visualizeGroundCeilingChecks, visualizeVelocity, visualizeJump, groundCheckRadius);
-
-            cameraController.InitializeAngles();
+            // Validate required components (should always be found due to RequireComponent)
+            ValidateRequiredComponents();
         }
 
-        private void OnEnable()
+        private void ApplyConfiguration()
         {
-            inputHandler.Enable();
+            // Apply component configurations
+            if (playerMovement != null && config.MovementConfig != null)
+            {
+                // Note: Components would need to be updated to accept config references
+                // For now, this is a placeholder for future implementation
+            }
+
+            if (playerJump != null && config.JumpConfig != null)
+            {
+                // Apply jump config
+            }
+
+            if (cameraController != null && config.CameraConfig != null)
+            {
+                // Apply camera config
+            }
+
+            if (groundChecker != null && config.GroundCheckerConfig != null)
+            {
+                // Apply ground checker config
+            }
+
+            if (debugVisualizer != null)
+            {
+                debugVisualizer.SetVisualizationToggles(
+                    config.VisualizeBounds,
+                    config.DebugLogging,
+                    config.VisualizeGroundCeilingChecks,
+                    config.VisualizeVelocity,
+                    config.VisualizeJump
+                );
+            }
+
+            if (playerInput != null)
+            {
+                // Apply input sensitivity
+                // Note: PlayerInput would need to be updated to accept sensitivity
+            }
         }
 
-        private void OnDisable()
+        private void ValidateRequiredComponents()
         {
-            inputHandler.Disable();
-        }
-
-        private void OnDestroy()
-        {
-            inputHandler.Dispose();
-        }
-
-
-
-
-
-        public void SetFreezeYRotation(bool freeze)
-        {
-            freezeYRotation = freeze;
+            // Components should always be found due to RequireComponent attributes
+            // This validation is mainly for debugging if something goes wrong
+            if (playerInput == null) Debug.LogError("PlayerController: PlayerInput component not found! This should not happen.");
+            if (playerMovement == null) Debug.LogError("PlayerController: PlayerMovement component not found! This should not happen.");
+            if (playerJump == null) Debug.LogError("PlayerController: PlayerJump component not found! This should not happen.");
+            if (groundChecker == null) Debug.LogError("PlayerController: GroundChecker component not found! This should not happen.");
+            if (cameraController == null) Debug.LogError("PlayerController: CameraController component not found! This should not happen.");
+            if (debugVisualizer == null) Debug.LogError("PlayerController: DebugVisualizer component not found! This should not happen.");
         }
 
         private void Update()
@@ -146,39 +121,40 @@ namespace ZacharysNewman.PPC
                 previousFreezeYRotation = freezeYRotation;
             }
 
-            // Handle camera look
-            cameraController.HandleLook(inputHandler.LookInput);
-
-            // Update ground checker
-            groundChecker.CheckGround();
-            groundChecker.CheckCeiling();
-
             // Update movement with ground info
-            movement.UpdateGrounded(groundChecker.IsGrounded, groundChecker.GroundNormal);
+            if (playerMovement != null && groundChecker != null)
+            {
+                playerMovement.UpdateGrounded(groundChecker.IsGrounded, groundChecker.GroundNormal);
+            }
 
-            // Handle jump
-            movement.HandleJump(inputHandler.JumpInput);
-
-            // Debug logging
-            debugVisualizer.LogInput(inputHandler.MoveInput, inputHandler.RunInput, inputHandler.CrouchInput, inputHandler.JumpInput, inputHandler.InteractInput);
-
-            // Update debug visualizer
-            debugVisualizer.UpdateDebugInfo(groundChecker.IsGrounded, groundChecker.GroundNormal, movement.CurrentVelocity, movement.TargetVelocity, movement.JumpBufferTimer, movement.CoyoteTimer, movement.JumpApexHeight, movement.IsJumping);
+            // Handle jump input
+            if (playerJump != null && playerInput != null)
+            {
+                playerJump.HandleJump(playerInput.JumpInput);
+            }
         }
 
         private void FixedUpdate()
         {
             // Handle movement
-            movement.HandleMovement(inputHandler.MoveInput, inputHandler.RunInput, Camera.main);
+            if (playerMovement != null)
+            {
+                playerMovement.HandleMovement();
+            }
         }
 
-        private void OnDrawGizmos()
+        // Public methods for external control
+        public void SetFreezeYRotation(bool freeze)
         {
-            if (!Application.isPlaying) return;
-
-            debugVisualizer.DrawGizmos();
+            freezeYRotation = freeze;
         }
 
-
+        // Component access methods for external systems
+        public PlayerInput GetPlayerInput() => playerInput;
+        public PlayerMovement GetPlayerMovement() => playerMovement;
+        public PlayerJump GetPlayerJump() => playerJump;
+        public GroundChecker GetGroundChecker() => groundChecker;
+        public CameraController GetCameraController() => cameraController;
+        public DebugVisualizer GetDebugVisualizer() => debugVisualizer;
     }
 }

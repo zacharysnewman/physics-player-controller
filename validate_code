@@ -1,0 +1,2 @@
+#!/bin/bash
+dotnet build /Users/zacknewman/Projects/Completed/my-unity-packages/zacharysnewman.ppc.csproj

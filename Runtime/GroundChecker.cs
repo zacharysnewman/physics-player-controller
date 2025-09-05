@@ -2,19 +2,29 @@ using UnityEngine;
 
 namespace ZacharysNewman.PPC
 {
-    public class GroundChecker
+    [RequireComponent(typeof(CapsuleCollider))]
+    public class GroundChecker : MonoBehaviour
     {
-        private Transform groundCheck;
-        private Transform ceilingCheck;
-        private float groundCheckRadius;
-        private float groundCheckDistance;
-        private LayerMask groundLayerMask;
-        private float ceilingCheckRadius;
-        private float ceilingCheckDistance;
-        private LayerMask ceilingLayerMask;
-        private bool debugInput;
+        [Header("Configuration")]
+        [SerializeField] private GroundCheckerConfig config;
+
+        [Header("Check Transforms")]
+        [SerializeField] private Transform groundCheck;
+        [SerializeField] private Transform ceilingCheck;
+
+        [Header("Fallback Settings")]
+        [SerializeField] private float groundCheckRadius = 0.4f;
+        [SerializeField] private float groundCheckDistance = 0.1f;
+        [SerializeField] private LayerMask groundLayerMask = -1;
+        [SerializeField] private float ceilingCheckRadius = 0.4f;
+        [SerializeField] private float ceilingCheckDistance = 0.1f;
+        [SerializeField] private LayerMask ceilingLayerMask = -1;
+        [SerializeField] private bool debugLogging = false;
+
+        // Component references
         private CapsuleCollider capsule;
 
+        // Ground detection state
         public bool IsGrounded { get; private set; }
         public Vector3 GroundNormal { get; private set; }
         public float GroundSlopeAngle { get; private set; }
@@ -23,31 +33,29 @@ namespace ZacharysNewman.PPC
         public bool IsTouchingWall { get; private set; }
         public Vector3 WallNormal { get; private set; }
 
-        private string GetLayerNames(LayerMask mask)
+        private void Awake()
         {
-            string names = "";
-            for (int i = 0; i < 32; i++)
+            capsule = GetComponent<CapsuleCollider>();
+
+            // Create child transforms if not assigned
+            if (groundCheck == null)
             {
-                if ((mask.value & (1 << i)) != 0)
-                {
-                    names += UnityEngine.LayerMask.LayerToName(i) + ",";
-                }
+                groundCheck = new GameObject("GroundCheck").transform;
+                groundCheck.parent = transform;
+                groundCheck.localPosition = capsule.center + Vector3.down * (capsule.height / 2f - capsule.radius * 0.1f);
             }
-            return names.TrimEnd(',');
+            if (ceilingCheck == null)
+            {
+                ceilingCheck = new GameObject("CeilingCheck").transform;
+                ceilingCheck.parent = transform;
+                ceilingCheck.localPosition = Vector3.up * (capsule.height / 2f - capsule.radius);
+            }
         }
 
-        public GroundChecker(Transform gCheck, Transform cCheck, float gRadius, float gDist, LayerMask gMask, float cRadius, float cDist, LayerMask cMask, bool debug, CapsuleCollider cap)
+        private void Update()
         {
-            groundCheck = gCheck;
-            ceilingCheck = cCheck;
-            groundCheckRadius = gRadius;
-            groundCheckDistance = gDist;
-            groundLayerMask = gMask;
-            ceilingCheckRadius = cRadius;
-            ceilingCheckDistance = cDist;
-            ceilingLayerMask = cMask;
-            debugInput = debug;
-            capsule = cap;
+            CheckGround();
+            CheckCeiling();
         }
 
         public void CheckGround()
@@ -55,43 +63,47 @@ namespace ZacharysNewman.PPC
             RaycastHit hit;
 
             // Debug: Draw the actual sphere cast ray
-            if (debugInput)
+            bool debugEnabled = config != null ? config.DebugLogging : false;
+            if (debugEnabled)
             {
-                UnityEngine.Debug.DrawRay(groundCheck.position, Vector3.down * groundCheckDistance, Color.yellow, 0.1f);
-                UnityEngine.Debug.DrawLine(groundCheck.position, groundCheck.position + Vector3.down * groundCheckDistance, Color.yellow, 0.1f);
+                float distance = config != null ? config.GroundCheckDistance : groundCheckDistance;
+                Debug.DrawRay(groundCheck.position, Vector3.down * distance, Color.yellow, 0.1f);
+                Debug.DrawLine(groundCheck.position, groundCheck.position + Vector3.down * distance, Color.yellow, 0.1f);
             }
 
             // Try Raycast first (simpler)
-            if (Physics.Raycast(groundCheck.position, Vector3.down, out hit, groundCheckDistance, groundLayerMask))
+            float checkDistance = config != null ? config.GroundCheckDistance : groundCheckDistance;
+            LayerMask layerMask = config != null ? config.GroundLayerMask : groundLayerMask;
+            if (Physics.Raycast(groundCheck.position, Vector3.down, out hit, checkDistance, layerMask))
             {
                 IsGrounded = true;
                 GroundNormal = hit.normal;
                 GroundSlopeAngle = Vector3.Angle(Vector3.up, GroundNormal);
 
                 // Debug logging
-                if (debugInput)
+                if (debugLogging)
                 {
-                    UnityEngine.Debug.Log($"Ground detected with Raycast! Position: {groundCheck.position}, Distance: {hit.distance}, Hit point: {hit.point}, Normal: {GroundNormal}");
+                    Debug.Log($"Ground detected with Raycast! Position: {groundCheck.position}, Distance: {hit.distance}, Hit point: {hit.point}, Normal: {GroundNormal}");
                 }
             }
             // Fallback: Try SphereCast
-            else if (Physics.SphereCast(groundCheck.position, groundCheckRadius, Vector3.down, out hit, groundCheckDistance, groundLayerMask))
+            else if (Physics.SphereCast(groundCheck.position, (config != null ? config.GroundCheckRadius : groundCheckRadius), Vector3.down, out hit, checkDistance, layerMask))
             {
                 IsGrounded = true;
                 GroundNormal = hit.normal;
                 GroundSlopeAngle = Vector3.Angle(Vector3.up, GroundNormal);
 
                 // Debug logging
-                if (debugInput)
+                if (debugLogging)
                 {
-                    UnityEngine.Debug.Log($"Ground detected with SphereCast! Position: {groundCheck.position}, Distance: {hit.distance}, Hit point: {hit.point}, Normal: {GroundNormal}");
+                    Debug.Log($"Ground detected with SphereCast! Position: {groundCheck.position}, Distance: {hit.distance}, Hit point: {hit.point}, Normal: {GroundNormal}");
                 }
             }
             else
             {
                 // Fallback: Try OverlapSphere at the bottom of the cast
-                Vector3 checkPosition = groundCheck.position + Vector3.down * groundCheckDistance;
-                Collider[] colliders = Physics.OverlapSphere(checkPosition, groundCheckRadius, groundLayerMask);
+                Vector3 checkPosition = groundCheck.position + Vector3.down * checkDistance;
+                Collider[] colliders = Physics.OverlapSphere(checkPosition, (config != null ? config.GroundCheckRadius : groundCheckRadius), layerMask);
 
                 if (colliders.Length > 0)
                 {
@@ -99,7 +111,7 @@ namespace ZacharysNewman.PPC
                     bool hasValidCollider = false;
                     foreach (Collider col in colliders)
                     {
-                        if (col != null && col.gameObject != groundCheck.parent.gameObject)
+                        if (col != null && col.gameObject != gameObject)
                         {
                             hasValidCollider = true;
                             break;
@@ -113,9 +125,9 @@ namespace ZacharysNewman.PPC
                         GroundNormal = Vector3.up;
                         GroundSlopeAngle = 0f;
 
-                        if (debugInput)
+                        if (debugLogging)
                         {
-                            UnityEngine.Debug.Log($"Ground detected with OverlapSphere! Position: {checkPosition}, Colliders: {colliders.Length}");
+                            Debug.Log($"Ground detected with OverlapSphere! Position: {checkPosition}, Colliders: {colliders.Length}");
                         }
                     }
                 }
@@ -126,9 +138,9 @@ namespace ZacharysNewman.PPC
                     GroundSlopeAngle = 0f;
 
                     // Debug logging (more frequent for troubleshooting)
-                    if (debugInput)
+                    if (debugLogging)
                     {
-                        UnityEngine.Debug.Log($"No ground detected. GroundCheck worldPos: {groundCheck.position}, OverlapSphere position: {checkPosition}, distance: {groundCheckDistance}, radius: {groundCheckRadius}, layerNames: {GetLayerNames(groundLayerMask)}");
+                        Debug.Log($"No ground detected. GroundCheck worldPos: {groundCheck.position}, OverlapSphere position: {checkPosition}, distance: {groundCheckDistance}, radius: {groundCheckRadius}, layerNames: {GetLayerNames(groundLayerMask)}");
                     }
                 }
             }
@@ -164,9 +176,9 @@ namespace ZacharysNewman.PPC
                 }
             }
 
-            if (debugInput && IsTouchingWall)
+            if (debugLogging && IsTouchingWall)
             {
-                UnityEngine.Debug.Log($"Wall detected! Normal: {WallNormal}");
+                Debug.Log($"Wall detected! Normal: {WallNormal}");
             }
         }
 
@@ -178,6 +190,39 @@ namespace ZacharysNewman.PPC
             {
                 // Store if ceiling is hit, but for now just check
             }
+        }
+
+        private string GetLayerNames(LayerMask mask)
+        {
+            string names = "";
+            for (int i = 0; i < 32; i++)
+            {
+                if ((mask.value & (1 << i)) != 0)
+                {
+                    names += LayerMask.LayerToName(i) + ",";
+                }
+            }
+            return names.TrimEnd(',');
+        }
+
+        // Public methods for configuration
+        public void SetGroundCheckParameters(float radius, float distance, LayerMask layerMask)
+        {
+            groundCheckRadius = radius;
+            groundCheckDistance = distance;
+            groundLayerMask = layerMask;
+        }
+
+        public void SetCeilingCheckParameters(float radius, float distance, LayerMask layerMask)
+        {
+            ceilingCheckRadius = radius;
+            ceilingCheckDistance = distance;
+            ceilingLayerMask = layerMask;
+        }
+
+        public void SetDebugLogging(bool enabled)
+        {
+            debugLogging = enabled;
         }
     }
 }

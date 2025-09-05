@@ -2,65 +2,80 @@ using UnityEngine;
 
 namespace ZacharysNewman.PPC
 {
-    public class DebugVisualizer
+    [RequireComponent(typeof(CapsuleCollider))]
+    [RequireComponent(typeof(GroundChecker))]
+    [RequireComponent(typeof(PlayerMovement))]
+    [RequireComponent(typeof(PlayerJump))]
+    [RequireComponent(typeof(PlayerInput))]
+    public class DebugVisualizer : MonoBehaviour
     {
-        private Transform transform;
+        [Header("Visualization Toggles")]
+        [SerializeField] private bool visualizeBounds = false;
+        [SerializeField] private bool debugLogging = true;
+        [SerializeField] private bool visualizeGroundCeilingChecks = true;
+        [SerializeField] private bool visualizeVelocity = false;
+        [SerializeField] private bool visualizeJump = true;
+
+        [Header("Ground Check Settings")]
+        [SerializeField] private float groundCheckRadius = 0.2f;
+
+        // Component references (auto-assigned)
+        private GroundChecker groundChecker;
+        private PlayerMovement playerMovement;
+        private PlayerJump playerJump;
+        private PlayerInput playerInput;
+
+        // Component references
         private CapsuleCollider capsule;
         private Transform groundCheck;
         private Transform ceilingCheck;
-        private bool isGrounded;
-        private Vector3 groundNormal;
-        private Vector3 currentVelocity;
-        private Vector3 targetVelocity;
 
-        private bool visualizeBounds;
-        private bool debugInput;
-        private bool visualizeGroundCeilingChecks;
-        private bool visualizeVelocity;
-        private bool visualizeJump;
-
-        // Jump debug info
-        private float jumpBufferTimer;
-        private float coyoteTimer;
-        private float jumpApexHeight;
-        private bool isJumping;
-
-        public DebugVisualizer(Transform playerTransform, CapsuleCollider cap, Transform gCheck, Transform cCheck, bool visBounds, bool dbgInput, bool visChecks, bool visVel, bool visJump, float groundCheckRadius)
+        private void Awake()
         {
-            transform = playerTransform;
-            capsule = cap;
-            groundCheck = gCheck;
-            ceilingCheck = cCheck;
-            visualizeBounds = visBounds;
-            debugInput = dbgInput;
-            visualizeGroundCeilingChecks = visChecks;
-            visualizeVelocity = visVel;
-            visualizeJump = visJump;
+            capsule = GetComponent<CapsuleCollider>();
+
+            // Auto-assign required components
+            groundChecker = GetComponent<GroundChecker>();
+            playerMovement = GetComponent<PlayerMovement>();
+            playerJump = GetComponent<PlayerJump>();
+            playerInput = GetComponent<PlayerInput>();
+
+            // Create debug check transforms
+            groundCheck = new GameObject("DebugGroundCheck").transform;
+            groundCheck.parent = transform;
+            groundCheck.localPosition = capsule.center + Vector3.down * (capsule.height / 2f - capsule.radius * 0.1f);
+
+            ceilingCheck = new GameObject("DebugCeilingCheck").transform;
+            ceilingCheck.parent = transform;
+            ceilingCheck.localPosition = Vector3.up * (capsule.height / 2f - capsule.radius);
         }
 
-        public void UpdateDebugInfo(bool grounded, Vector3 gNormal, Vector3 currVel, Vector3 targVel, float jumpBufTimer, float coyTimer, float jumpApex, bool jumping)
+        private void Update()
         {
-            isGrounded = grounded;
-            groundNormal = gNormal;
-            currentVelocity = currVel;
-            targetVelocity = targVel;
-            jumpBufferTimer = jumpBufTimer;
-            coyoteTimer = coyTimer;
-            jumpApexHeight = jumpApex;
-            isJumping = jumping;
+            if (playerInput != null && debugLogging)
+            {
+                LogInput(playerInput.MoveInput, playerInput.RunInput, playerInput.CrouchInput, playerInput.JumpInput, playerInput.InteractInput);
+            }
         }
 
         public void LogInput(Vector2 moveInput, bool runInput, bool crouchInput, bool jumpInput, bool interactInput)
         {
-            if (debugInput)
+            if (debugLogging)
             {
                 Debug.Log($"Move Input: {moveInput}, Run: {runInput}, Crouch: {crouchInput}, Jump: {jumpInput}, Interact: {interactInput}");
             }
         }
 
-        public void DrawGizmos()
+        private void OnDrawGizmos()
         {
             if (!Application.isPlaying) return;
+
+            DrawGizmos();
+        }
+
+        public void DrawGizmos()
+        {
+            if (groundChecker == null || playerMovement == null || playerJump == null) return;
 
             if (visualizeBounds)
             {
@@ -73,52 +88,62 @@ namespace ZacharysNewman.PPC
             if (visualizeGroundCeilingChecks)
             {
                 // Ground check
-                Gizmos.color = isGrounded ? Color.blue : Color.red;
-                Gizmos.DrawWireSphere(groundCheck.position + Vector3.down * 0.1f, 0.4f); // Using default values, could pass settings
+                Gizmos.color = groundChecker.IsGrounded ? Color.blue : Color.red;
+                Gizmos.DrawWireSphere(groundCheck.position + Vector3.down * 0.1f, groundCheckRadius);
 
                 // Ceiling check
                 Gizmos.color = Color.yellow;
                 Gizmos.DrawWireSphere(ceilingCheck.position + Vector3.up * 0.1f, 0.4f);
 
                 // Ground normal
-                if (isGrounded)
+                if (groundChecker.IsGrounded)
                 {
                     Gizmos.color = Color.cyan;
-                    Gizmos.DrawLine(groundCheck.position, groundCheck.position + groundNormal);
+                    Gizmos.DrawLine(groundCheck.position, groundCheck.position + groundChecker.GroundNormal);
                 }
             }
 
             if (visualizeVelocity)
             {
                 Gizmos.color = Color.magenta;
-                Gizmos.DrawLine(transform.position, transform.position + currentVelocity);
+                Gizmos.DrawLine(transform.position, transform.position + playerMovement.CurrentVelocity);
                 Gizmos.color = Color.red;
-                Gizmos.DrawLine(transform.position, transform.position + targetVelocity);
+                Gizmos.DrawLine(transform.position, transform.position + playerMovement.TargetVelocity);
             }
 
             if (visualizeJump)
             {
                 // Draw jump apex line
-                if (isJumping)
+                if (playerJump.IsJumping)
                 {
                     Gizmos.color = Color.green;
-                    Vector3 apexPosition = new Vector3(transform.position.x, jumpApexHeight, transform.position.z);
+                    Vector3 apexPosition = new Vector3(transform.position.x, playerJump.JumpApexHeight, transform.position.z);
                     Gizmos.DrawLine(transform.position, apexPosition);
                     Gizmos.DrawSphere(apexPosition, 0.1f);
                 }
 
                 // Draw jump buffer and coyote time indicators
-                if (jumpBufferTimer > 0)
+                if (playerJump.JumpBufferTimer > 0)
                 {
                     Gizmos.color = Color.yellow;
-                    Gizmos.DrawSphere(transform.position + Vector3.up * 2f, jumpBufferTimer * 0.5f);
+                    Gizmos.DrawSphere(transform.position + Vector3.up * 2f, playerJump.JumpBufferTimer * 0.5f);
                 }
-                if (coyoteTimer > 0)
+                if (playerJump.CoyoteTimer > 0)
                 {
                     Gizmos.color = Color.cyan;
-                    Gizmos.DrawSphere(transform.position + Vector3.up * 2.5f, coyoteTimer * 0.5f);
+                    Gizmos.DrawSphere(transform.position + Vector3.up * 2.5f, playerJump.CoyoteTimer * 0.5f);
                 }
             }
+        }
+
+        // Public methods for configuration
+        public void SetVisualizationToggles(bool bounds, bool logging, bool groundChecks, bool velocity, bool jump)
+        {
+            visualizeBounds = bounds;
+            debugLogging = logging;
+            visualizeGroundCeilingChecks = groundChecks;
+            visualizeVelocity = velocity;
+            visualizeJump = jump;
         }
     }
 }

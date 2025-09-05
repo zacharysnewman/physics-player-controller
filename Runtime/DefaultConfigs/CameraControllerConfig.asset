@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: de14216f99cc545c6828dc23e6bda0de, type: 3}
+  m_Name: CameraControllerConfig
+  m_EditorClassIdentifier: 
+  mouseSensitivity: 12
+  invertY: 0
+  minVerticalAngle: -80
+  maxVerticalAngle: 80
+  freezeYRotation: 1

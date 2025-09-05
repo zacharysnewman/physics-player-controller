@@ -2,58 +2,81 @@ using UnityEngine;
 
 namespace ZacharysNewman.PPC
 {
-    public class PlayerMovement
+    [RequireComponent(typeof(Rigidbody))]
+    [RequireComponent(typeof(PlayerInput))]
+    [RequireComponent(typeof(GroundChecker))]
+    public class PlayerMovement : MonoBehaviour
     {
+        [Header("Configuration")]
+        [SerializeField] private PlayerMovementConfig config;
+
+        [Header("Dependencies")]
+        [SerializeField] private Camera mainCamera;
+
+        [Header("Fallback Settings")]
+        [SerializeField] private float walkSpeed = 5f;
+        [SerializeField] private float runSpeed = 10f;
+        [SerializeField] private float acceleration = 10f;
+        [SerializeField] private float deceleration = 10f;
+        [SerializeField] private float reverseDeceleration = 15f;
+        [SerializeField] private float maxVelocityChange = 10f;
+
+        // Component references
         private Rigidbody rb;
-        private Transform transform;
+        private GroundChecker groundChecker;
+        private PlayerInput playerInput;
+
+        // Movement state
         private bool isGrounded;
         private Vector3 groundNormal;
-
-        // Settings
-        private float walkSpeed;
-        private float runSpeed;
-        private float acceleration;
-        private float deceleration;
-        private float reverseDeceleration;
-        private float maxVelocityChange;
 
         public Vector3 TargetVelocity { get; private set; }
         public Vector3 CurrentVelocity { get; private set; }
 
-        // Jump settings
-        private float jumpForce;
-        private float jumpBufferTime;
-        private float coyoteTime;
-        private bool debugInput;
-
-        // Jump state
-        private float jumpBufferTimer;
-        private float coyoteTimer;
-        private float jumpApexHeight;
-        private bool isJumping;
-        private bool wasGrounded;
-        private bool wasJumpPressed;
-
-        public float JumpBufferTimer => jumpBufferTimer;
-        public float CoyoteTimer => coyoteTimer;
-        public float JumpApexHeight => jumpApexHeight;
-        public bool IsJumping => isJumping;
-
-        public PlayerMovement(Rigidbody rigidbody, Transform playerTransform, float walkSpd, float runSpd, float accel, float decel, float revDecel, float maxVelChange, float jumpF, float jumpBufTime, float coyTime, bool debug)
+        private void Awake()
         {
-            rb = rigidbody;
-            transform = playerTransform;
-            walkSpeed = walkSpd;
-            runSpeed = runSpd;
-            acceleration = accel;
-            deceleration = decel;
-            reverseDeceleration = revDecel;
-            maxVelocityChange = maxVelChange;
-            jumpForce = jumpF;
-            jumpBufferTime = jumpBufTime;
-            coyoteTime = coyTime;
-            debugInput = debug;
+            rb = GetComponent<Rigidbody>();
+            groundChecker = GetComponent<GroundChecker>();
+            playerInput = GetComponent<PlayerInput>();
+
+            if (mainCamera == null)
+            {
+                mainCamera = Camera.main;
+            }
+
+            // Apply config values if available
+            if (config != null)
+            {
+                // Config values are used in the movement calculations
+            }
         }
+
+        private void Start()
+        {
+            if (groundChecker == null)
+            {
+                groundChecker = GetComponent<GroundChecker>();
+            }
+
+            // Validate required components
+            if (groundChecker == null)
+            {
+                Debug.LogError("PlayerMovement: GroundChecker component is required but not found!");
+                enabled = false;
+                return;
+            }
+
+            if (mainCamera == null)
+            {
+                mainCamera = Camera.main;
+                if (mainCamera == null)
+                {
+                    Debug.LogError("PlayerMovement: No main camera found!");
+                    enabled = false;
+                    return;
+                }
+            }
+            }
 
         public void UpdateGrounded(bool grounded, Vector3 normal)
         {
@@ -61,14 +84,19 @@ namespace ZacharysNewman.PPC
             groundNormal = normal;
         }
 
-        public void HandleMovement(Vector2 moveInput, bool runInput, Camera camera)
+        public void HandleMovement()
         {
+            if (mainCamera == null || playerInput == null) return;
+
+            Vector2 moveInput = playerInput.MoveInput;
+            bool runInput = playerInput.RunInput;
+
             // Get camera forward and right for relative movement
-            Vector3 cameraForward = camera.transform.forward;
+            Vector3 cameraForward = mainCamera.transform.forward;
             cameraForward.y = 0f;
             cameraForward.Normalize();
 
-            Vector3 cameraRight = camera.transform.right;
+            Vector3 cameraRight = mainCamera.transform.right;
             cameraRight.y = 0f;
             cameraRight.Normalize();
 
@@ -76,13 +104,13 @@ namespace ZacharysNewman.PPC
             Vector3 moveDirection = cameraForward * moveInput.y + cameraRight * moveInput.x;
 
             // Project onto ground plane
-            if (isGrounded)
+            if (isGrounded && groundChecker != null)
             {
                 moveDirection = moveDirection - Vector3.Project(moveDirection, groundNormal);
             }
 
             // Compute target velocity
-            float speed = runInput ? runSpeed : walkSpeed;
+            float speed = runInput ? (config != null ? config.RunSpeed : runSpeed) : (config != null ? config.WalkSpeed : walkSpeed);
             TargetVelocity = moveDirection * speed;
 
             // Smooth velocity
@@ -90,9 +118,10 @@ namespace ZacharysNewman.PPC
             velocityChange.y = 0f; // Don't affect vertical velocity
 
             // Limit velocity change
-            if (velocityChange.magnitude > maxVelocityChange)
+            float maxChange = config != null ? config.MaxVelocityChange : maxVelocityChange;
+            if (velocityChange.magnitude > maxChange)
             {
-                velocityChange = velocityChange.normalized * maxVelocityChange;
+                velocityChange = velocityChange.normalized * maxChange;
             }
 
             // Apply acceleration/deceleration with faster reverse deceleration
@@ -102,11 +131,11 @@ namespace ZacharysNewman.PPC
             float accel;
             if (moveInput.magnitude > 0.1f)
             {
-                accel = (dot < -0.1f) ? reverseDeceleration : acceleration;
+                accel = (dot < -0.1f) ? (config != null ? config.ReverseDeceleration : reverseDeceleration) : (config != null ? config.Acceleration : acceleration);
             }
             else
             {
-                accel = deceleration;
+                accel = (config != null ? config.Deceleration : deceleration);
             }
             velocityChange = Vector3.MoveTowards(Vector3.zero, velocityChange, accel * Time.fixedDeltaTime);
 
@@ -116,71 +145,18 @@ namespace ZacharysNewman.PPC
             CurrentVelocity = rb.linearVelocity;
         }
 
-        public void HandleJump(bool jumpInput)
+        // Public methods for configuration
+        public void SetMovementSpeeds(float walk, float run)
         {
-            // Update timers
-            if (jumpBufferTimer > 0)
-            {
-                jumpBufferTimer -= Time.deltaTime;
-            }
-            if (coyoteTimer > 0)
-            {
-                coyoteTimer -= Time.deltaTime;
-            }
+            walkSpeed = walk;
+            runSpeed = run;
+        }
 
-            // Set jump buffer only on initial press (not while held)
-            if (jumpInput && !wasJumpPressed && jumpBufferTimer <= 0)
-            {
-                jumpBufferTimer = jumpBufferTime;
-                if (debugInput)
-                {
-                    Debug.Log($"PlayerMovement: Jump buffer set. Timer: {jumpBufferTimer}");
-                }
-            }
-
-            // Coyote time starts when leaving ground
-            if (!isGrounded && wasGrounded)
-            {
-                coyoteTimer = coyoteTime;
-                if (debugInput)
-                {
-                    Debug.Log($"PlayerMovement: Coyote time started. Timer: {coyoteTimer}");
-                }
-            }
-
-            // Perform jump
-            bool canJump = (isGrounded || coyoteTimer > 0) && jumpBufferTimer > 0;
-            if (debugInput && jumpInput && !wasJumpPressed)
-            {
-                Debug.Log($"PlayerMovement: Jump input detected. Can jump: {canJump}, IsGrounded: {isGrounded}, CoyoteTimer: {coyoteTimer}, JumpBufferTimer: {jumpBufferTimer}");
-            }
-
-            if (canJump)
-            {
-                // Reset vertical velocity
-                rb.linearVelocity = new Vector3(rb.linearVelocity.x, 0, rb.linearVelocity.z);
-                // Apply jump force
-                rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
-                // Reset timers
-                jumpBufferTimer = 0;
-                coyoteTimer = 0;
-                isJumping = true;
-                jumpApexHeight = transform.position.y + (jumpForce * jumpForce) / (2 * Physics.gravity.magnitude); // Approximate apex
-
-                if (debugInput)
-                {
-                    Debug.Log($"PlayerMovement: Jump performed with force {jumpForce}. New velocity: {rb.linearVelocity}");
-                }
-            }
-
-            // Check if landed
-            if (isGrounded && isJumping && rb.linearVelocity.y <= 0)
-            {
-                isJumping = false;
-            }
-
-            wasGrounded = isGrounded;
-            wasJumpPressed = jumpInput;
+        public void SetAcceleration(float accel, float decel, float revDecel)
+        {
+            acceleration = accel;
+            deceleration = decel;
+            reverseDeceleration = revDecel;
         }
     }
 }
