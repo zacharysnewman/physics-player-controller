@@ -91,16 +91,6 @@ namespace ZacharysNewman.PPC
                 }
             }
 
-            // Coyote time starts when leaving ground
-            if (!groundChecker.IsGrounded && wasGrounded)
-            {
-                coyoteTimer = config.CoyoteTime;
-                if (debugLogging)
-                {
-                    Debug.Log($"PlayerJump: Coyote time started. Timer: {coyoteTimer}");
-                }
-            }
-
             // Perform jump
             bool canJump = (groundChecker.IsGrounded || coyoteTimer > 0) && jumpBufferTimer > 0;
             if (debugLogging && jumpInput && !wasJumpPressed)
@@ -111,11 +101,6 @@ namespace ZacharysNewman.PPC
             if (canJump)
             {
                 PerformJump();
-            }
-
-            if (debugLogging && jumpInput && !wasJumpPressed)
-            {
-                Debug.Log($"PlayerJump: Jump input detected. Can jump: {canJump}, IsGrounded: {groundChecker.IsGrounded}, CoyoteTimer: {coyoteTimer}, JumpBufferTimer: {jumpBufferTimer}");
             }
 
             wasJumpPressed = jumpInput;

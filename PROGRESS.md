@@ -14,7 +14,7 @@ This document tracks the progress of implementing the player system from PLAN.md
 
 ## In Progress
 
-- Task 5: Jump (with Buffer + Coyote Time) - Debugging input and jump execution
+None
 
 ## Pending Tasks
 
