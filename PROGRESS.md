@@ -11,6 +11,7 @@ This document tracks the progress of implementing the player system from PLAN.md
 - **Task 4: Walk & Run** - Implemented HandleMovement() for input to velocity conversion, added configurable walkSpeed and runSpeed, and debug gizmos for velocity vector.
 - **Task 4a: Direction Responsiveness** - Implemented velocity smoothing with acceleration/deceleration logic, added faster deceleration on direction reversal, configurable parameters, and debug gizmos for smoothed vs raw velocity.
 - **Task 5: Jump (with Buffer + Coyote Time)** - Implemented jump buffer, coyote time, variable jump height, configurable jump parameters, and debug gizmos for jump apex line and timer visualization.
+- **Task 6: Crouch + Crouch Jump** - Created PlayerCrouch.cs with grounded/midair crouch mechanics, capsule adjustments, camera height lowering, speed reduction, ceiling check prevention, and debug gizmos for capsule dimensions and crouch state.
 
 ## In Progress
 
@@ -18,4 +19,4 @@ None
 
 ## Pending Tasks
 
-- Task 6: Crouch + Crouch Jump
+None

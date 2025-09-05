@@ -6,6 +6,7 @@ namespace ZacharysNewman.PPC
     [RequireComponent(typeof(GroundChecker))]
     [RequireComponent(typeof(PlayerMovement))]
     [RequireComponent(typeof(PlayerJump))]
+    [RequireComponent(typeof(PlayerCrouch))]
     [RequireComponent(typeof(PlayerInput))]
     public class DebugVisualizer : MonoBehaviour
     {
@@ -15,6 +16,7 @@ namespace ZacharysNewman.PPC
         [SerializeField] private bool visualizeGroundCeilingChecks = true;
         [SerializeField] private bool visualizeVelocity = false;
         [SerializeField] private bool visualizeJump = true;
+        [SerializeField] private bool visualizeCrouch = true;
 
 
 
@@ -22,6 +24,7 @@ namespace ZacharysNewman.PPC
         private GroundChecker groundChecker;
         private PlayerMovement playerMovement;
         private PlayerJump playerJump;
+        private PlayerCrouch playerCrouch;
         private PlayerInput playerInput;
 
         // Component references
@@ -37,6 +40,7 @@ namespace ZacharysNewman.PPC
             groundChecker = GetComponent<GroundChecker>();
             playerMovement = GetComponent<PlayerMovement>();
             playerJump = GetComponent<PlayerJump>();
+            playerCrouch = GetComponent<PlayerCrouch>();
             playerInput = GetComponent<PlayerInput>();
 
             // Create debug check transforms
@@ -74,7 +78,7 @@ namespace ZacharysNewman.PPC
 
         public void DrawGizmos()
         {
-            if (groundChecker == null || playerMovement == null || playerJump == null) return;
+            if (groundChecker == null || playerMovement == null || playerJump == null || playerCrouch == null) return;
 
             if (visualizeBounds)
             {
@@ -133,16 +137,28 @@ namespace ZacharysNewman.PPC
                     Gizmos.DrawSphere(transform.position + Vector3.up * 2.5f, playerJump.CoyoteTimer * 0.5f);
                 }
             }
+
+            if (visualizeCrouch)
+            {
+                // Draw current capsule dimensions
+                Gizmos.color = playerCrouch.IsCrouching ? Color.blue : Color.gray;
+                Gizmos.DrawWireCube(transform.position + capsule.center, new Vector3(capsule.radius * 2, capsule.height, capsule.radius * 2));
+
+                // Show crouch state
+                Gizmos.color = playerCrouch.IsCrouching ? Color.green : Color.red;
+                Gizmos.DrawSphere(transform.position + Vector3.up * 3f, 0.1f);
+            }
         }
 
         // Public methods for configuration
-        public void SetVisualizationToggles(bool bounds, bool logging, bool groundChecks, bool velocity, bool jump)
+        public void SetVisualizationToggles(bool bounds, bool logging, bool groundChecks, bool velocity, bool jump, bool crouch)
         {
             visualizeBounds = bounds;
             debugLogging = logging;
             visualizeGroundCeilingChecks = groundChecks;
             visualizeVelocity = velocity;
             visualizeJump = jump;
+            visualizeCrouch = crouch;
         }
     }
 }

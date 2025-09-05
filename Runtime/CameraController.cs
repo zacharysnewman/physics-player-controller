@@ -19,6 +19,9 @@ namespace ZacharysNewman.PPC
         private float cameraYaw = 0f;
         private float cameraPitch = 0f;
         private bool isMouseLocked = true;
+        private float heightOffset = 0f;
+        private float currentHeightOffset = 0f;
+        private float baseHeight;
 
         public bool IsMouseLocked => isMouseLocked;
 
@@ -30,6 +33,7 @@ namespace ZacharysNewman.PPC
             }
 
             playerInput = GetComponent<PlayerInput>();
+            baseHeight = mainCamera.transform.localPosition.y;
             InitializeAngles();
 
             // Ensure config is set
@@ -57,6 +61,23 @@ namespace ZacharysNewman.PPC
                 HandleLook(playerInput.LookInput);
             }
         }
+
+        private void LateUpdate()
+        {
+            // Smoothly interpolate height offset
+            currentHeightOffset = Mathf.Lerp(currentHeightOffset, heightOffset, Time.deltaTime * 10f);
+
+            if (mainCamera != null)
+            {
+                mainCamera.transform.localPosition = new Vector3(
+                    mainCamera.transform.localPosition.x,
+                    baseHeight + currentHeightOffset,
+                    mainCamera.transform.localPosition.z
+                );
+            }
+        }
+
+
 
         public void HandleLook(Vector2 lookInput)
         {
@@ -87,5 +108,9 @@ namespace ZacharysNewman.PPC
         }
 
         // Public methods for configuration
+        public void AdjustHeight(float offset)
+        {
+            heightOffset = offset;
+        }
     }
 }

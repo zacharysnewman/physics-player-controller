@@ -7,6 +7,7 @@ namespace ZacharysNewman.PPC
     [RequireComponent(typeof(PlayerInput))]
     [RequireComponent(typeof(PlayerMovement))]
     [RequireComponent(typeof(PlayerJump))]
+    [RequireComponent(typeof(PlayerCrouch))]
     [RequireComponent(typeof(GroundChecker))]
     [RequireComponent(typeof(CameraController))]
     [RequireComponent(typeof(DebugVisualizer))]
@@ -19,6 +20,7 @@ namespace ZacharysNewman.PPC
         private PlayerInput playerInput;
         private PlayerMovement playerMovement;
         private PlayerJump playerJump;
+        private PlayerCrouch playerCrouch;
         private GroundChecker groundChecker;
         private CameraController cameraController;
         private DebugVisualizer debugVisualizer;
@@ -37,6 +39,7 @@ namespace ZacharysNewman.PPC
             playerInput = GetComponent<PlayerInput>();
             playerMovement = GetComponent<PlayerMovement>();
             playerJump = GetComponent<PlayerJump>();
+            playerCrouch = GetComponent<PlayerCrouch>();
             groundChecker = GetComponent<GroundChecker>();
             cameraController = GetComponent<CameraController>();
             debugVisualizer = GetComponent<DebugVisualizer>();
@@ -98,6 +101,7 @@ namespace ZacharysNewman.PPC
             if (playerInput == null) Debug.LogError("PlayerController: PlayerInput component not found! This should not happen.");
             if (playerMovement == null) Debug.LogError("PlayerController: PlayerMovement component not found! This should not happen.");
             if (playerJump == null) Debug.LogError("PlayerController: PlayerJump component not found! This should not happen.");
+            if (playerCrouch == null) Debug.LogError("PlayerController: PlayerCrouch component not found! This should not happen.");
             if (groundChecker == null) Debug.LogError("PlayerController: GroundChecker component not found! This should not happen.");
             if (cameraController == null) Debug.LogError("PlayerController: CameraController component not found! This should not happen.");
             if (debugVisualizer == null) Debug.LogError("PlayerController: DebugVisualizer component not found! This should not happen.");
@@ -123,6 +127,12 @@ namespace ZacharysNewman.PPC
             {
                 playerJump.HandleJump(playerInput.JumpInput);
             }
+
+            // Handle crouch input
+            if (playerCrouch != null && playerInput != null)
+            {
+                playerCrouch.HandleCrouch(playerInput.CrouchInput);
+            }
         }
 
         private void FixedUpdate()
@@ -144,6 +154,7 @@ namespace ZacharysNewman.PPC
         public PlayerInput GetPlayerInput() => playerInput;
         public PlayerMovement GetPlayerMovement() => playerMovement;
         public PlayerJump GetPlayerJump() => playerJump;
+        public PlayerCrouch GetPlayerCrouch() => playerCrouch;
         public GroundChecker GetGroundChecker() => groundChecker;
         public CameraController GetCameraController() => cameraController;
         public DebugVisualizer GetDebugVisualizer() => debugVisualizer;

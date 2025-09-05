@@ -27,6 +27,9 @@ namespace ZacharysNewman.PPC
         public bool IsTouchingWall { get; private set; }
         public Vector3 WallNormal { get; private set; }
 
+        // Ceiling detection
+        public bool IsCeilingBlocked { get; private set; }
+
         private void Awake()
         {
             capsule = GetComponent<CapsuleCollider>();
@@ -204,7 +207,8 @@ namespace ZacharysNewman.PPC
         {
             // For ceiling check, we can use a similar spherecast upward
             RaycastHit hit;
-            if (Physics.SphereCast(ceilingCheck.position, config.CeilingCheckRadius, Vector3.up, out hit, config.CeilingCheckDistance, config.CeilingLayerMask))
+            IsCeilingBlocked = Physics.SphereCast(ceilingCheck.position, config.CeilingCheckRadius, Vector3.up, out hit, config.CeilingCheckDistance, config.CeilingLayerMask);
+            if (IsCeilingBlocked)
             {
                 // Check for player self-collision
                 CheckForPlayerCollision(hit.collider.gameObject, "ceiling");

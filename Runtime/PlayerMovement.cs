@@ -23,6 +23,7 @@ namespace ZacharysNewman.PPC
         // Movement state
         private bool isGrounded;
         private Vector3 groundNormal;
+        private float crouchSpeedMultiplier = 1f;
 
         public Vector3 TargetVelocity { get; private set; }
         public Vector3 CurrentVelocity { get; private set; }
@@ -104,7 +105,7 @@ namespace ZacharysNewman.PPC
             }
 
             // Compute target velocity
-            float speed = runInput ? config.RunSpeed : config.WalkSpeed;
+            float speed = (runInput ? config.RunSpeed : config.WalkSpeed) * crouchSpeedMultiplier;
             TargetVelocity = moveDirection * speed;
 
             // Smooth velocity
@@ -140,5 +141,11 @@ namespace ZacharysNewman.PPC
         }
 
         // Public methods for configuration
+        public void SetCrouchSpeedMultiplier(float multiplier)
+        {
+            crouchSpeedMultiplier = multiplier;
+        }
+
+        public float WalkSpeed => config.WalkSpeed;
     }
 }
