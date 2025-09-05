@@ -120,9 +120,22 @@
   - Draw ladder climb trigger bounds [Code]
   - Show climbing axis vector [Code]
 
+### Task 9: Moving Platform Support
+
+- Detect when player is grounded on any moving object [Code]
+- Cache reference to the object the player is standing on [Code]
+- Track the object's movement between frames [Code]
+- Apply the object's velocity to player while grounded on it [Code]
+- Handle object rotation [Code]
+  - Rotate player to match object's orientation changes [Code]
+- Configurable: velocityMultiplier
+- Debug / Gizmos Config:
+  - Visualize object velocity vector [Code]
+  - Highlight moving objects the player is standing on [Code]
+
 ## Phase 4 – Movement Feel & Air Control
 
-### Task 9: Sliding (Slope Only)
+### Task 10: Sliding (Slope Only)
 
 - Detect isSliding if groundSlopeAngle > slopeLimit [Code]
 - Configurable: slopeLimit, slideForceMultiplier
@@ -132,7 +145,7 @@
   - Draw slope normal and slope angle in scene [Code]
   - Optionally highlight sliding zones [Code]
 
-### Task 10: Air Control
+### Task 11: Air Control
 
 - Reduce horizontal influence on velocity while in air [Code]
 - Configurable: airControlMultiplier
@@ -142,14 +155,14 @@
 
 ## Phase 5 – State & Animator Integration
 
-### Task 11: State Machine
+### Task 12: State Machine
 
 - Define enum: Idle, Walking, Running, Crouching, Sliding, Jumping, Falling, Climbing [Code]
 - Transition rules based on checks + input [Code]
 - Debug / Gizmos Config:
   - Display current state text in editor [Code]
 
-### Task 12: Animator Sync
+### Task 13: Animator Sync
 
 - Setup Animator parameters: [Editor]
   - Speed (float), IsGrounded (bool), IsCrouching (bool), IsSliding (bool), IsClimbing (bool), Jump (trigger)
