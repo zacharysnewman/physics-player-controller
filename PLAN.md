@@ -88,15 +88,18 @@
 
 ## Phase 3 – Environment-Driven Interactions
 
-### Task 7: Sliding (Slope Only)
+### Task 7: Terrain Following + Step Handling
 
-- Detect isSliding if groundSlopeAngle > slopeLimit [Code]
-- Configurable: slopeLimit, slideForceMultiplier
-- Apply slope movement force downward [Code]
-- Block manual uphill control [Code]
+- Use multiple ground raycasts (center + edges) [Code]
+- Average normals for smoother slope transitions [Code]
+- Step Handling:
+  - Detect obstacle in front [Code]
+  - Adjust vertical position if height ≤ maxStepHeight [Code]
+  - Configurable: maxStepHeight
+  - Update movement vector projection onto ground plane [Code]
 - Debug / Gizmos Config:
-  - Draw slope normal and slope angle in scene [Code]
-  - Optionally highlight sliding zones [Code]
+  - Draw raycasts for terrain detection [Code]
+  - Highlight stepped obstacles in scene [Code]
 
 ### Task 8: Ladder Climb
 
@@ -109,28 +112,25 @@
   - Draw ladder climb trigger bounds [Code]
   - Show climbing axis vector [Code]
 
-## Phase 4 – Movement Feel & Terrain
+## Phase 4 – Movement Feel & Air Control
 
-### Task 9: Air Control
+### Task 9: Sliding (Slope Only)
+
+- Detect isSliding if groundSlopeAngle > slopeLimit [Code]
+- Configurable: slopeLimit, slideForceMultiplier
+- Apply slope movement force downward [Code]
+- Block manual uphill control [Code]
+- Debug / Gizmos Config:
+  - Draw slope normal and slope angle in scene [Code]
+  - Optionally highlight sliding zones [Code]
+
+### Task 10: Air Control
 
 - Reduce horizontal influence on velocity while in air [Code]
 - Configurable: airControlMultiplier
 - Prevent over-acceleration mid-air [Code]
 - Debug / Gizmos Config:
   - Visualize air control vector [Code]
-
-### Task 10: Terrain Following + Step Handling
-
-- Use multiple ground raycasts (center + edges) [Code]
-- Average normals for smoother slope transitions [Code]
-- Step Handling:
-  - Detect obstacle in front [Code]
-  - Adjust vertical position if height ≤ maxStepHeight [Code]
-  - Configurable: maxStepHeight
-  - Update movement vector projection onto ground plane [Code]
-- Debug / Gizmos Config:
-  - Draw raycasts for terrain detection [Code]
-  - Highlight stepped obstacles in scene [Code]
 
 ## Phase 5 – State & Animator Integration
 
