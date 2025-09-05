@@ -16,8 +16,7 @@ namespace ZacharysNewman.PPC
         [SerializeField] private bool visualizeVelocity = false;
         [SerializeField] private bool visualizeJump = true;
 
-        [Header("Ground Check Settings")]
-        [SerializeField] private float groundCheckRadius = 0.2f;
+
 
         // Component references (auto-assigned)
         private GroundChecker groundChecker;
@@ -89,7 +88,7 @@ namespace ZacharysNewman.PPC
             {
                 // Ground check
                 Gizmos.color = groundChecker.IsGrounded ? Color.blue : Color.red;
-                Gizmos.DrawWireSphere(groundCheck.position + Vector3.down * 0.1f, groundCheckRadius);
+                Gizmos.DrawLine(groundCheck.position, groundCheck.position + Vector3.down * 0.15f);
 
                 // Ceiling check
                 Gizmos.color = Color.yellow;

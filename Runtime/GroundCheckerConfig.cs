@@ -6,7 +6,6 @@ namespace ZacharysNewman.PPC
     public class GroundCheckerConfig : ScriptableObject
     {
         [Header("Ground Check Settings")]
-        [SerializeField] private float groundCheckRadius = 0.2f;
         [SerializeField] private float groundCheckDistance = 0.15f;
         [SerializeField] private LayerMask groundLayerMask = -1;
 
@@ -16,7 +15,6 @@ namespace ZacharysNewman.PPC
         [SerializeField] private LayerMask ceilingLayerMask = -1;
 
         // Public properties
-        public float GroundCheckRadius => groundCheckRadius;
         public float GroundCheckDistance => groundCheckDistance;
         public LayerMask GroundLayerMask => groundLayerMask;
         public float CeilingCheckRadius => ceilingCheckRadius;
@@ -24,9 +22,8 @@ namespace ZacharysNewman.PPC
         public LayerMask CeilingLayerMask => ceilingLayerMask;
 
         // Public methods for runtime modification
-        public void SetGroundCheckParameters(float radius, float distance, LayerMask layerMask)
+        public void SetGroundCheckParameters(float distance, LayerMask layerMask)
         {
-            groundCheckRadius = radius;
             groundCheckDistance = distance;
             groundLayerMask = layerMask;
         }

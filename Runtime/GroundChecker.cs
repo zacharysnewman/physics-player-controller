@@ -62,7 +62,7 @@ namespace ZacharysNewman.PPC
         {
             RaycastHit hit;
 
-            // Debug: Draw the actual sphere cast ray
+            // Debug: Draw the sphere cast
             if (debugLogging)
             {
                 float distance = config.GroundCheckDistance;
@@ -70,7 +70,7 @@ namespace ZacharysNewman.PPC
                 Debug.DrawLine(groundCheck.position, groundCheck.position + Vector3.down * distance, Color.yellow, 0.1f);
             }
 
-            // Try Raycast first (simpler)
+            // Use Raycast for ground detection
             float checkDistance = config.GroundCheckDistance;
             LayerMask layerMask = config.GroundLayerMask;
             if (Physics.Raycast(groundCheck.position, Vector3.down, out hit, checkDistance, layerMask))
@@ -88,67 +88,16 @@ namespace ZacharysNewman.PPC
                     Debug.Log($"Ground detected with Raycast! Position: {groundCheck.position}, Distance: {hit.distance}, Hit point: {hit.point}, Normal: {GroundNormal}");
                 }
             }
-            // Fallback: Try SphereCast
-            else if (Physics.SphereCast(groundCheck.position, config.GroundCheckRadius, Vector3.down, out hit, checkDistance, layerMask))
+            else
             {
-                IsGrounded = true;
-                GroundNormal = hit.normal;
-                GroundSlopeAngle = Vector3.Angle(Vector3.up, GroundNormal);
-
-                // Check for player self-collision
-                CheckForPlayerCollision(hit.collider.gameObject, "ground");
+                IsGrounded = false;
+                GroundNormal = Vector3.up;
+                GroundSlopeAngle = 0f;
 
                 // Debug logging
                 if (debugLogging)
                 {
-                    // Debug.Log($"Ground detected with SphereCast! Position: {groundCheck.position}, Distance: {hit.distance}, Hit point: {hit.point}, Normal: {GroundNormal}");
-                }
-            }
-            else
-            {
-                // Fallback: Try OverlapSphere at the bottom of the cast
-                Vector3 checkPosition = groundCheck.position + Vector3.down * checkDistance;
-                Collider[] colliders = Physics.OverlapSphere(checkPosition, config.GroundCheckRadius, layerMask);
-
-                if (colliders.Length > 0)
-                {
-                    // Simple check: ensure at least one collider is not the player itself
-                    bool hasValidCollider = false;
-                    foreach (Collider col in colliders)
-                    {
-                        if (col != null && col.gameObject != gameObject)
-                        {
-                            // Check for player collision warning
-                            CheckForPlayerCollision(col.gameObject, "ground");
-                            hasValidCollider = true;
-                            break;
-                        }
-                    }
-
-                    if (hasValidCollider)
-                    {
-                        IsGrounded = true;
-                        // For overlap, we can't easily get the normal, so use up
-                        GroundNormal = Vector3.up;
-                        GroundSlopeAngle = 0f;
-
-                        if (debugLogging)
-                        {
-                            Debug.Log($"Ground detected with OverlapSphere! Position: {checkPosition}, Colliders: {colliders.Length}");
-                        }
-                    }
-                }
-                else
-                {
-                    IsGrounded = false;
-                    GroundNormal = Vector3.up;
-                    GroundSlopeAngle = 0f;
-
-                    // Debug logging (more frequent for troubleshooting)
-                    if (debugLogging)
-                    {
-                        Debug.Log($"No ground detected. GroundCheck worldPos: {groundCheck.position}, OverlapSphere position: {checkPosition}, distance: {config.GroundCheckDistance}, radius: {config.GroundCheckRadius}, layerNames: {GetLayerNames(config.GroundLayerMask)}");
-                    }
+                    Debug.Log($"No ground detected. GroundCheck worldPos: {groundCheck.position}, distance: {config.GroundCheckDistance}, layerNames: {GetLayerNames(config.GroundLayerMask)}");
                 }
             }
 
@@ -160,7 +109,7 @@ namespace ZacharysNewman.PPC
         {
             // Check for walls in all horizontal directions
             Vector3[] directions = { Vector3.forward, Vector3.back, Vector3.left, Vector3.right };
-            float wallCheckDistance = config.GroundCheckRadius * 0.8f; // Slightly less than radius
+            float wallCheckDistance = 0.16f; // Fixed wall check distance
 
             IsTouchingWall = false;
             WallNormal = Vector3.zero;

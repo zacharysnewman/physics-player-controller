@@ -12,14 +12,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 553f5ccd30ef24d479d94ac90c2e4cb7, type: 3}
   m_Name: GroundCheckerConfig
   m_EditorClassIdentifier: 
-  groundCheckRadius: 0.49
-  groundCheckDistance: 0.2
+  groundCheckDistance: 0.49
   groundLayerMask:
     serializedVersion: 2
-    m_Bits: 55
+    m_Bits: 4294967295
   ceilingCheckRadius: 0.4
   ceilingCheckDistance: 0.1
   ceilingLayerMask:
     serializedVersion: 2
-    m_Bits: 55
-  debugLogging: 0
+    m_Bits: 4294967295
