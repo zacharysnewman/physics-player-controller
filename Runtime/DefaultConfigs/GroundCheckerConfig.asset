@@ -16,10 +16,10 @@ MonoBehaviour:
   groundCheckDistance: 0.2
   groundLayerMask:
     serializedVersion: 2
-    m_Bits: 4294967295
+    m_Bits: 55
   ceilingCheckRadius: 0.4
   ceilingCheckDistance: 0.1
   ceilingLayerMask:
     serializedVersion: 2
-    m_Bits: 4294967295
+    m_Bits: 55
   debugLogging: 0
