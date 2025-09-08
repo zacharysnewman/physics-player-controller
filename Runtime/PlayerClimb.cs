@@ -16,6 +16,7 @@ namespace ZacharysNewman.PPC
         private Rigidbody rb;
         private PlayerInput playerInput;
         private PlayerMovement playerMovement;
+        private GroundChecker groundChecker;
         private Camera mainCamera;
 
         // Climbing state
@@ -23,6 +24,7 @@ namespace ZacharysNewman.PPC
         private Vector3 ladderAxis;
         private Vector3 ladderPosition;
         private Bounds ladderBounds;
+        private bool wasGrounded;
 
         // Debug
         private Vector3 debugClimbAxis;
@@ -36,6 +38,7 @@ namespace ZacharysNewman.PPC
             rb = GetComponent<Rigidbody>();
             playerInput = GetComponent<PlayerInput>();
             playerMovement = GetComponent<PlayerMovement>();
+            groundChecker = GetComponent<GroundChecker>();
             mainCamera = Camera.main;
 
             if (config == null)
@@ -58,6 +61,23 @@ namespace ZacharysNewman.PPC
                 {
                     ExitClimb();
                 }
+            }
+
+            // Auto dismount when becoming grounded while climbing
+            if (isClimbing && groundChecker != null)
+            {
+                bool currentlyGrounded = groundChecker.IsGrounded;
+                if (!wasGrounded && currentlyGrounded)
+                {
+                    if (debugLogging) Debug.Log("Auto dismounting from ladder - became grounded while climbing");
+                    ExitClimb();
+                }
+                wasGrounded = currentlyGrounded;
+            }
+            else if (!isClimbing && groundChecker != null)
+            {
+                // Update wasGrounded even when not climbing to maintain state
+                wasGrounded = groundChecker.IsGrounded;
             }
         }
 

@@ -97,6 +97,7 @@
 - Raycast diagonally from player's center to ground to detect walls, steps, and slopes [Code]
 - Account for player height (2m standing, 1m crouching) and configurable offsets [Code]
 - Handle cases where raycast hits nothing (e.g., fall or edge detection) [Code]
+- Auto dismount ladder when becoming grounded: dismount from ladder when transitioning from not grounded to grounded while on ladder, allowing normal movement on ground after climbing down to the ground
 - Debug / Gizmos Config:
   - Visualize slope detection rays and adjusted velocity vectors [Code]
 
