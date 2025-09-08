@@ -1,2 +1,3 @@
 #!/bin/bash
+# This is an auto-generated file, DO NOT EDIT, any changes will be overwritten!
 dotnet build /Users/zacknewman/Projects/Completed/my-unity-packages/zacharysnewman.ppc.csproj

@@ -9,6 +9,8 @@ namespace ZacharysNewman.PPC
         [Header("Configuration")]
         [SerializeField] private PlayerCrouchConfig config;
 
+
+
         // Component references
         private CapsuleCollider capsule;
         private GroundChecker groundChecker;

@@ -7,6 +7,7 @@ namespace ZacharysNewman.PPC
     [RequireComponent(typeof(PlayerMovement))]
     [RequireComponent(typeof(PlayerJump))]
     [RequireComponent(typeof(PlayerCrouch))]
+    [RequireComponent(typeof(PlayerClimb))]
     [RequireComponent(typeof(PlayerInput))]
     public class DebugVisualizer : MonoBehaviour
     {
@@ -18,6 +19,7 @@ namespace ZacharysNewman.PPC
         [SerializeField] private bool visualizeJump = true;
         [SerializeField] private bool visualizeCrouch = true;
         [SerializeField] private bool visualizeTerrainNavigation = false;
+        [SerializeField] private bool visualizeLadderClimb = true;
 
 
 
@@ -26,6 +28,7 @@ namespace ZacharysNewman.PPC
         private PlayerMovement playerMovement;
         private PlayerJump playerJump;
         private PlayerCrouch playerCrouch;
+        private PlayerClimb playerClimb;
         private PlayerInput playerInput;
 
         // Component references
@@ -42,6 +45,7 @@ namespace ZacharysNewman.PPC
             playerMovement = GetComponent<PlayerMovement>();
             playerJump = GetComponent<PlayerJump>();
             playerCrouch = GetComponent<PlayerCrouch>();
+            playerClimb = GetComponent<PlayerClimb>();
             playerInput = GetComponent<PlayerInput>();
 
             // Create debug check transforms
@@ -79,7 +83,7 @@ namespace ZacharysNewman.PPC
 
         public void DrawGizmos()
         {
-            if (groundChecker == null || playerMovement == null || playerJump == null || playerCrouch == null) return;
+            if (groundChecker == null || playerMovement == null || playerJump == null || playerCrouch == null || playerClimb == null) return;
 
             if (visualizeBounds)
             {
@@ -154,10 +158,15 @@ namespace ZacharysNewman.PPC
             {
                 playerMovement.VisualizeTerrainRays();
             }
+
+            if (visualizeLadderClimb)
+            {
+                playerClimb.VisualizeLadder();
+            }
         }
 
         // Public methods for configuration
-        public void SetVisualizationToggles(bool bounds, bool logging, bool groundChecks, bool velocity, bool jump, bool crouch, bool terrain)
+        public void SetVisualizationToggles(bool bounds, bool logging, bool groundChecks, bool velocity, bool jump, bool crouch, bool terrain, bool ladder)
         {
             visualizeBounds = bounds;
             debugLogging = logging;
@@ -166,6 +175,7 @@ namespace ZacharysNewman.PPC
             visualizeJump = jump;
             visualizeCrouch = crouch;
             visualizeTerrainNavigation = terrain;
+            visualizeLadderClimb = ladder;
         }
     }
 }

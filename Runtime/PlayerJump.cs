@@ -9,6 +9,9 @@ namespace ZacharysNewman.PPC
         [Header("Configuration")]
         [SerializeField] private PlayerJumpConfig config;
 
+        [Header("Debug")]
+        [SerializeField] private bool debugLogging = false;
+
         // Component references (auto-assigned)
         private GroundChecker groundChecker;
 
@@ -24,7 +27,6 @@ namespace ZacharysNewman.PPC
         private bool wasJumpPressed;
 
         // Configuration
-        private bool debugLogging;
 
         // Public properties for other components
         public float JumpBufferTimer => jumpBufferTimer;
@@ -64,7 +66,7 @@ namespace ZacharysNewman.PPC
                 coyoteTimer = config.CoyoteTime;
                 if (debugLogging)
                 {
-                    Debug.Log($"PlayerJump: Coyote time started. Timer: {coyoteTimer}");
+                    if (debugLogging) Debug.Log($"PlayerJump: Coyote time started. Timer: {coyoteTimer}");
                 }
             }
 
@@ -87,7 +89,7 @@ namespace ZacharysNewman.PPC
                 jumpBufferTimer = config.JumpBufferTime;
                 if (debugLogging)
                 {
-                    Debug.Log($"PlayerJump: Jump buffer set. Timer: {jumpBufferTimer}");
+                    if (debugLogging) Debug.Log($"PlayerJump: Jump buffer set. Timer: {jumpBufferTimer}");
                 }
             }
 
@@ -95,7 +97,7 @@ namespace ZacharysNewman.PPC
             bool canJump = (groundChecker.IsGrounded || coyoteTimer > 0) && jumpBufferTimer > 0;
             if (debugLogging && jumpInput && !wasJumpPressed)
             {
-                Debug.Log($"PlayerJump: Jump input detected. Can jump: {canJump}, IsGrounded: {groundChecker.IsGrounded}, CoyoteTimer: {coyoteTimer}, JumpBufferTimer: {jumpBufferTimer}");
+                if (debugLogging) Debug.Log($"PlayerJump: Jump input detected. Can jump: {canJump}, IsGrounded: {groundChecker.IsGrounded}, CoyoteTimer: {coyoteTimer}, JumpBufferTimer: {jumpBufferTimer}");
             }
 
             if (canJump)
@@ -122,7 +124,7 @@ namespace ZacharysNewman.PPC
 
             if (debugLogging)
             {
-                Debug.Log($"PlayerJump: Jump performed with force {force}. New velocity: {rb.linearVelocity}");
+                if (debugLogging) Debug.Log($"PlayerJump: Jump performed with force {force}. New velocity: {rb.linearVelocity}");
             }
         }
 

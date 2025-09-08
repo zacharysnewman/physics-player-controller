@@ -15,11 +15,16 @@ namespace ZacharysNewman.PPC
 
 
 
+
+
+
+
         // Component references
         private Rigidbody rb;
         private GroundChecker groundChecker;
         private PlayerInput playerInput;
         private PlayerCrouch playerCrouch;
+        private PlayerClimb playerClimb;
         private CapsuleCollider capsule;
 
         // Movement state
@@ -40,6 +45,7 @@ namespace ZacharysNewman.PPC
             groundChecker = GetComponent<GroundChecker>();
             playerInput = GetComponent<PlayerInput>();
             playerCrouch = GetComponent<PlayerCrouch>();
+            playerClimb = GetComponent<PlayerClimb>();
             capsule = GetComponent<CapsuleCollider>();
 
             if (mainCamera == null)
@@ -90,6 +96,9 @@ namespace ZacharysNewman.PPC
         public void HandleMovement()
         {
             if (mainCamera == null || playerInput == null) return;
+
+            // Don't handle normal movement if climbing
+            if (playerClimb != null && playerClimb.IsClimbing) return;
 
             Vector2 moveInput = playerInput.MoveInput;
             bool runInput = playerInput.RunInput;

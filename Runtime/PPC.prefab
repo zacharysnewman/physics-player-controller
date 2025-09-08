@@ -175,6 +175,7 @@ GameObject:
   - component: {fileID: 7550552320392940736}
   - component: {fileID: 1116763360299352154}
   - component: {fileID: 6026259275593641203}
+  - component: {fileID: 6723515687793506130}
   m_Layer: 6
   m_Name: PPC
   m_TagString: Player
@@ -381,6 +382,7 @@ MonoBehaviour:
   visualizeJump: 1
   visualizeCrouch: 1
   visualizeTerrainNavigation: 1
+  visualizeLadderClimb: 1
 --- !u!114 &7550552320392940736
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -422,6 +424,19 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   config: {fileID: 11400000, guid: 74564bada8735441c80198e2c1788b88, type: 2}
+--- !u!114 &6723515687793506130
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6860739329674613150}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f023dab292e674ac1aa700585a0020d7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  config: {fileID: 11400000, guid: 07ccd5b9e5d3e460cb6ab6913df78f45, type: 2}
 --- !u!1 &8962942725810952844
 GameObject:
   m_ObjectHideFlags: 0

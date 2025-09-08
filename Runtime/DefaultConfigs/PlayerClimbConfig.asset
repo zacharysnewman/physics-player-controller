@@ -9,15 +9,10 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 553f5ccd30ef24d479d94ac90c2e4cb7, type: 3}
-  m_Name: GroundCheckerConfig
+  m_Script: {fileID: 11500000, guid: 65f4c999686014a50a8035821ccb3f2d, type: 3}
+  m_Name: PlayerClimbConfig
   m_EditorClassIdentifier: 
-  groundCheckDistance: 1.05
-  groundLayerMask:
+  ladderClimbSpeed: 3
+  ladderLayerMask:
     serializedVersion: 2
-    m_Bits: 55
-  ceilingCheckDistance: 1.5
-  ceilingLayerMask:
-    serializedVersion: 2
-    m_Bits: 55
-  maxSlopeAngle: 45
+    m_Bits: 128

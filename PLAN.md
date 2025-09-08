@@ -114,7 +114,10 @@
 - Add ladder trigger volumes [Editor]
 - On enter: set isClimbing [Code]
 - Disable gravity, move player along ladder axis based on input [Code]
-- Configurable: ladderClimbSpeed
+- Configurable: ladderClimbSpeed, ladderLayerMask [Code]
+- Use ladderLayerMask to filter trigger volumes [Code]
+- Allow horizontal movement (left/right) on ladder [Code]
+- Make vertical movement relative to ladder direction (forward/backward input controls up/down based on direction toward/away from ladder) [Code]
 - Exit if jump pressed or ladder ends [Code]
 - Debug / Gizmos Config:
   - Draw ladder climb trigger bounds [Code]

@@ -8,6 +8,7 @@ namespace ZacharysNewman.PPC
         [Header("Component Configurations")]
         [SerializeField] private PlayerMovementConfig movementConfig;
         [SerializeField] private PlayerJumpConfig jumpConfig;
+        [SerializeField] private PlayerClimbConfig climbConfig;
         [SerializeField] private CameraControllerConfig cameraConfig;
         [SerializeField] private GroundCheckerConfig groundCheckerConfig;
 
@@ -17,6 +18,7 @@ namespace ZacharysNewman.PPC
         // Public properties
         public PlayerMovementConfig MovementConfig => movementConfig;
         public PlayerJumpConfig JumpConfig => jumpConfig;
+        public PlayerClimbConfig ClimbConfig => climbConfig;
         public CameraControllerConfig CameraConfig => cameraConfig;
         public GroundCheckerConfig GroundCheckerConfig => groundCheckerConfig;
         public float InputSensitivity => inputSensitivity;
@@ -25,11 +27,13 @@ namespace ZacharysNewman.PPC
         public void SetComponentConfigs(
             PlayerMovementConfig movement,
             PlayerJumpConfig jump,
+            PlayerClimbConfig climb,
             CameraControllerConfig camera,
             GroundCheckerConfig groundChecker)
         {
             movementConfig = movement;
             jumpConfig = jump;
+            climbConfig = climb;
             cameraConfig = camera;
             groundCheckerConfig = groundChecker;
         }
