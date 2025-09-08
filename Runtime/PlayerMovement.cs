@@ -13,12 +13,6 @@ namespace ZacharysNewman.PPC
         [Header("Dependencies")]
         [SerializeField] private Camera mainCamera;
 
-
-
-
-
-
-
         // Component references
         private Rigidbody rb;
         private GroundChecker groundChecker;
@@ -85,7 +79,7 @@ namespace ZacharysNewman.PPC
                     return;
                 }
             }
-            }
+        }
 
         public void UpdateGrounded(bool grounded, Vector3 normal)
         {
