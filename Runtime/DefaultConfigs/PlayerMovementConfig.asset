@@ -18,8 +18,11 @@ MonoBehaviour:
   deceleration: 10
   reverseDeceleration: 20
   maxVelocityChange: 10
+  maxAcceleration: 500
   slopeAlignmentStrength: 1
   standingHeight: 2
   crouchingHeight: 1
   slopeDetectionRayDistance: 3
+  maxStepHeight: 0.3
   velocityMultiplier: 1
+  maxRotationSpeed: 360

@@ -46,6 +46,11 @@ namespace ZacharysNewman.PPC
         // Moving platform debug
         private Vector3 debugPlatformVelocity;
 
+        // Step handling debug
+        private Vector3 debugStepRayOrigin;
+        private Vector3 debugStepHitPoint;
+        private bool debugStepDetected;
+
         private void Awake()
         {
             rb = GetComponent<Rigidbody>();
@@ -308,7 +313,43 @@ namespace ZacharysNewman.PPC
             debugFootPoint = groundPoint;
             debugSlopePoint = groundPoint; // Same point for single ray
 
+            // Step handling
+            HandleStep(moveDirection);
+
             return adjustedDirection;
+        }
+
+        private void HandleStep(Vector3 moveDirection)
+        {
+            if (moveDirection.magnitude < 0.01f) return;
+
+            // Raycast from 0.51 units in movement direction
+            Vector3 rayOrigin = transform.position + moveDirection.normalized * 0.51f;
+            debugStepRayOrigin = rayOrigin;
+
+            // Raycast down at least 2 units
+            RaycastHit stepHit;
+            if (Physics.Raycast(rayOrigin, Vector3.down, out stepHit, 2f, groundChecker.GetGroundLayerMask()))
+            {
+                debugStepHitPoint = stepHit.point;
+                debugStepDetected = true;
+
+                // Calculate step height: hit point relative to player bottom
+                float playerBottomY = transform.position.y - 1f; // Assuming capsule height 2, center at 0
+                float stepHeight = stepHit.point.y - playerBottomY;
+
+                // If step height is positive and within max step height
+                if (stepHeight > 0f && stepHeight <= config.MaxStepHeight)
+                {
+                    // Move rigidbody up to step height
+                    Vector3 newPosition = rb.position + Vector3.up * stepHeight;
+                    rb.MovePosition(newPosition);
+                }
+            }
+            else
+            {
+                debugStepDetected = false;
+            }
         }
 
         // Public methods for configuration
@@ -364,6 +405,22 @@ namespace ZacharysNewman.PPC
             // Show offset position
             Gizmos.color = Color.yellow;
             Gizmos.DrawSphere(rayOrigin, 0.03f);
+        }
+
+        public void VisualizeStepRays()
+        {
+            if (!isGrounded || currentMoveDirection.magnitude < 0.01f) return;
+
+            // Visualize step ray
+            Gizmos.color = debugStepDetected ? Color.red : Color.gray;
+            Gizmos.DrawLine(debugStepRayOrigin, debugStepRayOrigin + Vector3.down * 2f);
+            Gizmos.DrawSphere(debugStepRayOrigin, 0.03f);
+
+            if (debugStepDetected)
+            {
+                Gizmos.color = Color.magenta;
+                Gizmos.DrawSphere(debugStepHitPoint, 0.05f);
+            }
         }
     }
 }

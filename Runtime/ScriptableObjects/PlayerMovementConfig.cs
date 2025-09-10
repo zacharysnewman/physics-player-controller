@@ -23,6 +23,7 @@ namespace ZacharysNewman.PPC
         [SerializeField] private float standingHeight = 2f;
         [SerializeField] private float crouchingHeight = 1f;
         [SerializeField] private float slopeDetectionRayDistance = 3f;
+        [SerializeField] private float maxStepHeight = 0.5f;
 
         [Header("Moving Platform Support")]
         [SerializeField] private float velocityMultiplier = 1f;
@@ -41,6 +42,7 @@ namespace ZacharysNewman.PPC
         public float StandingHeight => standingHeight;
         public float CrouchingHeight => crouchingHeight;
         public float SlopeDetectionRayDistance => slopeDetectionRayDistance;
+        public float MaxStepHeight => maxStepHeight;
         public float VelocityMultiplier => velocityMultiplier;
         public float MaxRotationSpeed => maxRotationSpeed;
 
