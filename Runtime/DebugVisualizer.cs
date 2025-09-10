@@ -20,6 +20,7 @@ namespace ZacharysNewman.PPC
         [SerializeField] private bool visualizeCrouch = true;
         [SerializeField] private bool visualizeTerrainNavigation = false;
         [SerializeField] private bool visualizeLadderClimb = true;
+        [SerializeField] private bool visualizeMovingPlatform = true;
 
 
 
@@ -163,10 +164,15 @@ namespace ZacharysNewman.PPC
             {
                 playerClimb.VisualizeLadder();
             }
+
+            if (visualizeMovingPlatform)
+            {
+                playerMovement.VisualizePlatform();
+            }
         }
 
         // Public methods for configuration
-        public void SetVisualizationToggles(bool bounds, bool logging, bool groundChecks, bool velocity, bool jump, bool crouch, bool terrain, bool ladder)
+        public void SetVisualizationToggles(bool bounds, bool logging, bool groundChecks, bool velocity, bool jump, bool crouch, bool terrain, bool ladder, bool platform)
         {
             visualizeBounds = bounds;
             debugLogging = logging;
@@ -176,6 +182,7 @@ namespace ZacharysNewman.PPC
             visualizeCrouch = crouch;
             visualizeTerrainNavigation = terrain;
             visualizeLadderClimb = ladder;
+            visualizeMovingPlatform = platform;
         }
     }
 }

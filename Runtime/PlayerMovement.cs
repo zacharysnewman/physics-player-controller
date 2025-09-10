@@ -12,6 +12,7 @@ namespace ZacharysNewman.PPC
 
         [Header("Dependencies")]
         [SerializeField] private Camera mainCamera;
+        [SerializeField] private CameraController cameraController;
 
         // Component references
         private Rigidbody rb;
@@ -26,12 +27,24 @@ namespace ZacharysNewman.PPC
         private Vector3 groundNormal;
         private float crouchSpeedMultiplier = 1f;
 
+        // Moving platform support
+        private Transform currentPlatform;
+        private Vector3 previousPlatformPosition;
+        private Quaternion previousPlatformRotation;
+        private Vector3 platformVelocity;
+        private Vector3 platformAngularVelocity;
+        private Quaternion platformDeltaRotation;
+        private Quaternion platformRotationAccum;
+
         public Vector3 TargetVelocity { get; private set; }
         public Vector3 CurrentVelocity { get; private set; }
         private Vector3 currentMoveDirection;
         private Vector3 debugFootPoint;
         private Vector3 debugSlopePoint;
         private float debugSlopeAngle;
+
+        // Moving platform debug
+        private Vector3 debugPlatformVelocity;
 
         private void Awake()
         {
@@ -45,6 +58,11 @@ namespace ZacharysNewman.PPC
             if (mainCamera == null)
             {
                 mainCamera = Camera.main;
+            }
+
+            if (cameraController == null)
+            {
+                cameraController = GetComponent<CameraController>();
             }
 
             // Ensure config is set
@@ -81,10 +99,83 @@ namespace ZacharysNewman.PPC
             }
         }
 
-        public void UpdateGrounded(bool grounded, Vector3 normal)
+        private void Update()
+        {
+            // Track platform movement
+            TrackPlatformMovement();
+        }
+
+        private void TrackPlatformMovement()
+        {
+            if (currentPlatform == null) return;
+
+            // Calculate platform velocity
+            Vector3 currentPosition = currentPlatform.position;
+            Quaternion currentRotation = currentPlatform.rotation;
+
+            platformVelocity = (currentPosition - previousPlatformPosition) / Time.deltaTime;
+
+            // Calculate rotation delta
+            platformDeltaRotation = currentRotation * Quaternion.Inverse(previousPlatformRotation);
+
+            // Calculate angular velocity
+            platformDeltaRotation.ToAngleAxis(out float angle, out Vector3 axis);
+            platformAngularVelocity = axis * (angle * Mathf.Deg2Rad / Time.deltaTime);
+
+            // Accumulate platform rotation
+            platformRotationAccum = platformRotationAccum * platformDeltaRotation;
+
+            // Update camera yaw offset
+            if (cameraController != null)
+            {
+                cameraController.PlatformYawOffset = platformRotationAccum.eulerAngles.y;
+            }
+
+            // Update previous values
+            previousPlatformPosition = currentPosition;
+            previousPlatformRotation = currentRotation;
+
+            // Debug
+            debugPlatformVelocity = platformVelocity;
+        }
+
+        public void UpdateGrounded(bool grounded, Vector3 normal, Transform groundObject)
         {
             isGrounded = grounded;
             groundNormal = normal;
+
+            // Moving platform detection
+            if (grounded && groundObject != null)
+            {
+                // Check if this is a new platform or different from current
+                if (currentPlatform != groundObject)
+                {
+                    // New platform detected
+                    currentPlatform = groundObject;
+                    previousPlatformPosition = currentPlatform.position;
+                    previousPlatformRotation = currentPlatform.rotation;
+                    platformVelocity = Vector3.zero;
+                    platformAngularVelocity = Vector3.zero;
+                    platformDeltaRotation = Quaternion.identity;
+                    platformRotationAccum = Quaternion.identity;
+                    if (cameraController != null) cameraController.PlatformYawOffset = 0f;
+            platformRotationAccum = Quaternion.identity;
+                }
+            }
+            else
+            {
+                // No longer grounded or no ground object
+                currentPlatform = null;
+                platformVelocity = Vector3.zero;
+                platformAngularVelocity = Vector3.zero;
+                platformDeltaRotation = Quaternion.identity;
+                platformRotationAccum = Quaternion.identity;
+                if (cameraController != null)
+                {
+                    cameraController.AdjustYaw(cameraController.PlatformYawOffset);
+                    cameraController.PlatformYawOffset = 0f;
+                }
+            }
         }
 
         public void HandleMovement()
@@ -124,6 +215,16 @@ namespace ZacharysNewman.PPC
 
             TargetVelocity = moveDirection * speed;
 
+            // Apply platform velocity to target if on moving platform
+            if (isGrounded && currentPlatform != null)
+            {
+                // Calculate platform velocity at player's position (translational + rotational)
+                Vector3 playerRelativePos = rb.position - currentPlatform.position;
+                Vector3 rotationalVelocity = Vector3.Cross(platformAngularVelocity, playerRelativePos);
+                Vector3 totalPlatformVelocity = platformVelocity + rotationalVelocity;
+                TargetVelocity += totalPlatformVelocity;
+            }
+
             // Smooth velocity
             Vector3 velocityChange = TargetVelocity - rb.linearVelocity;
 
@@ -154,6 +255,8 @@ namespace ZacharysNewman.PPC
                 accel = config.Deceleration;
             }
             velocityChange = Vector3.MoveTowards(Vector3.zero, velocityChange, accel * Time.fixedDeltaTime);
+
+
 
             // Apply to rigidbody
             rb.AddForce(velocityChange, ForceMode.VelocityChange);
@@ -215,6 +318,27 @@ namespace ZacharysNewman.PPC
         public Vector3 DebugMovementForce;
 
         // Debug visualization
+        public void VisualizePlatform()
+        {
+            if (currentPlatform == null) return;
+
+            // Highlight the platform
+            Gizmos.color = Color.magenta;
+            if (currentPlatform.TryGetComponent<Renderer>(out var renderer))
+            {
+                Gizmos.DrawWireCube(renderer.bounds.center, renderer.bounds.size);
+            }
+            else
+            {
+                Gizmos.DrawWireSphere(currentPlatform.position, 0.5f);
+            }
+
+            // Visualize platform velocity
+            Gizmos.color = Color.cyan;
+            Gizmos.DrawLine(currentPlatform.position, currentPlatform.position + debugPlatformVelocity);
+            Gizmos.DrawSphere(currentPlatform.position + debugPlatformVelocity, 0.1f);
+        }
+
         public void VisualizeTerrainRays()
         {
             if (!isGrounded) return;

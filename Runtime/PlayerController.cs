@@ -128,7 +128,7 @@ namespace ZacharysNewman.PPC
             // Update movement with ground info
             if (playerMovement != null && groundChecker != null)
             {
-                playerMovement.UpdateGrounded(groundChecker.IsGrounded, groundChecker.GroundNormal);
+                playerMovement.UpdateGrounded(groundChecker.IsGrounded, groundChecker.GroundNormal, groundChecker.GroundObject);
             }
 
             // Handle jump input

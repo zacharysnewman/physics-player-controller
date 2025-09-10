@@ -22,6 +22,7 @@ namespace ZacharysNewman.PPC
         private float heightOffset = 0f;
         private float currentHeightOffset = 0f;
         private float baseHeight;
+        public float PlatformYawOffset = 0f;
 
         public bool IsMouseLocked => isMouseLocked;
 
@@ -60,6 +61,12 @@ namespace ZacharysNewman.PPC
             {
                 HandleLook(playerInput.LookInput);
             }
+
+            // Apply rotation
+            if (mainCamera != null)
+            {
+                mainCamera.transform.localRotation = Quaternion.Euler(cameraPitch, cameraYaw + PlatformYawOffset, 0f);
+            }
         }
 
         private void LateUpdate()
@@ -97,7 +104,7 @@ namespace ZacharysNewman.PPC
             cameraPitch = Mathf.Clamp(cameraPitch, minAngle, maxAngle);
 
             // Apply rotation
-            mainCamera.transform.rotation = Quaternion.Euler(cameraPitch, cameraYaw, 0f);
+            mainCamera.transform.localRotation = Quaternion.Euler(cameraPitch, cameraYaw + PlatformYawOffset, 0f);
         }
 
         public void ToggleMouseLock()
@@ -111,6 +118,11 @@ namespace ZacharysNewman.PPC
         public void AdjustHeight(float offset)
         {
             heightOffset = offset;
+        }
+
+        public void AdjustYaw(float delta)
+        {
+            cameraYaw += delta;
         }
     }
 }

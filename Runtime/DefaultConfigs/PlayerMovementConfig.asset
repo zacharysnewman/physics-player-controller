@@ -12,17 +12,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 719d2b7c211934018891dd98e0fdfe42, type: 3}
   m_Name: PlayerMovementConfig
   m_EditorClassIdentifier: 
-  walkSpeed: 5
-  runSpeed: 10
+  walkSpeed: 3
+  runSpeed: 6
   acceleration: 10
   deceleration: 10
   reverseDeceleration: 20
   maxVelocityChange: 10
-  raycastDistance: 100
-  numberOfRays: 5
   slopeAlignmentStrength: 1
   standingHeight: 2
   crouchingHeight: 1
-  maxSlopeAngle: 30
-  forwardRayDownAngle: 60
   slopeDetectionRayDistance: 3
+  velocityMultiplier: 1

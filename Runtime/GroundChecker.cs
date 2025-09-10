@@ -22,6 +22,7 @@ namespace ZacharysNewman.PPC
         public bool IsGrounded { get; private set; }
         public Vector3 GroundNormal { get; private set; }
         public float GroundSlopeAngle { get; private set; }
+        public Transform GroundObject { get; private set; }
 
         // Wall detection
         public bool IsTouchingWall { get; private set; }
@@ -155,6 +156,7 @@ namespace ZacharysNewman.PPC
             {
                 GroundNormal = closestHit.normal;
                 GroundSlopeAngle = Vector3.Angle(Vector3.up, GroundNormal);
+                GroundObject = closestHit.transform;
 
                 // Check if slope is traversable
                 IsGrounded = GroundSlopeAngle <= config.MaxSlopeAngle;
@@ -170,6 +172,7 @@ namespace ZacharysNewman.PPC
                 IsGrounded = false;
                 GroundNormal = Vector3.up;
                 GroundSlopeAngle = 0f;
+                GroundObject = null;
 
                 // Debug logging
                 if (debugLogging)
