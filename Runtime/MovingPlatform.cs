@@ -47,8 +47,9 @@ namespace ZacharysNewman.PPC
             // Smoothly interpolate position
             transform.position = Vector3.Lerp(startPosition, endPoint.position, fractionOfJourney);
 
-            // Smoothly interpolate rotation
-            transform.rotation = Quaternion.Lerp(startRotation, endRotation, fractionOfJourney);
+            // Smoothly interpolate rotation using independent rotateSpeed
+            float rotationProgress = Mathf.PingPong((Time.time - startTime) * rotateSpeed / 180f, 1f);
+            transform.rotation = Quaternion.Lerp(startRotation, endRotation, rotationProgress);
         }
 
         private void OnDrawGizmos()

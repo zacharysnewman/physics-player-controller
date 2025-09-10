@@ -213,7 +213,8 @@ namespace ZacharysNewman.PPC
             // Toggle gravity based on grounded state
             rb.useGravity = !isGrounded;
 
-            TargetVelocity = moveDirection * speed;
+            Vector3 playerTargetVelocity = moveDirection * speed;
+            Vector3 platformTargetVelocity = Vector3.zero;
 
             // Apply platform velocity to target if on moving platform
             if (isGrounded && currentPlatform != null)
@@ -221,48 +222,52 @@ namespace ZacharysNewman.PPC
                 // Calculate platform velocity at player's position (translational + rotational)
                 Vector3 playerRelativePos = rb.position - currentPlatform.position;
                 Vector3 rotationalVelocity = Vector3.Cross(platformAngularVelocity, playerRelativePos);
-                Vector3 totalPlatformVelocity = platformVelocity + rotationalVelocity;
-                TargetVelocity += totalPlatformVelocity;
+                platformTargetVelocity = platformVelocity + rotationalVelocity;
             }
 
-            // Smooth velocity
-            Vector3 velocityChange = TargetVelocity - rb.linearVelocity;
+            TargetVelocity = playerTargetVelocity + platformTargetVelocity;
+
+            // Compute total target velocity
+            Vector3 totalTargetVelocity = playerTargetVelocity + platformTargetVelocity;
 
             // When airborne, preserve vertical velocity for natural gravity
             if (!isGrounded)
             {
-                velocityChange.y = 0f;
+                totalTargetVelocity.y = rb.linearVelocity.y;
             }
+
+            // Compute desired velocity change
+            Vector3 desiredVelocityChange = totalTargetVelocity - rb.linearVelocity;
 
             // Limit velocity change
-            float maxChange = config.MaxVelocityChange;
-            if (velocityChange.magnitude > maxChange)
+            if (desiredVelocityChange.magnitude > config.MaxVelocityChange)
             {
-                velocityChange = velocityChange.normalized * maxChange;
+                desiredVelocityChange = desiredVelocityChange.normalized * config.MaxVelocityChange;
             }
 
-            // Apply acceleration/deceleration with faster reverse deceleration
+            // Apply acceleration/deceleration smoothing to velocity change
             Vector3 currentHorizontalVelocity = new Vector3(rb.linearVelocity.x, 0, rb.linearVelocity.z);
-            Vector3 targetHorizontalVelocity = new Vector3(TargetVelocity.x, 0, TargetVelocity.z);
+            Vector3 targetHorizontalVelocity = new Vector3(totalTargetVelocity.x, 0, totalTargetVelocity.z);
             float dot = Vector3.Dot(currentHorizontalVelocity.normalized, targetHorizontalVelocity.normalized);
-            float accel;
+            float accelRate;
             if (moveInput.magnitude > 0.1f)
             {
-                accel = (dot < -0.1f) ? config.ReverseDeceleration : config.Acceleration;
+                accelRate = (dot < -0.1f) ? config.ReverseDeceleration : config.Acceleration;
             }
             else
             {
-                accel = config.Deceleration;
+                accelRate = config.Deceleration;
             }
-            velocityChange = Vector3.MoveTowards(Vector3.zero, velocityChange, accel * Time.fixedDeltaTime);
+            Vector3 smoothedVelocityChange = Vector3.MoveTowards(Vector3.zero, desiredVelocityChange, accelRate * Time.fixedDeltaTime);
 
-
+            // Convert to acceleration
+            Vector3 totalAcceleration = smoothedVelocityChange / Time.fixedDeltaTime;
 
             // Apply to rigidbody
-            rb.AddForce(velocityChange, ForceMode.VelocityChange);
+            rb.AddForce(totalAcceleration, ForceMode.Acceleration);
 
             CurrentVelocity = rb.linearVelocity;
-            DebugMovementForce = TargetVelocity;
+            DebugMovementForce = totalAcceleration;
         }
 
         private Vector3 AdjustForTerrain(Vector3 moveDirection)

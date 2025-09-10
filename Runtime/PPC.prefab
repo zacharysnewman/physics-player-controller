@@ -333,6 +333,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   config: {fileID: 11400000, guid: 7e5dc6a4902974d8181842693dc8adda, type: 2}
   mainCamera: {fileID: 3847610494993908214}
+  cameraController: {fileID: 1116763360299352154}
   DebugMovementForce: {x: 0, y: 0, z: 0}
 --- !u!114 &3328062567781585833
 MonoBehaviour:
@@ -347,6 +348,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   config: {fileID: 11400000, guid: eb3e6fd1e0cde4312b2201cef646dd8b, type: 2}
+  debugLogging: 0
 --- !u!114 &473491025587039401
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -362,7 +364,7 @@ MonoBehaviour:
   config: {fileID: 11400000, guid: d257b9a6bd7df4e29a5186a967b8820d, type: 2}
   groundCheck: {fileID: 7540897855728754020}
   ceilingCheck: {fileID: 4606087182710894023}
-  debugLogging: 1
+  debugLogging: 0
 --- !u!114 &1384292208879968185
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -375,14 +377,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f254d227d136d4243b0fe99ad101441f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  visualizeBounds: 1
+  visualizeBounds: 0
   debugLogging: 1
-  visualizeGroundCeilingChecks: 1
-  visualizeVelocity: 1
-  visualizeJump: 1
-  visualizeCrouch: 1
-  visualizeTerrainNavigation: 1
+  visualizeGroundCeilingChecks: 0
+  visualizeVelocity: 0
+  visualizeAcceleration: 1
+  visualizeJump: 0
+  visualizeCrouch: 0
+  visualizeTerrainNavigation: 0
   visualizeLadderClimb: 1
+  visualizeMovingPlatform: 1
 --- !u!114 &7550552320392940736
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -411,6 +415,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   config: {fileID: 11400000, guid: 40fe8788595ba4f16aa4f215a7d9ad72, type: 2}
   mainCamera: {fileID: 3847610494993908214}
+  PlatformYawOffset: 0
 --- !u!114 &6026259275593641203
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -437,6 +442,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   config: {fileID: 11400000, guid: 07ccd5b9e5d3e460cb6ab6913df78f45, type: 2}
+  debugLogging: 0
 --- !u!1 &8962942725810952844
 GameObject:
   m_ObjectHideFlags: 0

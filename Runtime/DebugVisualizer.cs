@@ -16,6 +16,7 @@ namespace ZacharysNewman.PPC
         [SerializeField] private bool debugLogging = true;
         [SerializeField] private bool visualizeGroundCeilingChecks = true;
         [SerializeField] private bool visualizeVelocity = false;
+        [SerializeField] private bool visualizeAcceleration = true;
         [SerializeField] private bool visualizeJump = true;
         [SerializeField] private bool visualizeCrouch = true;
         [SerializeField] private bool visualizeTerrainNavigation = false;
@@ -120,6 +121,13 @@ namespace ZacharysNewman.PPC
                 Gizmos.DrawLine(transform.position, transform.position + playerMovement.TargetVelocity);
             }
 
+            if (visualizeAcceleration)
+            {
+                Gizmos.color = Color.yellow;
+                Gizmos.DrawLine(transform.position, transform.position + playerMovement.DebugMovementForce * 0.1f); // Scale down for visibility
+                Gizmos.DrawSphere(transform.position + playerMovement.DebugMovementForce * 0.1f, 0.05f);
+            }
+
             if (visualizeJump)
             {
                 // Draw jump apex line
@@ -172,12 +180,13 @@ namespace ZacharysNewman.PPC
         }
 
         // Public methods for configuration
-        public void SetVisualizationToggles(bool bounds, bool logging, bool groundChecks, bool velocity, bool jump, bool crouch, bool terrain, bool ladder, bool platform)
+        public void SetVisualizationToggles(bool bounds, bool logging, bool groundChecks, bool velocity, bool acceleration, bool jump, bool crouch, bool terrain, bool ladder, bool platform)
         {
             visualizeBounds = bounds;
             debugLogging = logging;
             visualizeGroundCeilingChecks = groundChecks;
             visualizeVelocity = velocity;
+            visualizeAcceleration = acceleration;
             visualizeJump = jump;
             visualizeCrouch = crouch;
             visualizeTerrainNavigation = terrain;

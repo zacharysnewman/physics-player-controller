@@ -15,6 +15,9 @@ namespace ZacharysNewman.PPC
         [SerializeField] private float reverseDeceleration = 20f;
         [SerializeField] private float maxVelocityChange = 10f;
 
+        [Header("Acceleration-Based Settings (New)")]
+        [SerializeField] private float maxAcceleration = 500f; // maxVelocityChange / Time.fixedDeltaTime
+
         [Header("Terrain Navigation")]
         [SerializeField] private float slopeAlignmentStrength = 0.5f;
         [SerializeField] private float standingHeight = 2f;
@@ -33,6 +36,7 @@ namespace ZacharysNewman.PPC
         public float Deceleration => deceleration;
         public float ReverseDeceleration => reverseDeceleration;
         public float MaxVelocityChange => maxVelocityChange;
+        public float MaxAcceleration => maxAcceleration;
         public float SlopeAlignmentStrength => slopeAlignmentStrength;
         public float StandingHeight => standingHeight;
         public float CrouchingHeight => crouchingHeight;
