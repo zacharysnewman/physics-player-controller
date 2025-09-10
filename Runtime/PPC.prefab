@@ -381,12 +381,13 @@ MonoBehaviour:
   debugLogging: 1
   visualizeGroundCeilingChecks: 0
   visualizeVelocity: 0
-  visualizeAcceleration: 1
+  visualizeAcceleration: 0
   visualizeJump: 0
   visualizeCrouch: 0
   visualizeTerrainNavigation: 0
-  visualizeLadderClimb: 1
-  visualizeMovingPlatform: 1
+  visualizeStepHandling: 1
+  visualizeLadderClimb: 0
+  visualizeMovingPlatform: 0
 --- !u!114 &7550552320392940736
 MonoBehaviour:
   m_ObjectHideFlags: 0
