@@ -17,10 +17,10 @@ This document tracks the progress of implementing the player system from PLAN.md
   - **Task 9: Moving Platform Support** - Implemented moving platform support in PlayerMovement.cs with platform detection when grounded, caching of platform reference, tracking of platform movement between frames, application of platform velocity to player with configurable multiplier, rotation handling to match platform orientation changes (Y-axis only if not frozen), and debug gizmos for visualizing platform velocity and highlighting moving objects. Added GroundObject property to GroundChecker.cs to expose the hit transform.
   - **Task 7b: Step Handling** - Implemented step detection and handling in PlayerMovement.cs using raycast downward from 0.51 units in movement direction, raycasting down at least 2 units, calculating step height relative to player bottom, and moving rigidbody up if step height is within max step height. Added configurable maxStepHeight to PlayerMovementConfig.cs and debug gizmos to highlight stepped obstacles.
 
-## In Progress
+## Completed Tasks
 
-None
+- **Task 12: State Machine** - Defined PlayerState enum with Idle, Walking, Running, Crouching, Sliding, Jumping, Falling, Climbing states. Added currentState variable and transition logic based on checks and input (prioritizing Climbing > Crouching > Jumping/Falling > Walking/Running/Idle). Implemented debug display of current state text in OnGUI.
 
-## Pending Tasks
+## Completed Tasks
 
-None
+- **Task 13: Animator Sync** - Created separate PlayerAnimatorController component to handle Animator syncing, decoupled from PlayerController. Syncs parameters based on PlayerController's CurrentState (Speed from Rigidbody, bools derived from state). Root motion not used for climbing animations.

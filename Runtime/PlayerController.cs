@@ -17,6 +17,9 @@ namespace ZacharysNewman.PPC
         [Header("Configuration")]
         [SerializeField] private PlayerControllerConfig config;
 
+        [Header("Debug")]
+        [SerializeField] private bool showStateDebug = true;
+
         // Component references (auto-assigned, private so hidden from inspector)
         private PlayerInput playerInput;
         private PlayerMovement playerMovement;
@@ -26,6 +29,11 @@ namespace ZacharysNewman.PPC
         private GroundChecker groundChecker;
         private CameraController cameraController;
         private DebugVisualizer debugVisualizer;
+
+        // State machine
+        public enum PlayerState { Idle, Walking, Running, Crouching, Sliding, Jumping, Falling, Climbing }
+        public PlayerState CurrentState { get; private set; }
+        public bool IsFalling => CurrentState == PlayerState.Falling;
 
         [Header("Settings")]
         [SerializeField] private bool freezeYRotation = true;
@@ -102,6 +110,55 @@ namespace ZacharysNewman.PPC
             }
         }
 
+        private void UpdateStateMachine()
+        {
+            PlayerState newState = PlayerState.Idle;
+
+            if (playerClimb != null && playerClimb.IsClimbing)
+            {
+                newState = PlayerState.Climbing;
+            }
+            else if (playerCrouch != null && playerCrouch.IsCrouching)
+            {
+                newState = PlayerState.Crouching;
+            }
+            else if (groundChecker != null && !groundChecker.IsGrounded)
+            {
+                if (rb.linearVelocity.y > 0 || (playerJump != null && playerJump.IsJumping))
+                {
+                    newState = PlayerState.Jumping;
+                }
+                else
+                {
+                    newState = PlayerState.Falling;
+                }
+            }
+            else if (groundChecker != null && groundChecker.IsGrounded)
+            {
+                Vector3 horizontalVelocity = new Vector3(rb.linearVelocity.x, 0, rb.linearVelocity.z);
+                if (horizontalVelocity.magnitude > 0.1f)
+                {
+                    if (playerInput != null && playerInput.RunInput)
+                    {
+                        newState = PlayerState.Running;
+                    }
+                    else
+                    {
+                        newState = PlayerState.Walking;
+                    }
+                }
+                else
+                {
+                    newState = PlayerState.Idle;
+                }
+            }
+
+            // Sliding: Skipping Phase 4, so not implemented yet
+            // If slope angle > limit, set to Sliding, but since not exposed, leave as is
+
+            CurrentState = newState;
+        }
+
         private void ValidateRequiredComponents()
         {
             // Components should always be found due to RequireComponent attributes
@@ -142,6 +199,9 @@ namespace ZacharysNewman.PPC
             {
                 playerCrouch.HandleCrouch(playerInput.CrouchInput);
             }
+
+            // Update state machine
+            UpdateStateMachine();
         }
 
         private void FixedUpdate()
@@ -150,6 +210,16 @@ namespace ZacharysNewman.PPC
             if (playerMovement != null)
             {
                 playerMovement.HandleMovement();
+            }
+        }
+
+
+
+        private void OnGUI()
+        {
+            if (showStateDebug)
+            {
+                GUI.Label(new Rect(10, 10, 200, 20), $"State: {CurrentState}");
             }
         }
 

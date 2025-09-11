@@ -171,7 +171,6 @@
 - Setup Animator parameters: [Editor]
   - Speed (float), IsGrounded (bool), IsCrouching (bool), IsSliding (bool), IsClimbing (bool), Jump (trigger)
 - Update Animator in LateUpdate() with current state machine flags [Code]
-- Use root motion only for climbing animations [Editor/Code]
 - Debug / Gizmos Config:
   - Optionally show parameter values in editor runtime [Code]
 

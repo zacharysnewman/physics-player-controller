@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.Events;
 
 namespace ZacharysNewman.PPC
 {
@@ -33,6 +34,9 @@ namespace ZacharysNewman.PPC
         public float CoyoteTimer => coyoteTimer;
         public float JumpApexHeight => jumpApexHeight;
         public bool IsJumping => isJumping;
+
+        // Events
+        public UnityEvent OnJump = new UnityEvent();
 
         private void Awake()
         {
@@ -122,9 +126,12 @@ namespace ZacharysNewman.PPC
             isJumping = true;
             jumpApexHeight = transform.position.y + (force * force) / (2 * Physics.gravity.magnitude); // Approximate apex
 
+            // Trigger event
+            OnJump.Invoke();
+
             if (debugLogging)
             {
-                if (debugLogging) Debug.Log($"PlayerJump: Jump performed with force {force}. New velocity: {rb.linearVelocity}");
+                Debug.Log($"PlayerJump: Jump performed, isJumping = true. Force: {force}, Velocity: {rb.linearVelocity}");
             }
         }
 
