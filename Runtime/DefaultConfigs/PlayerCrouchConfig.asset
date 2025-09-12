@@ -12,6 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 82707f3d007f5411e84a9393b110bba2, type: 3}
   m_Name: PlayerCrouchConfig
   m_EditorClassIdentifier: 
-  crouchHeight: 1
+  crouchHeight: 1.4
   crouchSpeed: 2
   midAirCrouchBoost: 0

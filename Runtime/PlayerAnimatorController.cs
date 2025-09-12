@@ -58,7 +58,7 @@ namespace ZacharysNewman.PPC
 
             // Sync Animator parameters based on PlayerController state
             Vector3 horizontalVelocity = new Vector3(playerRigidbody.linearVelocity.x, 0, playerRigidbody.linearVelocity.z);
-            animator.SetFloat("Speed", horizontalVelocity.magnitude);
+            animator.SetFloat("Speed", horizontalVelocity.magnitude * playerInput.MoveInput.magnitude);
 
             // Smooth movement direction from input (camera-relative)
             currentDirectionX = Mathf.Lerp(currentDirectionX, playerInput.MoveInput.x, Time.deltaTime * directionSmoothingSpeed);
