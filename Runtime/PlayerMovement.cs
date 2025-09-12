@@ -60,10 +60,7 @@ namespace ZacharysNewman.PPC
             playerClimb = GetComponent<PlayerClimb>();
             capsule = GetComponent<CapsuleCollider>();
 
-            if (mainCamera == null)
-            {
-                mainCamera = Camera.main;
-            }
+            // mainCamera must be assigned in inspector
 
             if (cameraController == null)
             {
@@ -94,13 +91,9 @@ namespace ZacharysNewman.PPC
 
             if (mainCamera == null)
             {
-                mainCamera = Camera.main;
-                if (mainCamera == null)
-                {
-                    Debug.LogError("PlayerMovement: No main camera found!");
-                    enabled = false;
-                    return;
-                }
+                Debug.LogError("PlayerMovement: mainCamera must be assigned in the inspector!");
+                enabled = false;
+                return;
             }
         }
 

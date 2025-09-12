@@ -28,10 +28,7 @@ namespace ZacharysNewman.PPC
 
         private void Awake()
         {
-            if (mainCamera == null)
-            {
-                mainCamera = Camera.main;
-            }
+            // mainCamera must be assigned in inspector
 
             playerInput = GetComponent<PlayerInput>();
             baseHeight = mainCamera.transform.localPosition.y;

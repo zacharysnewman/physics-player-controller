@@ -17,7 +17,7 @@ namespace ZacharysNewman.PPC
         private PlayerInput playerInput;
         private PlayerMovement playerMovement;
         private GroundChecker groundChecker;
-        private Camera mainCamera;
+        [SerializeField] private Camera mainCamera;
 
         // Climbing state
         private bool isClimbing;
@@ -39,7 +39,7 @@ namespace ZacharysNewman.PPC
             playerInput = GetComponent<PlayerInput>();
             playerMovement = GetComponent<PlayerMovement>();
             groundChecker = GetComponent<GroundChecker>();
-            mainCamera = Camera.main;
+            // mainCamera must be assigned in inspector
 
             if (config == null)
             {
