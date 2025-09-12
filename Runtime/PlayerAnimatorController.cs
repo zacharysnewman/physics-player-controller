@@ -2,22 +2,22 @@ using UnityEngine;
 
 namespace ZacharysNewman.PPC
 {
-    [RequireComponent(typeof(Animator))]
     public class PlayerAnimatorController : MonoBehaviour
     {
         [Header("References")]
+        [SerializeField] private Animator animator;
         [SerializeField] private PlayerController playerController;
         [SerializeField] private Rigidbody playerRigidbody;
         [SerializeField] private PlayerInput playerInput;
 
         [Header("Settings")]
+        [SerializeField] private bool getAnimatorFromChildren = true;
         [SerializeField] private float groundDebounceTime = 0.1f;
         [SerializeField] private float directionSmoothingSpeed = 5f;
 
         [Header("Debug")]
         [SerializeField] private bool showParameterDebug = true;
 
-        private Animator animator;
         private bool lastIsGrounded;
         private float debounceTimer;
         private float currentDirectionX;
@@ -25,7 +25,17 @@ namespace ZacharysNewman.PPC
 
         private void Awake()
         {
-            animator = GetComponent<Animator>();
+            if (animator == null && getAnimatorFromChildren)
+            {
+                animator = GetComponentInChildren<Animator>();
+            }
+
+            if (animator == null)
+            {
+                Debug.LogError("PlayerAnimatorController: Animator reference is required!");
+                enabled = false;
+                return;
+            }
 
             if (playerController == null)
             {

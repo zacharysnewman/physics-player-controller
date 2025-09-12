@@ -79,7 +79,7 @@ namespace ZacharysNewman.PPC
         {
             float checkDistance = config.GroundCheckDistance;
             LayerMask layerMask = config.GroundLayerMask;
-            float radius = capsule.radius;
+            float radius = capsule.radius * config.GroundCheckRadiusMultiplier;
 
             RaycastHit closestHit = new RaycastHit();
             bool foundGround = false;
@@ -197,7 +197,7 @@ namespace ZacharysNewman.PPC
             foreach (Vector3 direction in directions)
             {
                 RaycastHit hit;
-                Vector3 checkPosition = groundCheck.position + direction * (capsule.radius * 0.9f);
+                Vector3 checkPosition = groundCheck.position + direction * (capsule.radius * config.GroundCheckRadiusMultiplier);
 
                 if (Physics.Raycast(checkPosition, direction, out hit, wallCheckDistance, config.GroundLayerMask))
                 {
@@ -225,7 +225,7 @@ namespace ZacharysNewman.PPC
         {
             float checkDistance = config.CeilingCheckDistance;
             LayerMask layerMask = config.CeilingLayerMask;
-            float radius = capsule.radius;
+            float radius = capsule.radius * config.GroundCheckRadiusMultiplier;
 
             RaycastHit closestHit = new RaycastHit();
             bool foundCeiling = false;

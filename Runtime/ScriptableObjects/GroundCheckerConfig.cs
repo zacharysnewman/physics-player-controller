@@ -8,6 +8,7 @@ namespace ZacharysNewman.PPC
         [Header("Ground Check Settings")]
         [SerializeField] private float groundCheckDistance = 1.15f; // Increased from 0.15f to account for ray origin at capsule center
         [SerializeField] private LayerMask groundLayerMask = -1;
+        [SerializeField] [Range(0.1f, 2.0f)] private float groundCheckRadiusMultiplier = 0.9f;
 
         [Header("Ceiling Check Settings")]
         [SerializeField] private float ceilingCheckDistance = 1.1f; // Increased from 0.1f to account for ray origin at capsule center
@@ -17,6 +18,7 @@ namespace ZacharysNewman.PPC
         // Public properties
         public float GroundCheckDistance => groundCheckDistance;
         public LayerMask GroundLayerMask => groundLayerMask;
+        public float GroundCheckRadiusMultiplier => groundCheckRadiusMultiplier;
         public float CeilingCheckDistance => ceilingCheckDistance;
         public LayerMask CeilingLayerMask => ceilingLayerMask;
         public float MaxSlopeAngle => maxSlopeAngle;

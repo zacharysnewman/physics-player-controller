@@ -27,6 +27,7 @@ namespace ZacharysNewman.PPC
 
         // Public properties
         public bool IsCrouching => isCrouching;
+        public Vector3 ColliderBottomPosition => transform.position + capsule.center - Vector3.up * (capsule.height / 2f);
 
         private void Awake()
         {

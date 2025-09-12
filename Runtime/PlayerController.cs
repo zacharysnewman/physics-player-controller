@@ -35,6 +35,9 @@ namespace ZacharysNewman.PPC
         public PlayerState CurrentState { get; private set; }
         public bool IsFalling => CurrentState == PlayerState.Falling;
 
+        // Dynamic collider position for animator sync
+        public Vector3 ColliderBottomPosition => playerCrouch != null ? playerCrouch.ColliderBottomPosition : transform.position;
+
         [Header("Settings")]
         [SerializeField] private bool freezeYRotation = true;
 
