@@ -80,6 +80,7 @@ MonoBehaviour:
   playerController: {fileID: 7550552320392940736}
   playerRigidbody: {fileID: 6828527977603851811}
   playerInput: {fileID: 9202352728905155578}
+  getAnimatorFromChildren: 1
   groundDebounceTime: 0.1
   directionSmoothingSpeed: 5
   showParameterDebug: 0
@@ -116,7 +117,7 @@ GameObject:
   - component: {fileID: 4666841809516279136}
   m_Layer: 6
   m_Name: Camera
-  m_TagString: MainCamera
+  m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -477,7 +478,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   config: {fileID: 11400000, guid: f7b74106ee2cf4a58ac3c5c121d5a0fc, type: 2}
-  showStateDebug: 1
+  showStateDebug: 0
   freezeYRotation: 1
 --- !u!114 &1116763360299352154
 MonoBehaviour:
@@ -521,6 +522,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   config: {fileID: 11400000, guid: 07ccd5b9e5d3e460cb6ab6913df78f45, type: 2}
   debugLogging: 0
+  mainCamera: {fileID: 3847610494993908214}
 --- !u!1 &8962942725810952844
 GameObject:
   m_ObjectHideFlags: 0
