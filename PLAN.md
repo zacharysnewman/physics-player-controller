@@ -30,6 +30,20 @@
 - Debug / Gizmos Config:
   - Optionally log input vector, button presses for testing [Code]
 
+### Task 2a: PlayerInput Component Migration for Multi-Player Support
+
+- Migrate from manual input callbacks to Unity's PlayerInput component for better flexibility [Code]
+- Configure InputActions with multiple control schemes: Player1 (KeyboardMouse + Gamepad), Player2 (Gamepad2), Player3 (Gamepad3), Player4 (Gamepad4) [Editor]
+- Set PlayerInput behavior to "Invoke Unity Events" or "Send Messages" for automatic method calls [Editor]
+- Implement OnMove, OnLook, OnRun, OnCrouch, OnJump, OnInteract event handlers [Code]
+- Support 4 local players by allowing multiple PlayerInput instances, each assigned to different players [Code]
+- Update camera controller to handle per-player cameras or split-screen for multi-player [Code]
+- Ensure input device auto-assignment and player joining/leaving [Code]
+- Configurable: control scheme priorities, player index assignment
+- Debug / Gizmos Config:
+  - Display active control scheme and player index per PlayerInput instance [Code]
+  - Log input events for each player during testing [Code]
+
 ### Task 3: Ground / Ceiling Checks
 
 - Implement CheckGrounded() using Physics.SphereCast [Code]

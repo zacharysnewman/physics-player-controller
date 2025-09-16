@@ -23,4 +23,8 @@ This document tracks the progress of implementing the player system from PLAN.md
 
 ## Completed Tasks
 
+- **Task 2a: PlayerInput Component Migration for Multi-Player Support** - Migrated PlayerInput.cs to use Unity's PlayerInput component with BroadcastMessages. Implemented message handlers for OnMove, OnLook, OnRun, OnCrouch, OnJump, OnInteract, OnMenu, OnUse. Removed manual PlayerControls setup. Added debug properties for current control scheme and player index. Multi-player support achieved through multiple PlayerInput instances with different control schemes. Camera controller supports per-player setup by assigning separate cameras to each player prefab instance.
+
+## Completed Tasks
+
 - **Task 13: Animator Sync** - Created separate PlayerAnimatorController component to handle Animator syncing, decoupled from PlayerController. Syncs parameters based on PlayerController's CurrentState (Speed from Rigidbody, bools derived from state). Root motion not used for climbing animations.

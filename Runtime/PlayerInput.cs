@@ -6,7 +6,6 @@ namespace ZacharysNewman.PPC
     public class PlayerInput : MonoBehaviour
     {
         [Header("Input Configuration")]
-        [SerializeField] private PlayerControls playerControls;
         [SerializeField] private float inputSensitivity = 1f;
 
         // Input state
@@ -24,49 +23,15 @@ namespace ZacharysNewman.PPC
         // Reference to CameraController for menu/use actions
         [SerializeField] private CameraController cameraController;
 
+        // Debug properties
+        public string CurrentControlScheme => GetComponent<UnityEngine.InputSystem.PlayerInput>()?.currentControlScheme ?? "None";
+        public int PlayerIndex => GetComponent<UnityEngine.InputSystem.PlayerInput>()?.playerIndex ?? -1;
+
+        private UnityEngine.InputSystem.PlayerInput playerInputComponent;
+
         private void Awake()
         {
-            if (playerControls == null)
-            {
-                playerControls = new PlayerControls();
-            }
-
-            // Set up input callbacks
-            playerControls.Player.Move.performed += ctx => MoveInput = ctx.ReadValue<Vector2>() * inputSensitivity;
-            playerControls.Player.Move.canceled += ctx => MoveInput = Vector2.zero;
-
-            playerControls.Player.Look.performed += ctx => LookInput = ctx.ReadValue<Vector2>() * inputSensitivity;
-            playerControls.Player.Look.canceled += ctx => LookInput = Vector2.zero;
-
-            playerControls.Player.Run.performed += ctx => RunInput = true;
-            playerControls.Player.Run.canceled += ctx => RunInput = false;
-
-            playerControls.Player.Crouch.performed += ctx => CrouchInput = true;
-            playerControls.Player.Crouch.canceled += ctx => CrouchInput = false;
-
-            playerControls.Player.Jump.performed += ctx => JumpInput = true;
-            playerControls.Player.Jump.canceled += ctx => JumpInput = false;
-
-            playerControls.Player.Interact.performed += ctx => InteractInput = true;
-            playerControls.Player.Interact.canceled += ctx => InteractInput = false;
-
-            // Set up menu and use actions with CameraController
-            playerControls.Player.Menu.performed += ctx =>
-            {
-                if (cameraController != null && cameraController.IsMouseLocked)
-                {
-                    cameraController.ToggleMouseLock();
-                }
-                OnMenuAction?.Invoke();
-            };
-            playerControls.Player.Use.performed += ctx =>
-            {
-                if (cameraController != null && !cameraController.IsMouseLocked)
-                {
-                    cameraController.ToggleMouseLock();
-                }
-                OnUseAction?.Invoke();
-            };
+            playerInputComponent = GetComponent<UnityEngine.InputSystem.PlayerInput>();
         }
 
         private void Start()
@@ -77,30 +42,53 @@ namespace ZacharysNewman.PPC
             }
         }
 
-        private void OnEnable()
+        private void Update()
         {
-            playerControls.Player.Enable();
+            if (playerInputComponent == null || playerInputComponent.actions == null) return;
+
+            // Poll input actions every frame, matching the original continuous update
+            MoveInput = playerInputComponent.actions["Move"].ReadValue<Vector2>() * inputSensitivity;
+            LookInput = playerInputComponent.actions["Look"].ReadValue<Vector2>() * inputSensitivity;
+            RunInput = playerInputComponent.actions["Run"].IsPressed();
+            CrouchInput = playerInputComponent.actions["Crouch"].IsPressed();
+            JumpInput = playerInputComponent.actions["Jump"].IsPressed();
+            InteractInput = playerInputComponent.actions["Interact"].IsPressed();
+
+            // Handle menu and use presses (triggered on press, like original performed)
+            if (playerInputComponent.actions["Menu"].WasPressedThisFrame())
+            {
+                if (cameraController != null && cameraController.IsMouseLocked)
+                {
+                    cameraController.ToggleMouseLock();
+                }
+                OnMenuAction?.Invoke();
+            }
+
+            if (playerInputComponent.actions["Use"].WasPressedThisFrame())
+            {
+                if (cameraController != null && !cameraController.IsMouseLocked)
+                {
+                    cameraController.ToggleMouseLock();
+                }
+                OnUseAction?.Invoke();
+            }
         }
 
-        private void OnDisable()
-        {
-            playerControls.Player.Disable();
-        }
-
-        private void OnDestroy()
-        {
-            playerControls.Dispose();
-        }
-
-        // Public methods for external control
+        // Public methods for external control (now handled by PlayerInput component)
         public void EnableInput()
         {
-            playerControls.Player.Enable();
+            if (playerInputComponent != null)
+            {
+                playerInputComponent.enabled = true;
+            }
         }
 
         public void DisableInput()
         {
-            playerControls.Player.Disable();
+            if (playerInputComponent != null)
+            {
+                playerInputComponent.enabled = false;
+            }
         }
     }
 }
