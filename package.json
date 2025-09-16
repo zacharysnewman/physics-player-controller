@@ -1,6 +1,6 @@
 {
   "name": "com.zacharysnewman.ppc",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "displayName": "Physics Player Controller",
   "description": "A reactive physics player controller.",
   "unity": "2020.3",
