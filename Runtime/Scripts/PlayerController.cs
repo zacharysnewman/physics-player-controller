@@ -14,9 +14,6 @@ namespace ZacharysNewman.PPC
     [RequireComponent(typeof(DebugVisualizer))]
     public class PlayerController : MonoBehaviour
     {
-        [Header("Configuration")]
-        [SerializeField] private PlayerControllerConfig config;
-
         [Header("Debug")]
         [SerializeField] private bool showStateDebug = true;
 
@@ -61,56 +58,8 @@ namespace ZacharysNewman.PPC
             // Setup Rigidbody constraints
             rb.constraints = RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationZ | (freezeYRotation ? RigidbodyConstraints.FreezeRotationY : 0);
             previousFreezeYRotation = freezeYRotation;
-        }
 
-        private void Start()
-        {
-            // Apply configuration if available
-            if (config != null)
-            {
-                ApplyConfiguration();
-            }
-
-            // Validate required components (should always be found due to RequireComponent)
             ValidateRequiredComponents();
-        }
-
-        private void ApplyConfiguration()
-        {
-            // Apply component configurations
-            if (playerMovement != null && config.MovementConfig != null)
-            {
-                // Note: Components would need to be updated to accept config references
-                // For now, this is a placeholder for future implementation
-            }
-
-            if (playerJump != null && config.JumpConfig != null)
-            {
-                // Apply jump config
-            }
-
-            if (cameraController != null && config.CameraConfig != null)
-            {
-                // Apply camera config
-            }
-
-            if (groundChecker != null && config.GroundCheckerConfig != null)
-            {
-                // Apply ground checker config
-            }
-
-            if (playerClimb != null && config.ClimbConfig != null)
-            {
-                // Apply climb config
-            }
-
-
-
-            if (playerInput != null)
-            {
-                // Apply input sensitivity
-                // Note: PlayerInput would need to be updated to accept sensitivity
-            }
         }
 
         private void UpdateStateMachine()
