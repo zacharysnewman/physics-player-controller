@@ -41,6 +41,14 @@ namespace ZacharysNewman.PPC
         public void SetGrounded(bool grounded)
         {
             bool wasGrounded = isGrounded;
+
+            // Suppress grounded=true while a jump is in flight (accumulatedY well above platform level).
+            // Without this, at 60fps a second Update fires before the first FixedUpdate, resets
+            // isGrounded=true, and GetVelocityContribution clamps accumulatedY back to platformY,
+            // cancelling the jump before physics can apply it.
+            if (grounded && accumulatedY > platformY + 0.1f)
+                return;
+
             isGrounded = grounded;
 
             if (wasGrounded && !grounded)

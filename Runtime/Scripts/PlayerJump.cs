@@ -116,7 +116,9 @@ namespace ZacharysNewman.PPC
 
         private void PerformJump()
         {
-            float jumpVelocity = config.JumpForce;
+            // config.JumpForce was an impulse (N·s) in the old Impulse-based system.
+            // Convert to velocity (m/s) so the value is backward-compatible with existing configs.
+            float jumpVelocity = config.JumpForce / rb.mass;
 
             verticalLayer.ApplyJumpImpulse(jumpVelocity);
 
@@ -130,7 +132,7 @@ namespace ZacharysNewman.PPC
 
             if (debugLogging)
             {
-                Debug.Log($"PlayerJump: Jump performed, isJumping = true. JumpVelocity: {jumpVelocity}, AccumulatedY: {verticalLayer.AccumulatedY}");
+                Debug.Log($"PlayerJump: Jump performed, isJumping = true. JumpVelocity (velocity): {jumpVelocity}, AccumulatedY: {verticalLayer.AccumulatedY}");
             }
         }
 
