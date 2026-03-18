@@ -12,6 +12,8 @@ namespace ZacharysNewman.PPC
     [RequireComponent(typeof(GroundChecker))]
     [RequireComponent(typeof(CameraController))]
     [RequireComponent(typeof(DebugVisualizer))]
+    [RequireComponent(typeof(VelocityAggregator))]
+    [RequireComponent(typeof(VerticalVelocityLayer))]
     public class PlayerController : MonoBehaviour
     {
         [Header("Debug")]
@@ -26,6 +28,8 @@ namespace ZacharysNewman.PPC
         private GroundChecker groundChecker;
         private CameraController cameraController;
         private DebugVisualizer debugVisualizer;
+        private VelocityAggregator velocityAggregator;
+        private VerticalVelocityLayer verticalLayer;
 
         // State machine
         public enum PlayerState { Idle, Walking, Running, Crouching, Sliding, Jumping, Falling, Climbing }
@@ -54,6 +58,8 @@ namespace ZacharysNewman.PPC
             groundChecker = GetComponent<GroundChecker>();
             cameraController = GetComponent<CameraController>();
             debugVisualizer = GetComponent<DebugVisualizer>();
+            velocityAggregator = GetComponent<VelocityAggregator>();
+            verticalLayer = GetComponent<VerticalVelocityLayer>();
 
             // Setup Rigidbody constraints
             rb.constraints = RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationZ | (freezeYRotation ? RigidbodyConstraints.FreezeRotationY : 0);
@@ -123,6 +129,8 @@ namespace ZacharysNewman.PPC
             if (groundChecker == null) Debug.LogError("PlayerController: GroundChecker component not found! This should not happen.");
             if (cameraController == null) Debug.LogError("PlayerController: CameraController component not found! This should not happen.");
             if (debugVisualizer == null) Debug.LogError("PlayerController: DebugVisualizer component not found! This should not happen.");
+            if (velocityAggregator == null) Debug.LogError("PlayerController: VelocityAggregator component not found! This should not happen.");
+            if (verticalLayer == null) Debug.LogError("PlayerController: VerticalVelocityLayer component not found! This should not happen.");
         }
 
         private void Update()
@@ -138,6 +146,18 @@ namespace ZacharysNewman.PPC
             if (playerMovement != null && groundChecker != null)
             {
                 playerMovement.UpdateGrounded(groundChecker.IsGrounded, groundChecker.GroundNormal, groundChecker.GroundObject);
+            }
+
+            // Propagate grounded state to vertical layer
+            if (verticalLayer != null && groundChecker != null)
+            {
+                verticalLayer.SetGrounded(groundChecker.IsGrounded);
+            }
+
+            // Ceiling hit: cancel upward velocity
+            if (verticalLayer != null && groundChecker != null && groundChecker.IsCeilingBlocked && verticalLayer.AccumulatedY > 0f)
+            {
+                verticalLayer.AddVerticalImpulse(-verticalLayer.AccumulatedY);
             }
 
             // Handle jump input
@@ -158,10 +178,9 @@ namespace ZacharysNewman.PPC
 
         private void FixedUpdate()
         {
-            // Handle movement
-            if (playerMovement != null)
+            if (velocityAggregator != null)
             {
-                playerMovement.HandleMovement();
+                velocityAggregator.Apply(Time.fixedDeltaTime);
             }
         }
 

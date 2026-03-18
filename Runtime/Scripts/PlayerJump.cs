@@ -18,6 +18,7 @@ namespace ZacharysNewman.PPC
 
         // Component references
         private Rigidbody rb;
+        private VerticalVelocityLayer verticalLayer;
 
         // Jump state
         private float jumpBufferTimer;
@@ -42,6 +43,7 @@ namespace ZacharysNewman.PPC
         {
             rb = GetComponent<Rigidbody>();
             groundChecker = GetComponent<GroundChecker>();
+            verticalLayer = GetComponent<VerticalVelocityLayer>();
 
             // Ensure config is set
             if (config == null)
@@ -114,24 +116,21 @@ namespace ZacharysNewman.PPC
 
         private void PerformJump()
         {
-            float force = config.JumpForce;
+            float jumpVelocity = config.JumpForce;
 
-            // Reset vertical velocity
-            rb.linearVelocity = new Vector3(rb.linearVelocity.x, 0, rb.linearVelocity.z);
-            // Apply jump force
-            rb.AddForce(Vector3.up * force, ForceMode.Impulse);
-            // Reset timers
+            verticalLayer.ApplyJumpImpulse(jumpVelocity);
+
             jumpBufferTimer = 0;
             coyoteTimer = 0;
             isJumping = true;
-            jumpApexHeight = transform.position.y + (force * force) / (2 * Physics.gravity.magnitude); // Approximate apex
+            jumpApexHeight = transform.position.y + (jumpVelocity * jumpVelocity) / (2f * Mathf.Abs(Physics.gravity.y));
 
             // Trigger event
             OnJump.Invoke();
 
             if (debugLogging)
             {
-                Debug.Log($"PlayerJump: Jump performed, isJumping = true. Force: {force}, Velocity: {rb.linearVelocity}");
+                Debug.Log($"PlayerJump: Jump performed, isJumping = true. JumpVelocity: {jumpVelocity}, AccumulatedY: {verticalLayer.AccumulatedY}");
             }
         }
 

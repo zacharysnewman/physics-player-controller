@@ -16,6 +16,7 @@ namespace ZacharysNewman.PPC
         private GroundChecker groundChecker;
         private CameraController cameraController;
         private PlayerMovement playerMovement;
+        private VerticalVelocityLayer verticalLayer;
 
         // Crouch state
         private bool isCrouching;
@@ -35,6 +36,7 @@ namespace ZacharysNewman.PPC
             groundChecker = GetComponent<GroundChecker>();
             cameraController = GetComponent<CameraController>();
             playerMovement = GetComponent<PlayerMovement>();
+            verticalLayer = GetComponent<VerticalVelocityLayer>();
 
             // Store original capsule dimensions
             originalHeight = capsule.height;
@@ -96,13 +98,9 @@ namespace ZacharysNewman.PPC
                 currentCenter = originalCenter + Vector3.up * (originalHeight - currentHeight) / 2f;
 
                 // Optional velocity boost
-                if (config.MidAirCrouchBoost > 0)
+                if (config.MidAirCrouchBoost > 0 && verticalLayer != null)
                 {
-                    Rigidbody rb = GetComponent<Rigidbody>();
-                    if (rb != null)
-                    {
-                        rb.AddForce(Vector3.up * config.MidAirCrouchBoost, ForceMode.Impulse);
-                    }
+                    verticalLayer.AddVerticalImpulse(config.MidAirCrouchBoost);
                 }
             }
 

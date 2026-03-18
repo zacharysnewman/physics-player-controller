@@ -5,7 +5,7 @@ namespace ZacharysNewman.PPC
     [RequireComponent(typeof(Rigidbody))]
     [RequireComponent(typeof(PlayerInput))]
     [RequireComponent(typeof(GroundChecker))]
-    public class PlayerMovement : MonoBehaviour
+    public class PlayerMovement : MonoBehaviour, IVelocityLayer
     {
         [Header("Configuration")]
         [SerializeField] private PlayerMovementConfig config;
@@ -19,13 +19,13 @@ namespace ZacharysNewman.PPC
         private GroundChecker groundChecker;
         private PlayerInput playerInput;
         private PlayerCrouch playerCrouch;
-        private PlayerClimb playerClimb;
         private CapsuleCollider capsule;
 
         // Movement state
         private bool isGrounded;
         private Vector3 groundNormal;
         private float crouchSpeedMultiplier = 1f;
+        private Vector3 currentHorizontalVelocity;
 
         // Moving platform support
         private Transform currentPlatform;
@@ -36,6 +36,7 @@ namespace ZacharysNewman.PPC
         private Quaternion platformDeltaRotation;
         private Quaternion platformRotationAccum;
 
+        public Vector3 BaseVelocity { get; private set; }
         public Vector3 TargetVelocity { get; private set; }
         public Vector3 CurrentVelocity { get; private set; }
         private Vector3 currentMoveDirection;
@@ -51,23 +52,23 @@ namespace ZacharysNewman.PPC
         private Vector3 debugStepHitPoint;
         private bool debugStepDetected;
 
+        // IVelocityLayer
+        public bool IsActive => true;
+        public bool IsExclusive => false;
+
         private void Awake()
         {
             rb = GetComponent<Rigidbody>();
             groundChecker = GetComponent<GroundChecker>();
             playerInput = GetComponent<PlayerInput>();
             playerCrouch = GetComponent<PlayerCrouch>();
-            playerClimb = GetComponent<PlayerClimb>();
             capsule = GetComponent<CapsuleCollider>();
-
-            // mainCamera must be assigned in inspector
 
             if (cameraController == null)
             {
                 cameraController = GetComponent<CameraController>();
             }
 
-            // Ensure config is set
             if (config == null)
             {
                 Debug.LogError("PlayerMovement: Config is required. Please assign a PlayerMovementConfig.");
@@ -81,7 +82,6 @@ namespace ZacharysNewman.PPC
                 groundChecker = GetComponent<GroundChecker>();
             }
 
-            // Validate required components
             if (groundChecker == null)
             {
                 Debug.LogError("PlayerMovement: GroundChecker component is required but not found!");
@@ -97,44 +97,54 @@ namespace ZacharysNewman.PPC
             }
         }
 
-        private void Update()
-        {
-            // Track platform movement
-            TrackPlatformMovement();
-        }
-
         private void TrackPlatformMovement()
         {
-            if (currentPlatform == null) return;
+            if (currentPlatform == null)
+            {
+                BaseVelocity = Vector3.zero;
+                return;
+            }
 
-            // Calculate platform velocity
+            float dt = Time.fixedDeltaTime;
+            if (dt <= 0f) return;
+
             Vector3 currentPosition = currentPlatform.position;
             Quaternion currentRotation = currentPlatform.rotation;
 
-            platformVelocity = (currentPosition - previousPlatformPosition) / Time.deltaTime;
+            Rigidbody platformRb = currentPlatform.GetComponent<Rigidbody>();
+            if (platformRb != null && !platformRb.isKinematic)
+            {
+                // Non-kinematic: read velocity directly from the physics body
+                Vector3 playerRelativePos = rb.position - currentPlatform.position;
+                Vector3 rotationalVelocity = Vector3.Cross(platformRb.angularVelocity, playerRelativePos);
+                BaseVelocity = platformRb.linearVelocity + rotationalVelocity;
+                platformAngularVelocity = platformRb.angularVelocity;
+            }
+            else
+            {
+                // Kinematic or static: compute from transform delta
+                platformVelocity = (currentPosition - previousPlatformPosition) / dt;
 
-            // Calculate rotation delta
-            platformDeltaRotation = currentRotation * Quaternion.Inverse(previousPlatformRotation);
+                platformDeltaRotation = currentRotation * Quaternion.Inverse(previousPlatformRotation);
+                platformDeltaRotation.ToAngleAxis(out float angle, out Vector3 axis);
+                platformAngularVelocity = axis * (angle * Mathf.Deg2Rad / dt);
 
-            // Calculate angular velocity
-            platformDeltaRotation.ToAngleAxis(out float angle, out Vector3 axis);
-            platformAngularVelocity = axis * (angle * Mathf.Deg2Rad / Time.deltaTime);
+                Vector3 playerRelativePos = rb.position - currentPlatform.position;
+                Vector3 rotationalVelocity = Vector3.Cross(platformAngularVelocity, playerRelativePos);
+                BaseVelocity = platformVelocity + rotationalVelocity;
+                debugPlatformVelocity = BaseVelocity;
+            }
 
-            // Accumulate platform rotation
-            platformRotationAccum = platformRotationAccum * platformDeltaRotation;
-
-            // Update camera yaw offset
+            // Update camera yaw from platform rotation delta
+            Quaternion rotDelta = currentRotation * Quaternion.Inverse(previousPlatformRotation);
+            platformRotationAccum = platformRotationAccum * rotDelta;
             if (cameraController != null)
             {
                 cameraController.PlatformYawOffset = platformRotationAccum.eulerAngles.y;
             }
 
-            // Update previous values
             previousPlatformPosition = currentPosition;
             previousPlatformRotation = currentRotation;
-
-            // Debug
-            debugPlatformVelocity = platformVelocity;
         }
 
         public void UpdateGrounded(bool grounded, Vector3 normal, Transform groundObject)
@@ -142,13 +152,10 @@ namespace ZacharysNewman.PPC
             isGrounded = grounded;
             groundNormal = normal;
 
-            // Moving platform detection
             if (grounded && groundObject != null)
             {
-                // Check if this is a new platform or different from current
                 if (currentPlatform != groundObject)
                 {
-                    // New platform detected
                     currentPlatform = groundObject;
                     previousPlatformPosition = currentPlatform.position;
                     previousPlatformRotation = currentPlatform.rotation;
@@ -157,13 +164,12 @@ namespace ZacharysNewman.PPC
                     platformDeltaRotation = Quaternion.identity;
                     platformRotationAccum = Quaternion.identity;
                     if (cameraController != null) cameraController.PlatformYawOffset = 0f;
-            platformRotationAccum = Quaternion.identity;
                 }
             }
             else
             {
-                // No longer grounded or no ground object
                 currentPlatform = null;
+                BaseVelocity = Vector3.zero;
                 platformVelocity = Vector3.zero;
                 platformAngularVelocity = Vector3.zero;
                 platformDeltaRotation = Quaternion.identity;
@@ -176,17 +182,16 @@ namespace ZacharysNewman.PPC
             }
         }
 
-        public void HandleMovement()
+        public Vector3 GetVelocityContribution(float deltaTime)
         {
-            if (mainCamera == null || playerInput == null) return;
+            if (mainCamera == null || playerInput == null) return currentHorizontalVelocity;
 
-            // Don't handle normal movement if climbing
-            if (playerClimb != null && playerClimb.IsClimbing) return;
+            TrackPlatformMovement();
 
             Vector2 moveInput = playerInput.MoveInput;
             bool runInput = playerInput.RunInput;
 
-            // Get camera forward and right for relative movement
+            // Camera-relative direction
             Vector3 cameraForward = mainCamera.transform.forward;
             cameraForward.y = 0f;
             cameraForward.Normalize();
@@ -195,58 +200,29 @@ namespace ZacharysNewman.PPC
             cameraRight.y = 0f;
             cameraRight.Normalize();
 
-            // Convert input to world space
             Vector3 moveDirection = cameraForward * moveInput.y + cameraRight * moveInput.x;
             currentMoveDirection = moveDirection;
 
-            // Terrain navigation: adjust movement to follow terrain contours
+            // Terrain navigation
             if (isGrounded && groundChecker != null)
             {
                 moveDirection = AdjustForTerrain(moveDirection);
             }
 
-            // Compute target velocity
             float speed = (runInput ? config.RunSpeed : config.WalkSpeed) * crouchSpeedMultiplier;
-
-            // Toggle gravity based on grounded state
-            rb.useGravity = !isGrounded;
-
             Vector3 playerTargetVelocity = moveDirection * speed;
-            Vector3 platformTargetVelocity = Vector3.zero;
 
-            // Apply platform velocity to target if on moving platform
-            if (isGrounded && currentPlatform != null)
-            {
-                // Calculate platform velocity at player's position (translational + rotational)
-                Vector3 playerRelativePos = rb.position - currentPlatform.position;
-                Vector3 rotationalVelocity = Vector3.Cross(platformAngularVelocity, playerRelativePos);
-                platformTargetVelocity = platformVelocity + rotationalVelocity;
-            }
+            // Relative-space acceleration loop (Unreal-inspired platform frame)
+            Vector3 baseHorizontal = new Vector3(BaseVelocity.x, 0f, BaseVelocity.z);
+            Vector3 relativeVelocity = currentHorizontalVelocity - baseHorizontal;
+            Vector3 relativeTarget = playerTargetVelocity;
+            Vector3 relativeDelta = relativeTarget - relativeVelocity;
+            relativeDelta = Vector3.ClampMagnitude(relativeDelta, config.MaxVelocityChange);
 
-            TargetVelocity = playerTargetVelocity + platformTargetVelocity;
+            float dot = relativeVelocity.magnitude > 0.01f && relativeTarget.magnitude > 0.01f
+                ? Vector3.Dot(relativeVelocity.normalized, relativeTarget.normalized)
+                : 1f;
 
-            // Compute total target velocity
-            Vector3 totalTargetVelocity = playerTargetVelocity + platformTargetVelocity;
-
-            // When airborne, preserve vertical velocity for natural gravity
-            if (!isGrounded)
-            {
-                totalTargetVelocity.y = rb.linearVelocity.y;
-            }
-
-            // Compute desired velocity change
-            Vector3 desiredVelocityChange = totalTargetVelocity - rb.linearVelocity;
-
-            // Limit velocity change
-            if (desiredVelocityChange.magnitude > config.MaxVelocityChange)
-            {
-                desiredVelocityChange = desiredVelocityChange.normalized * config.MaxVelocityChange;
-            }
-
-            // Apply acceleration/deceleration smoothing to velocity change
-            Vector3 currentHorizontalVelocity = new Vector3(rb.linearVelocity.x, 0, rb.linearVelocity.z);
-            Vector3 targetHorizontalVelocity = new Vector3(totalTargetVelocity.x, 0, totalTargetVelocity.z);
-            float dot = Vector3.Dot(currentHorizontalVelocity.normalized, targetHorizontalVelocity.normalized);
             float accelRate;
             if (moveInput.magnitude > 0.1f)
             {
@@ -256,23 +232,26 @@ namespace ZacharysNewman.PPC
             {
                 accelRate = config.Deceleration;
             }
-            Vector3 smoothedVelocityChange = Vector3.MoveTowards(Vector3.zero, desiredVelocityChange, accelRate * Time.fixedDeltaTime);
 
-            // Convert to acceleration
-            Vector3 totalAcceleration = smoothedVelocityChange / Time.fixedDeltaTime;
+            Vector3 relativeChange = Vector3.MoveTowards(Vector3.zero, relativeDelta, accelRate * deltaTime);
+            currentHorizontalVelocity = relativeVelocity + relativeChange + baseHorizontal;
 
-            // Apply to rigidbody
-            rb.AddForce(totalAcceleration, ForceMode.Acceleration);
+            TargetVelocity = playerTargetVelocity + baseHorizontal;
+            CurrentVelocity = currentHorizontalVelocity;
+            DebugMovementForce = relativeChange / deltaTime;
 
-            CurrentVelocity = rb.linearVelocity;
-            DebugMovementForce = totalAcceleration;
+            return currentHorizontalVelocity;
+        }
+
+        public void ResetHorizontalVelocity()
+        {
+            currentHorizontalVelocity = Vector3.zero;
         }
 
         private Vector3 AdjustForTerrain(Vector3 moveDirection)
         {
             if (moveDirection.magnitude < 0.01f) return moveDirection;
 
-            // Get current player height
             float playerHeight = (playerCrouch != null && playerCrouch.IsCrouching) ? config.CrouchingHeight : config.StandingHeight;
 
             Vector3 center = transform.position + capsule.center;
@@ -280,33 +259,26 @@ namespace ZacharysNewman.PPC
 
             Vector3 adjustedDirection = moveDirection;
 
-            // Offset raycast position in movement direction when moving
             Vector3 offset = moveDirection.magnitude > 0.01f ? moveDirection.normalized * 0.5f : Vector3.zero;
             Vector3 rayOrigin = center + offset;
 
-            // Single raycast down from offset position
             RaycastHit groundHit;
-            Vector3 groundPoint = rayOrigin + Vector3.down * config.SlopeDetectionRayDistance; // default
+            Vector3 groundPoint = rayOrigin + Vector3.down * config.SlopeDetectionRayDistance;
             if (Physics.Raycast(rayOrigin, Vector3.down, out groundHit, config.SlopeDetectionRayDistance, groundLayer))
             {
                 groundPoint = groundHit.point;
                 Vector3 groundNormal = groundHit.normal;
 
-                // Calculate slope angle
                 float slopeAngle = Vector3.Angle(Vector3.up, groundNormal);
                 debugSlopeAngle = slopeAngle;
 
-                // Align movement with ground normal
                 adjustedDirection = Vector3.ProjectOnPlane(moveDirection, groundNormal);
-
-                // Blend with original direction
                 adjustedDirection = Vector3.Lerp(moveDirection, adjustedDirection, config.SlopeAlignmentStrength);
             }
 
             debugFootPoint = groundPoint;
-            debugSlopePoint = groundPoint; // Same point for single ray
+            debugSlopePoint = groundPoint;
 
-            // Step handling
             HandleStep(moveDirection);
 
             return adjustedDirection;
@@ -316,25 +288,20 @@ namespace ZacharysNewman.PPC
         {
             if (moveDirection.magnitude < 0.01f) return;
 
-            // Raycast from 0.51 units in movement direction
             Vector3 rayOrigin = transform.position + moveDirection.normalized * 0.51f;
             debugStepRayOrigin = rayOrigin;
 
-            // Raycast down at least 2 units
             RaycastHit stepHit;
             if (Physics.Raycast(rayOrigin, Vector3.down, out stepHit, 2f, groundChecker.GetGroundLayerMask()))
             {
                 debugStepHitPoint = stepHit.point;
                 debugStepDetected = true;
 
-                // Calculate step height: hit point relative to player bottom
-                float playerBottomY = transform.position.y - 1f; // Assuming capsule height 2, center at 0
+                float playerBottomY = transform.position.y - 1f;
                 float stepHeight = stepHit.point.y - playerBottomY;
 
-                // If step height is positive and within max step height
                 if (stepHeight > 0f && stepHeight <= config.MaxStepHeight)
                 {
-                    // Move rigidbody up to step height
                     Vector3 newPosition = rb.position + Vector3.up * stepHeight;
                     rb.MovePosition(newPosition);
                 }
@@ -345,7 +312,6 @@ namespace ZacharysNewman.PPC
             }
         }
 
-        // Public methods for configuration
         public void SetCrouchSpeedMultiplier(float multiplier)
         {
             crouchSpeedMultiplier = multiplier;
@@ -353,15 +319,12 @@ namespace ZacharysNewman.PPC
 
         public float WalkSpeed => config.WalkSpeed;
 
-        // Debug live values
         public Vector3 DebugMovementForce;
 
-        // Debug visualization
         public void VisualizePlatform()
         {
             if (currentPlatform == null) return;
 
-            // Highlight the platform
             Gizmos.color = Color.magenta;
             if (currentPlatform.TryGetComponent<Renderer>(out var renderer))
             {
@@ -372,7 +335,6 @@ namespace ZacharysNewman.PPC
                 Gizmos.DrawWireSphere(currentPlatform.position, 0.5f);
             }
 
-            // Visualize platform velocity
             Gizmos.color = Color.cyan;
             Gizmos.DrawLine(currentPlatform.position, currentPlatform.position + debugPlatformVelocity);
             Gizmos.DrawSphere(currentPlatform.position + debugPlatformVelocity, 0.1f);
@@ -386,16 +348,13 @@ namespace ZacharysNewman.PPC
             Vector3 offset = currentMoveDirection.magnitude > 0.01f ? currentMoveDirection.normalized * 0.5f : Vector3.zero;
             Vector3 rayOrigin = center + offset;
 
-            // Visualize ray from offset position
             Gizmos.color = Color.blue;
             Gizmos.DrawLine(rayOrigin, debugFootPoint);
             Gizmos.DrawSphere(debugFootPoint, 0.05f);
 
-            // Visualize ground normal
             Gizmos.color = Color.green;
-            Gizmos.DrawLine(debugFootPoint, debugFootPoint + Vector3.up * 0.5f); // Approximate normal direction
+            Gizmos.DrawLine(debugFootPoint, debugFootPoint + Vector3.up * 0.5f);
 
-            // Show offset position
             Gizmos.color = Color.yellow;
             Gizmos.DrawSphere(rayOrigin, 0.03f);
         }
@@ -404,7 +363,6 @@ namespace ZacharysNewman.PPC
         {
             if (!isGrounded || currentMoveDirection.magnitude < 0.01f) return;
 
-            // Visualize step ray
             Gizmos.color = debugStepDetected ? Color.red : Color.gray;
             Gizmos.DrawLine(debugStepRayOrigin, debugStepRayOrigin + Vector3.down * 2f);
             Gizmos.DrawSphere(debugStepRayOrigin, 0.03f);
