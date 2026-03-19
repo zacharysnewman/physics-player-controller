@@ -757,3 +757,191 @@ Ordered from most to least severe.
 | **Low** | Mouse lock toggle logic in `PlayerInput` instead of `CameraController` | PlayerInput.cs | 58–74 | Architecture |
 | **Low** | `freezeYRotation` on `PlayerController` not synced with `CameraControllerConfig.FreezeYRotation` | PlayerController.cs | 42 | Config |
 | **Low** | `.asmdef` has no `rootNamespace` set — IDE auto-generates namespace-less files | .asmdef | — | Tooling |
+
+---
+
+## 16. Velocity Layer System (main branch)
+
+This section evaluates the `IVelocityLayer` / `VelocityAggregator` / `VerticalVelocityLayer` system introduced alongside a refactor of `PlayerMovement` and `PlayerClimb`.
+
+### What Was Fixed
+
+The following issues from §2–§11 were resolved in this update:
+
+| Fixed Issue | How |
+|---|---|
+| `ApplyConfiguration()` dead code — master config does nothing | Removed entirely, along with `PlayerControllerConfig` |
+| Duplicate `platformRotationAccum = Quaternion.identity` | Removed |
+| `rb.useGravity` fought between `PlayerMovement` and `PlayerClimb` | `VerticalVelocityLayer` takes sole ownership of gravity |
+| `GetComponent<Rigidbody>()` called in `StartCrouch()` | Replaced by `verticalLayer.AddVerticalImpulse()` |
+| Jump apex formula ignored Rigidbody mass | Now uses `force / rb.mass` to compute velocity correctly |
+| Platform tracking used `Time.deltaTime` (wrong for physics) | Moved into `GetVelocityContribution()`, uses `Time.fixedDeltaTime` |
+| `TargetVelocity` calculated twice with identical expressions | Consolidated |
+| `rb.useGravity = !isGrounded` inside `HandleMovement()` | Removed; `VerticalVelocityLayer.Awake()` sets `rb.useGravity = false` permanently |
+| `playerClimb` reference in `PlayerMovement` (old guard clause) | Removed; exclusivity handled by aggregator |
+
+---
+
+### Architecture of the New System
+
+`IVelocityLayer` is a simple interface with three members:
+- `Vector3 GetVelocityContribution(float dt)` — return the world-space velocity this layer targets
+- `bool IsActive` — whether to include this layer
+- `bool IsExclusive` — if any active layer is exclusive, all non-exclusive layers are skipped
+
+`VelocityAggregator` collects all `IVelocityLayer` components, sums their contributions (respecting exclusivity), then applies the result:
+```csharp
+rb.AddForce((targetVelocity - rb.linearVelocity) / dt, ForceMode.Acceleration);
+```
+This is mathematically equivalent to `rb.linearVelocity = targetVelocity` — a direct velocity set, not force-based physics. The smoothing lives inside each layer's contribution logic.
+
+Current layers:
+- `PlayerMovement` — horizontal locomotion, platform frame, external force absorption (`IsExclusive = false`)
+- `VerticalVelocityLayer` — gravity integration, jump, launch detection (`IsExclusive = false`)
+- `PlayerClimb` — full 3D climb velocity (`IsExclusive = true`)
+
+---
+
+### New Issues
+
+#### Bug — Stale `lastTargetY` After Ladder Dismount (High)
+
+During climbing, `PlayerClimb.IsExclusive = true`. The aggregator skips all non-exclusive layers, so `VerticalVelocityLayer.GetVelocityContribution()` is never called. `lastTargetY` (the Y value the layer drove `rb.linearVelocity.y` toward last step) is therefore frozen at its pre-climb value for the entire duration of the climb.
+
+`ExitClimb()` zeros `accumulatedY` via `verticalLayer.AddVerticalImpulse(-verticalLayer.AccumulatedY)`, but does **not** reset `lastTargetY`.
+
+On the first post-dismount physics step:
+```csharp
+float externalDelta = rb.linearVelocity.y - lastTargetY;
+// rb.linearVelocity.y  = vertical component of last climb velocity (e.g. 3.0 if climbing up)
+// lastTargetY          = whatever it was before the climb started (e.g. -2.0 from falling)
+// externalDelta        = 3.0 - (-2.0) = 5.0 → absorbed into accumulatedY
+```
+The player launches upward by the sum of their climb-exit velocity and their pre-climb fall velocity.
+
+**Fix:** Add a `ResetAbsorptionBaseline()` method to `VerticalVelocityLayer` that sets `lastTargetY = rb.linearVelocity.y` and sets `skipExternalAbsorption = true`. Call it from `ExitClimb()` after zeroing `accumulatedY`. This gives the layer a fresh reference point without treating the velocity change as external.
+
+**Side effect:** One step of absorption is skipped on dismount, which is the correct behaviour — same as after a jump.
+
+---
+
+#### Bug — Horizontal External Absorption Fires Spuriously on Ladder Dismount (High)
+
+`ResetHorizontalVelocity()` is called in `EnterClimb()`, setting `lastHorizontalContribution = Vector3.zero`. During climbing, `PlayerMovement.GetVelocityContribution()` is never called (exclusive skip), so `lastHorizontalContribution` stays at zero for the entire climb.
+
+On the first post-dismount physics step:
+```csharp
+Vector3 actualHorizontal = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
+// rb.linearVelocity.xz = last climb horizontal velocity (e.g. (1.5, 0, 0))
+// lastHorizontalContribution = (0, 0, 0)
+Vector3 externalDelta = actualHorizontal - lastHorizontalContribution; // = (1.5, 0, 0)
+externalHorizontalVelocity += externalDelta; // player launches sideways
+```
+Any lateral movement on the ladder is absorbed as a phantom external impulse on dismount.
+
+**Fix:** When `ExitClimb()` runs, also reset the horizontal absorption baseline in `PlayerMovement`. This could be a second method `ResetAbsorptionBaseline()` on `PlayerMovement`, or `ResetHorizontalVelocity()` could be extended to seed `lastHorizontalContribution` from the current `rb.linearVelocity.xz` rather than zeroing it:
+```csharp
+lastHorizontalContribution = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
+```
+**Side effect:** Residual climb lateral velocity is preserved as external velocity when dismounting, which will then decay naturally via `AirExternalDrag`. This is likely the desired feel (brief carry-through), but can be suppressed by also zeroing `externalHorizontalVelocity` in the reset.
+
+---
+
+#### Bug — `BaseVelocity.y` Fed to `VerticalVelocityLayer` Is One Frame Stale (Medium)
+
+In `VelocityAggregator.Apply()`:
+```csharp
+// 1. Feed platform Y to vertical layer
+verticalLayer.SetPlatformY(playerMovement.BaseVelocity.y); // ← BaseVelocity from LAST step
+
+// 2. Then call each layer
+foreach (var layer in layers)
+    targetVelocity += layer.GetVelocityContribution(dt);
+    // PlayerMovement.GetVelocityContribution() calls TrackPlatformMovement()
+    // which updates BaseVelocity for the CURRENT step — too late
+```
+`SetPlatformY` always receives a one-step-old platform Y velocity. For smooth platforms this lag is negligible. For platforms that start, stop, or change direction abruptly (step changes), `VerticalVelocityLayer` uses the wrong base for one step, which can cause a brief pop or missed ground-stick.
+
+**Fix:** Move `TrackPlatformMovement()` out of `GetVelocityContribution()` and into a separate `PrepareFrame(float dt)` method. Call `playerMovement.PrepareFrame(dt)` before `verticalLayer.SetPlatformY(playerMovement.BaseVelocity.y)` in `Apply()`. This ensures `BaseVelocity` is always current before being forwarded to other layers.
+
+**Side effect:** `GetVelocityContribution()` would be a pure contribution query rather than mixing platform tracking. Cleaner separation of concerns.
+
+---
+
+#### Bug — Double-Jump via Coyote Time After Real Jump — Not Fixed (High)
+
+This bug from the original evaluation (`PlayerJump.cs:68–70`) was not addressed. See §5 for the full description. The fix is one line: add `&& !isJumping` to the coyote time start condition.
+
+---
+
+#### Bug — Hardcoded `- 1f` Step Half-Height — Not Fixed (High)
+
+`PlayerMovement.cs:322` still reads `transform.position.y - 1f`. The comment was removed in this commit, but the value was not fixed. See §4 for the full description and fix.
+
+---
+
+#### Unfixed — `playerToLadder` Dead Code in `GetVelocityContribution()` (Medium)
+
+`PlayerClimb.cs:156–158`: `playerToLadder` is still computed every physics step in `GetVelocityContribution()` and still never used for anything except the separate `VisualizeLadder()` gizmo method. Three allocations per physics step for no effect.
+
+---
+
+#### Design — `VelocityAggregator.Apply()` Is Equivalent to Direct Velocity Assignment (Low)
+
+```csharp
+rb.AddForce((targetVelocity - rb.linearVelocity) / dt, ForceMode.Acceleration);
+```
+`ForceMode.Acceleration` applies `force * dt` to velocity during integration, so velocity change = `(delta / dt) * dt = delta`. The rigidbody velocity changes by exactly `delta` every step — identical to `rb.linearVelocity = targetVelocity`. Using `AddForce` implies physics-based application (mass-independent, integrated by the solver) but this is actually a direct velocity override. The distinction matters if Unity's solver reorders force application or if other forces are applied in the same step.
+
+Using `ForceMode.VelocityChange` is semantically cleaner (it explicitly means "change velocity by this amount, ignoring mass") and communicates the intent better. Or using `rb.linearVelocity = targetVelocity` directly is even clearer, though it bypasses the solver pipeline.
+
+**Consideration:** If `delta` is large (e.g., on the first frame, or after a teleport), this applies an unbounded instantaneous velocity change. The smoothing inside each layer mitigates this during normal play, but there is no cap at the aggregator level. A `Vector3.ClampMagnitude(delta, maxDeltaPerStep)` guard would add safety.
+
+---
+
+#### Design — `VerticalVelocityLayer.rb.useGravity = false` in Awake Without Warning (Low)
+
+`VerticalVelocityLayer.Awake()` unconditionally sets `rb.useGravity = false`. If this component is ever added to a Rigidbody that should use Unity's built-in gravity (e.g., a prop or enemy using this layer separately), gravity is silently disabled. A `Debug.LogWarning` or an opt-in flag (`[SerializeField] bool disableUnityGravity = true`) would make the side effect visible.
+
+---
+
+#### Design — `VelocityAggregator.layers` Cached in `Start()`, Not Dynamic (Low)
+
+`layers = GetComponents<IVelocityLayer>()` runs once in `Start()`. If any `IVelocityLayer` component is added or removed at runtime, the aggregator's layer list is stale. This is not a concern for the current prefab-based workflow, but worth documenting as a limitation for users who dynamically add systems.
+
+---
+
+#### Design — Launch Pad Detection Has a Timing Race While Grounded (Low)
+
+In `VerticalVelocityLayer.GetVelocityContribution()`, when `isGrounded`:
+```csharp
+float externalDelta = rb.linearVelocity.y - lastTargetY;
+if (externalDelta > 0.1f)
+{
+    accumulatedY = rb.linearVelocity.y;
+    isGrounded = false;
+    // ...
+}
+```
+This sets the internal `isGrounded = false` when a launch is detected. The suppression check in `SetGrounded()`:
+```csharp
+if (grounded && accumulatedY > platformY + 0.1f) return;
+```
+prevents the next `Update()` call from resetting `isGrounded = true` — but only while `accumulatedY > platformY + 0.1f`. For a weak launch pad that imparts less than 0.1 m/s of upward velocity, the suppression threshold may not hold, and `SetGrounded(true)` cancels the launch on the next Update before the player physically leaves the ground. This is a tuning edge case but worth documenting alongside the `gravityScale` and `0.1f` thresholds.
+
+---
+
+### Updated Summary — Velocity Layer Issues
+
+| Severity | Issue | File | Line(s) | Type |
+|---|---|---|---|---|
+| **High** | `lastTargetY` stale after ladder dismount — player launches vertically | VerticalVelocityLayer.cs / PlayerClimb.cs | — | Bug |
+| **High** | Horizontal absorption fires on dismount — player launches laterally | PlayerMovement.cs / PlayerClimb.cs | 199, 268–270 | Bug |
+| **High** | Double-jump via coyote time — not fixed from original evaluation | PlayerJump.cs | 68–70 | Bug |
+| **High** | Hardcoded `-1f` step half-height — not fixed from original evaluation | PlayerMovement.cs | 322 | Bug |
+| **Medium** | `BaseVelocity.y` fed to `VerticalVelocityLayer` is one frame stale | VelocityAggregator.cs | 40–43 | Bug |
+| **Medium** | `playerToLadder` still dead code in `GetVelocityContribution()` | PlayerClimb.cs | 156–158 | Bloat |
+| **Low** | `AddForce(delta/dt, ForceMode.Acceleration)` is equivalent to direct velocity set — unclear intent | VelocityAggregator.cs | 52 | Design |
+| **Low** | `rb.useGravity = false` in `Awake()` without warning or opt-out | VerticalVelocityLayer.cs | 28 | Design |
+| **Low** | Layer list cached in `Start()` — not dynamic | VelocityAggregator.cs | 23 | Design |
+| **Low** | Launch pad detection can be suppressed by `SetGrounded(true)` before player lifts off | VerticalVelocityLayer.cs | 74–90 | Design |
