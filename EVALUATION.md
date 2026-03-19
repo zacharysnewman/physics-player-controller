@@ -1,6 +1,6 @@
 # Physics Player Controller — Full Evaluation
 
-> Evaluated against source at v1.0.1. All line references are to files under `Runtime/`.
+> Sections §2–§15 reflect the current state of the **main** branch. §16 documents the velocity layer system introduced in that update and lists what was fixed relative to the original v1.0.1 evaluation.
 
 ---
 
@@ -46,17 +46,6 @@
 
 ### Issues
 
-#### Dead Code — `ApplyConfiguration()` Does Nothing
-`PlayerController.ApplyConfiguration()` (`Scripts/PlayerController.cs:78–114`) is a completely empty stub. Every `if` block inside it contains only a comment reading "placeholder for future implementation." The `PlayerControllerConfig` ScriptableObject is read by `PlayerController` but its sub-configs are never forwarded to the child components. Each child component reads its own `[SerializeField] config` directly.
-
-**Effect:** Runtime config swapping via `PlayerControllerConfig` does not work. Setting a different `PlayerControllerConfig` at runtime has zero effect. The master config hierarchy is dead infrastructure.
-
-**Proposed Fix:** Either implement the forwarding — each component gets a `SetConfig(XxxConfig)` public method, called from `ApplyConfiguration()` — or remove `PlayerControllerConfig` entirely and document that each component manages its own config. The former is the correct path since runtime swapping is a stated design goal.
-
-**Side Effects of Fix:** Each component would need a public `SetConfig` method. Calling it mid-game requires that all mutable state derived from the old config (speed, heights, etc.) be re-initialized. Consider whether a config swap mid-game is actually a safe operation (e.g., if walk speed changes but the player is already at the old walk speed, the transition may feel abrupt).
-
----
-
 #### `RequireComponent(typeof(DebugVisualizer))` is a Production Dependency
 `DebugVisualizer` is a hard dependency of `PlayerController`. Removing it from the prefab removes `PlayerController`. This means debug visualization code ships in every build regardless of whether it is used.
 
@@ -70,13 +59,6 @@
 `PlayerController.showStateDebug` defaults to `true`, causing an `OnGUI` label to render every frame. Same issue in `PlayerAnimatorController.showParameterDebug = true`.
 
 **Proposed Fix:** Default both to `false`. These are developer conveniences, not end-user features.
-
----
-
-#### `freezeYRotation` Not Connected to Config
-`PlayerController` has a `[SerializeField] bool freezeYRotation` field and `CameraControllerConfig` also has a `FreezeYRotation` property. They are independent — changing one does not change the other.
-
-**Proposed Fix:** In `ApplyConfiguration()`, set `freezeYRotation = config.CameraConfig.FreezeYRotation` when the config is applied. (This is moot until `ApplyConfiguration()` is implemented, but worth noting for when it is.)
 
 ---
 
@@ -149,17 +131,14 @@ This uses the actual live capsule dimensions, so it remains correct during crouc
 
 ---
 
-#### Duplicate `platformRotationAccum = Quaternion.identity` Assignment
-`Scripts/PlayerMovement.cs:158–160`:
+#### `GetComponent<Rigidbody>()` Called Every Physics Step in `TrackPlatformMovement()`
+Inside the non-kinematic platform branch of `TrackPlatformMovement()`, which now runs every `FixedUpdate` via `GetVelocityContribution()`:
 ```csharp
-platformDeltaRotation = Quaternion.identity;
-platformRotationAccum = Quaternion.identity;
-if (cameraController != null) cameraController.PlatformYawOffset = 0f;
-platformRotationAccum = Quaternion.identity;  // ← duplicate, wrong indentation
+Rigidbody platformRb = currentPlatform.GetComponent<Rigidbody>();
 ```
-The last line is a copy-paste artifact sitting outside the `if (currentPlatform != groundObject)` block's proper scope but still inside the outer `if (grounded && groundObject != null)` block. It harmlessly overwrites the same value but is misleading.
+This `GetComponent` call fires every physics step while on a platform. The platform Rigidbody should be cached when `currentPlatform` is assigned in `UpdateGrounded()` and cleared when it is set to null.
 
-**Proposed Fix:** Remove the duplicate line.
+**Proposed Fix:** Add a `private Rigidbody currentPlatformRb` field. Assign it alongside `currentPlatform = groundObject` in `UpdateGrounded()`, and clear it with `currentPlatformRb = null` when leaving the platform.
 
 ---
 
@@ -171,36 +150,6 @@ Full acceleration and deceleration rates apply identically in the air and on the
 if (!isGrounded) accelRate *= config.AirControlMultiplier;
 ```
 **Side Effects:** Jumps feel more committed. Players can no longer steer precisely mid-jump, which may be desired or not depending on game genre. Make the multiplier configurable and default it to something close to 1 if you want minimal change.
-
----
-
-#### Acceleration Formula Is Circular and Confusing
-```csharp
-Vector3 smoothedVelocityChange = Vector3.MoveTowards(Vector3.zero, desiredVelocityChange, accelRate * Time.fixedDeltaTime);
-Vector3 totalAcceleration = smoothedVelocityChange / Time.fixedDeltaTime;
-rb.AddForce(totalAcceleration, ForceMode.Acceleration);
-```
-Multiplying by `Time.fixedDeltaTime` then immediately dividing by it cancels out. The result is identical to:
-```csharp
-Vector3 smoothedVelocityChange = Vector3.ClampMagnitude(desiredVelocityChange, accelRate);
-rb.AddForce(smoothedVelocityChange, ForceMode.VelocityChange);
-```
-`MaxVelocityChange` then also clamps `desiredVelocityChange` before this step, creating two separate cap mechanisms on the same quantity. The intent of each cap is not documented.
-
-**Proposed Fix:** Consolidate into a single `MaxAcceleration` field. Remove `MaxVelocityChange` or clearly document that it caps the instantaneous velocity error (useful for teleport recovery) while `Acceleration` caps the rate of change.
-
----
-
-#### Camera Reference Silently Disables Movement
-`HandleMovement()` returns early if `mainCamera == null`, but `Start()` calls `enabled = false` if it's null. So movement is both disabled *and* the early return is unreachable. The guard in `HandleMovement()` is dead code after `Start()` runs.
-
-**Proposed Fix:** Remove the `mainCamera == null` check from `HandleMovement()` since `Start()` already disables the component if it's missing.
-
----
-
-### Design Notes
-
-- `TargetVelocity` is set to `playerTargetVelocity + platformTargetVelocity` (line 226) but then recalculated identically as `totalTargetVelocity` on line 229. The variable `TargetVelocity` is a public property for debug/external use, but it should be set *after* the airborne Y-velocity preservation step so it reflects the actual target, not an intermediate value.
 
 ---
 
@@ -243,22 +192,6 @@ The inner check is always `true` when the outer check passes.
 
 ---
 
-#### Jump Apex Formula Assumes Rigidbody Mass = 1
-`Scripts/PlayerJump.cs:127`:
-```csharp
-jumpApexHeight = transform.position.y + (force * force) / (2 * Physics.gravity.magnitude);
-```
-`ForceMode.Impulse` applies `force / mass` as a velocity change. The kinematic formula for apex height is `v² / (2g)` where `v` is the initial velocity. If Rigidbody mass ≠ 1, the actual initial velocity is `force / mass`, not `force`, so the displayed apex is wrong.
-
-**Proposed Fix:**
-```csharp
-float initialVelocity = force / rb.mass;
-jumpApexHeight = transform.position.y + (initialVelocity * initialVelocity) / (2 * Physics.gravity.magnitude);
-```
-**Side Effects:** The debug apex line moves to the correct position. If anyone has been tuning jump force by watching the apex line, the line now shows the truth.
-
----
-
 ### Missing Features
 
 - **Variable jump height (cut on release):** The most common feel improvement for jumps. When the player releases jump before the apex, apply a downward force multiplier or hard cap the upward velocity. Requires `WasPressedThisFrame` vs `IsPressed` distinction already available in the Input System.
@@ -286,22 +219,6 @@ if (isCrouching && groundChecker != null)
 }
 ```
 **Side Effects:** The capsule center snaps (or lerps, since interpolation is applied in `Update`) between the two positions on landing. The camera height offset may also need recomputing on that transition.
-
----
-
-#### `GetComponent<Rigidbody>()` Called at Runtime in `StartCrouch()`
-`Scripts/PlayerCrouch.cs:101`:
-```csharp
-Rigidbody rb = GetComponent<Rigidbody>();
-```
-This is called every time `StartCrouch()` fires, which happens on every crouch press. `GetComponent` is not free at runtime, especially if called mid-jump.
-
-**Proposed Fix:** Cache it in `Awake()`:
-```csharp
-private Rigidbody rb;
-// in Awake:
-rb = GetComponent<Rigidbody>();
-```
 
 ---
 
@@ -402,13 +319,6 @@ Collider[] colliders = Physics.OverlapBox(transform.position, Vector3.one * 0.5f
 The 0.5-unit half-extents are hardcoded. For a small ladder or a large player capsule, this may produce false negatives (player is still on the ladder but overlap check says no) or false positives (adjacent ladder triggers the check erroneously).
 
 **Proposed Fix:** Use the capsule's actual radius as the overlap half-extent, or expose a configurable `LadderOverlapRadius` in `PlayerClimbConfig`.
-
----
-
-#### Gravity Management Split Between Two Components
-`PlayerClimb.EnterClimb()` sets `rb.useGravity = false`. `PlayerMovement.HandleMovement()` sets `rb.useGravity = !isGrounded` every physics frame. The climb guard (`if (playerClimb.IsClimbing) return`) in `HandleMovement` prevents the conflict — but only as long as that guard exists and is not bypassed. Gravity ownership is implicit and fragile.
-
-**Proposed Fix:** Centralize gravity control. A single `GravityManager` component (or a method on `PlayerController`) that all systems call, with priority rules: climbing disables gravity > airborne enables gravity > grounded disables gravity. Alternatively, document the dependency clearly so the guard is not accidentally removed.
 
 ---
 
@@ -588,32 +498,6 @@ The debounce logic already handles the landing feel separately.
 
 ## 11. Configuration System
 
-### Critical Issue — Master Config Does Nothing
-
-`PlayerControllerConfig` is designed as a master container to allow runtime config swapping. `PlayerController.ApplyConfiguration()` is called in `Start()` but contains only comments. None of the sub-configs in `PlayerControllerConfig` are ever forwarded to the components that need them. Each component reads its own inspector-assigned config.
-
-**Effect:**
-- Setting `PlayerControllerConfig` on `PlayerController` has no effect on any child component.
-- Runtime config swapping (e.g., switching between "normal" and "underwater" movement profiles) does not work.
-- There are two separate config assignment UIs for the same logical settings: once on `PlayerController` and once on each individual component.
-
-**Proposed Fix — Option A (Implement Forwarding):**
-Add a `SetConfig(XxxConfig)` public method to each component. In `ApplyConfiguration()`:
-```csharp
-playerMovement.SetConfig(config.MovementConfig);
-playerJump.SetConfig(config.JumpConfig);
-cameraController.SetConfig(config.CameraConfig);
-// etc.
-```
-Each `SetConfig` replaces the internal config reference and reinitializes any derived state.
-
-**Proposed Fix — Option B (Remove Master Config):**
-Delete `PlayerControllerConfig.cs` and the `config` field on `PlayerController`. Document that each component manages its own config. Simpler, but loses the runtime swapping capability.
-
-**Side Effects of Option A:** A config swap mid-game must handle all live state cleanly. For example, if the jump force changes mid-jump, the in-flight trajectory does not change (the force was already applied). A config swap is effectively "take effect on next action," which should be documented.
-
----
-
 ### Duplicated Configuration — Crouch Height
 
 `PlayerCrouchConfig.CrouchHeight` (used for capsule sizing) and `PlayerMovementConfig.CrouchingHeight` (used for terrain ray distance calculations in `AdjustForTerrain`) are separate values that both represent the crouching capsule height. They can drift out of sync, causing terrain navigation to use the wrong height during a crouch.
@@ -678,7 +562,6 @@ Single source of truth, one inspector slot.
 | Camera | Look input smoothing / mouse damping | Medium — affects feel |
 | Camera | FOV change on sprint | Low |
 | Camera | `FacingDirection` property for integrators | High — needed by any weapon/projectile system |
-| Config | Master config forwarding (ApplyConfiguration) | Critical — current state is broken |
 | General | Wall-jump (wall detection already exists) | Medium |
 | General | Swimming / water volume detection | Low |
 
@@ -701,14 +584,8 @@ Vector3 checkPosition = groundCheck.position;
 Vector3 groundCheckPosition = transform.position + capsule.center;
 ```
 
-### `TargetVelocity` Calculated Twice
-`PlayerMovement.HandleMovement()` calculates `TargetVelocity = playerTargetVelocity + platformTargetVelocity` (line 226) and then immediately recalculates `totalTargetVelocity = playerTargetVelocity + platformTargetVelocity` (line 229) as a separate local variable. One of the two is redundant.
-
 ### Debug-Only `public` Fields on `PlayerMovement`
 `public Vector3 DebugMovementForce` is a public mutable field used for visualization. It should be either a private field read by `DebugVisualizer` via a getter property, or an internal detail not exposed via the public API.
-
-### `PlayerControllerConfig` With No Implementation
-As described in §11, this entire class and its sub-references do nothing at runtime. It is five fields and five properties plus a method — all inert. Either implement it or delete it.
 
 ---
 
@@ -718,42 +595,198 @@ Ordered from most to least severe.
 
 | Severity | Issue | File | Line(s) | Type |
 |---|---|---|---|---|
-| **Critical** | `ApplyConfiguration()` is empty — master config does nothing | PlayerController.cs | 78–114 | Bug / Missing |
+| **High** | `lastTargetY` stale after ladder dismount — player launches vertically | VerticalVelocityLayer.cs / PlayerClimb.cs | — | Bug |
+| **High** | Horizontal absorption fires on dismount — player launches laterally | PlayerMovement.cs / PlayerClimb.cs | 199, 268–270 | Bug |
 | **High** | Double-jump possible via coyote time after a normal jump | PlayerJump.cs | 68–70 | Bug |
 | **High** | Ground/ceiling ray origins at capsule center, not bottom/top edge | GroundChecker.cs | 67, 71 | Bug |
-| **High** | Step height uses hardcoded `- 1f` half-height, breaks during crouch | PlayerMovement.cs | 331 | Bug |
+| **High** | Step height uses hardcoded `- 1f` half-height, breaks during crouch | PlayerMovement.cs | 322 | Bug |
 | **High** | `inputSensitivity` applied to `MoveInput`, silently scales top speed | PlayerInput.cs | 50 | Bug |
 | **High** | Camera euler init wraps downward pitch to 270°+, snaps on start | CameraController.cs | 48–49 | Bug |
 | **High** | No `FacingDirection` property — integrators have no correct facing vector | CameraController.cs | — | Missing |
 | **High** | No air control reduction — full acceleration applies identically in the air | PlayerMovement.cs | — | Missing |
 | **High** | No variable jump height (cut on early release) | PlayerJump.cs | — | Missing |
 | **High** | `DebugVisualizer` is a hard `RequireComponent` — cannot be stripped from production | PlayerController.cs | 14 | Bloat |
+| **Medium** | `BaseVelocity.y` fed to `VerticalVelocityLayer` is one frame stale | VelocityAggregator.cs | 40–43 | Bug |
 | **Medium** | Speed animator param drops to 0 on input release before player stops moving | PlayerAnimatorController.cs | 71 | Bug |
 | **Medium** | Mid-air crouch center not corrected when player lands while still crouching | PlayerCrouch.cs | 86–107 | Bug |
 | **Medium** | Rotation applied twice per frame in `Update` + inside `HandleLook` | CameraController.cs | 65, 104 | Bug |
 | **Medium** | `IsGrounded` in animator derived from state machine, not `GroundChecker` directly | PlayerAnimatorController.cs | 80 | Bug |
 | **Medium** | Ladder camera-pitch inversion has zero dead zone — switches mode at 0.0001° | PlayerClimb.cs | 194 | Bug |
-| **Medium** | `playerToLadder` computed every frame in `HandleClimbMovement` but never used | PlayerClimb.cs | 180–182 | Bug |
+| **Medium** | `playerToLadder` computed every physics step in `GetVelocityContribution()` but never used | PlayerClimb.cs | 156–158 | Bloat |
 | **Medium** | Ground debug logging fires 34+ `Debug.Log` entries per frame when enabled | GroundChecker.cs | 307–319 | Performance |
 | **Medium** | Two separate `mainCamera` inspector slots to assign same object (Movement + Climb) | PlayerMovement.cs / PlayerClimb.cs | 14, 20 | UX/Usability |
 | **Medium** | `CrouchHeight` duplicated in both `PlayerCrouchConfig` and `PlayerMovementConfig` — can drift | PlayerCrouchConfig / PlayerMovementConfig | — | Config |
 | **Medium** | `IsTouchingWall` detected every frame but consumed by no system | GroundChecker.cs | 188–222 | Bloat |
 | **Medium** | `PlayerState.Sliding` and `IsSliding` animator bool are permanently false (unimplemented) | PlayerController.cs / PlayerAnimatorController.cs | — | Bloat |
 | **Medium** | `showStateDebug` and `showParameterDebug` default to `true` — OnGUI renders in production | PlayerController.cs / PlayerAnimatorController.cs | — | Bloat |
-| **Medium** | Gravity ownership split between `PlayerMovement` and `PlayerClimb` — implicit fragile dependency | PlayerMovement.cs / PlayerClimb.cs | — | Architecture |
 | **Medium** | No player snapping to ladder face — drifting off trigger causes abrupt exit | PlayerClimb.cs | — | Missing |
-| **Low** | Duplicate `platformRotationAccum = Quaternion.identity` — copy-paste artifact | PlayerMovement.cs | 160 | Bug |
 | **Low** | Nested `if (debugLogging)` is always-true redundancy | PlayerJump.cs | 72–74, 95–98 | Bug |
-| **Low** | Jump apex formula ignores Rigidbody mass, displays wrong debug height | PlayerJump.cs | 127 | Bug |
-| **Low** | `GetComponent<Rigidbody>()` called in `StartCrouch()` on every crouch press | PlayerCrouch.cs | 101 | Performance |
 | **Low** | `GetComponent<PlayerInput>()` called on debug property getters every access | PlayerInput.cs | 27–28 | Performance |
+| **Low** | `GetComponent<Rigidbody>()` called every physics step in `TrackPlatformMovement()` | PlayerMovement.cs | — | Performance |
 | **Low** | `groundCheck`/`ceilingCheck` are child GameObjects — a `Vector3` field suffices | GroundChecker.cs | 44–53 | Bloat |
-| **Low** | `TargetVelocity` calculated twice with identical expressions | PlayerMovement.cs | 226, 229 | Bloat |
-| **Low** | `DebugMovementForce` is a public mutable field, not a property | PlayerMovement.cs | 357 | API |
+| **Low** | `DebugMovementForce` is a public mutable field, not a property | PlayerMovement.cs | — | API |
 | **Low** | `PlatformYawOffset` is a public mutable field, not a property | CameraController.cs | 25 | API |
-| **Low** | Redundant component getter methods on `PlayerController` (`GetPlayerInput()`, etc.) | PlayerController.cs | 236–243 | API |
+| **Low** | Redundant component getter methods on `PlayerController` (`GetPlayerInput()`, etc.) | PlayerController.cs | — | API |
 | **Low** | Wall check distance hardcoded at `0.16f`, not in config | GroundChecker.cs | 192 | Config |
 | **Low** | Wall check uses global axis directions — diagonal walls not detected | GroundChecker.cs | 191 | Config |
 | **Low** | Mouse lock toggle logic in `PlayerInput` instead of `CameraController` | PlayerInput.cs | 58–74 | Architecture |
-| **Low** | `freezeYRotation` on `PlayerController` not synced with `CameraControllerConfig.FreezeYRotation` | PlayerController.cs | 42 | Config |
+| **Low** | `AddForce(delta/dt, ForceMode.Acceleration)` is equivalent to direct velocity set — unclear intent | VelocityAggregator.cs | 52 | Design |
+| **Low** | `rb.useGravity = false` in `Awake()` without warning or opt-out | VerticalVelocityLayer.cs | 28 | Design |
+| **Low** | Layer list in `VelocityAggregator` cached in `Start()` — not dynamic | VelocityAggregator.cs | 23 | Design |
+| **Low** | Launch pad detection can be suppressed by `SetGrounded(true)` before player lifts off | VerticalVelocityLayer.cs | 74–90 | Design |
 | **Low** | `.asmdef` has no `rootNamespace` set — IDE auto-generates namespace-less files | .asmdef | — | Tooling |
+
+---
+
+## 16. Velocity Layer System (main branch)
+
+This section evaluates the `IVelocityLayer` / `VelocityAggregator` / `VerticalVelocityLayer` system introduced alongside a refactor of `PlayerMovement` and `PlayerClimb`.
+
+### What Was Fixed
+
+The following issues from §2–§11 were resolved in this update:
+
+| Fixed Issue | How |
+|---|---|
+| `ApplyConfiguration()` dead code — master config does nothing | Removed entirely, along with `PlayerControllerConfig` |
+| Duplicate `platformRotationAccum = Quaternion.identity` | Removed |
+| `rb.useGravity` fought between `PlayerMovement` and `PlayerClimb` | `VerticalVelocityLayer` takes sole ownership of gravity |
+| `GetComponent<Rigidbody>()` called in `StartCrouch()` | Replaced by `verticalLayer.AddVerticalImpulse()` |
+| Jump apex formula ignored Rigidbody mass | Now uses `force / rb.mass` to compute velocity correctly |
+| Platform tracking used `Time.deltaTime` (wrong for physics) | Moved into `GetVelocityContribution()`, uses `Time.fixedDeltaTime` |
+| `TargetVelocity` calculated twice with identical expressions | Consolidated |
+| `rb.useGravity = !isGrounded` inside `HandleMovement()` | Removed; `VerticalVelocityLayer.Awake()` sets `rb.useGravity = false` permanently |
+| `playerClimb` reference in `PlayerMovement` (old guard clause) | Removed; exclusivity handled by aggregator |
+
+---
+
+### Architecture of the New System
+
+`IVelocityLayer` is a simple interface with three members:
+- `Vector3 GetVelocityContribution(float dt)` — return the world-space velocity this layer targets
+- `bool IsActive` — whether to include this layer
+- `bool IsExclusive` — if any active layer is exclusive, all non-exclusive layers are skipped
+
+`VelocityAggregator` collects all `IVelocityLayer` components, sums their contributions (respecting exclusivity), then applies the result:
+```csharp
+rb.AddForce((targetVelocity - rb.linearVelocity) / dt, ForceMode.Acceleration);
+```
+This is mathematically equivalent to `rb.linearVelocity = targetVelocity` — a direct velocity set, not force-based physics. The smoothing lives inside each layer's contribution logic.
+
+Current layers:
+- `PlayerMovement` — horizontal locomotion, platform frame, external force absorption (`IsExclusive = false`)
+- `VerticalVelocityLayer` — gravity integration, jump, launch detection (`IsExclusive = false`)
+- `PlayerClimb` — full 3D climb velocity (`IsExclusive = true`)
+
+---
+
+### New Issues
+
+#### Bug — Stale `lastTargetY` After Ladder Dismount (High)
+
+During climbing, `PlayerClimb.IsExclusive = true`. The aggregator skips all non-exclusive layers, so `VerticalVelocityLayer.GetVelocityContribution()` is never called. `lastTargetY` (the Y value the layer drove `rb.linearVelocity.y` toward last step) is therefore frozen at its pre-climb value for the entire duration of the climb.
+
+`ExitClimb()` zeros `accumulatedY` via `verticalLayer.AddVerticalImpulse(-verticalLayer.AccumulatedY)`, but does **not** reset `lastTargetY`.
+
+On the first post-dismount physics step:
+```csharp
+float externalDelta = rb.linearVelocity.y - lastTargetY;
+// rb.linearVelocity.y  = vertical component of last climb velocity (e.g. 3.0 if climbing up)
+// lastTargetY          = whatever it was before the climb started (e.g. -2.0 from falling)
+// externalDelta        = 3.0 - (-2.0) = 5.0 → absorbed into accumulatedY
+```
+The player launches upward by the sum of their climb-exit velocity and their pre-climb fall velocity.
+
+**Fix:** Add a `ResetAbsorptionBaseline()` method to `VerticalVelocityLayer` that sets `lastTargetY = rb.linearVelocity.y` and sets `skipExternalAbsorption = true`. Call it from `ExitClimb()` after zeroing `accumulatedY`. This gives the layer a fresh reference point without treating the velocity change as external.
+
+**Side effect:** One step of absorption is skipped on dismount, which is the correct behaviour — same as after a jump.
+
+---
+
+#### Bug — Horizontal External Absorption Fires Spuriously on Ladder Dismount (High)
+
+`ResetHorizontalVelocity()` is called in `EnterClimb()`, setting `lastHorizontalContribution = Vector3.zero`. During climbing, `PlayerMovement.GetVelocityContribution()` is never called (exclusive skip), so `lastHorizontalContribution` stays at zero for the entire climb.
+
+On the first post-dismount physics step:
+```csharp
+Vector3 actualHorizontal = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
+// rb.linearVelocity.xz = last climb horizontal velocity (e.g. (1.5, 0, 0))
+// lastHorizontalContribution = (0, 0, 0)
+Vector3 externalDelta = actualHorizontal - lastHorizontalContribution; // = (1.5, 0, 0)
+externalHorizontalVelocity += externalDelta; // player launches sideways
+```
+Any lateral movement on the ladder is absorbed as a phantom external impulse on dismount.
+
+**Fix:** When `ExitClimb()` runs, also reset the horizontal absorption baseline in `PlayerMovement`. This could be a second method `ResetAbsorptionBaseline()` on `PlayerMovement`, or `ResetHorizontalVelocity()` could be extended to seed `lastHorizontalContribution` from the current `rb.linearVelocity.xz` rather than zeroing it:
+```csharp
+lastHorizontalContribution = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
+```
+**Side effect:** Residual climb lateral velocity is preserved as external velocity when dismounting, which will then decay naturally via `AirExternalDrag`. This is likely the desired feel (brief carry-through), but can be suppressed by also zeroing `externalHorizontalVelocity` in the reset.
+
+---
+
+#### Bug — `BaseVelocity.y` Fed to `VerticalVelocityLayer` Is One Frame Stale (Medium)
+
+In `VelocityAggregator.Apply()`:
+```csharp
+// 1. Feed platform Y to vertical layer
+verticalLayer.SetPlatformY(playerMovement.BaseVelocity.y); // ← BaseVelocity from LAST step
+
+// 2. Then call each layer
+foreach (var layer in layers)
+    targetVelocity += layer.GetVelocityContribution(dt);
+    // PlayerMovement.GetVelocityContribution() calls TrackPlatformMovement()
+    // which updates BaseVelocity for the CURRENT step — too late
+```
+`SetPlatformY` always receives a one-step-old platform Y velocity. For smooth platforms this lag is negligible. For platforms that start, stop, or change direction abruptly (step changes), `VerticalVelocityLayer` uses the wrong base for one step, which can cause a brief pop or missed ground-stick.
+
+**Fix:** Move `TrackPlatformMovement()` out of `GetVelocityContribution()` and into a separate `PrepareFrame(float dt)` method. Call `playerMovement.PrepareFrame(dt)` before `verticalLayer.SetPlatformY(playerMovement.BaseVelocity.y)` in `Apply()`. This ensures `BaseVelocity` is always current before being forwarded to other layers.
+
+**Side effect:** `GetVelocityContribution()` would be a pure contribution query rather than mixing platform tracking. Cleaner separation of concerns.
+
+---
+
+#### Design — `VelocityAggregator.Apply()` Is Equivalent to Direct Velocity Assignment (Low)
+
+```csharp
+rb.AddForce((targetVelocity - rb.linearVelocity) / dt, ForceMode.Acceleration);
+```
+`ForceMode.Acceleration` applies `force * dt` to velocity during integration, so velocity change = `(delta / dt) * dt = delta`. The rigidbody velocity changes by exactly `delta` every step — identical to `rb.linearVelocity = targetVelocity`. Using `AddForce` implies physics-based application (mass-independent, integrated by the solver) but this is actually a direct velocity override. The distinction matters if Unity's solver reorders force application or if other forces are applied in the same step.
+
+Using `ForceMode.VelocityChange` is semantically cleaner (it explicitly means "change velocity by this amount, ignoring mass") and communicates the intent better. Or using `rb.linearVelocity = targetVelocity` directly is even clearer, though it bypasses the solver pipeline.
+
+**Consideration:** If `delta` is large (e.g., on the first frame, or after a teleport), this applies an unbounded instantaneous velocity change. The smoothing inside each layer mitigates this during normal play, but there is no cap at the aggregator level. A `Vector3.ClampMagnitude(delta, maxDeltaPerStep)` guard would add safety.
+
+---
+
+#### Design — `VerticalVelocityLayer.rb.useGravity = false` in Awake Without Warning (Low)
+
+`VerticalVelocityLayer.Awake()` unconditionally sets `rb.useGravity = false`. If this component is ever added to a Rigidbody that should use Unity's built-in gravity (e.g., a prop or enemy using this layer separately), gravity is silently disabled. A `Debug.LogWarning` or an opt-in flag (`[SerializeField] bool disableUnityGravity = true`) would make the side effect visible.
+
+---
+
+#### Design — `VelocityAggregator.layers` Cached in `Start()`, Not Dynamic (Low)
+
+`layers = GetComponents<IVelocityLayer>()` runs once in `Start()`. If any `IVelocityLayer` component is added or removed at runtime, the aggregator's layer list is stale. This is not a concern for the current prefab-based workflow, but worth documenting as a limitation for users who dynamically add systems.
+
+---
+
+#### Design — Launch Pad Detection Has a Timing Race While Grounded (Low)
+
+In `VerticalVelocityLayer.GetVelocityContribution()`, when `isGrounded`:
+```csharp
+float externalDelta = rb.linearVelocity.y - lastTargetY;
+if (externalDelta > 0.1f)
+{
+    accumulatedY = rb.linearVelocity.y;
+    isGrounded = false;
+    // ...
+}
+```
+This sets the internal `isGrounded = false` when a launch is detected. The suppression check in `SetGrounded()`:
+```csharp
+if (grounded && accumulatedY > platformY + 0.1f) return;
+```
+prevents the next `Update()` call from resetting `isGrounded = true` — but only while `accumulatedY > platformY + 0.1f`. For a weak launch pad that imparts less than 0.1 m/s of upward velocity, the suppression threshold may not hold, and `SetGrounded(true)` cancels the launch on the next Update before the player physically leaves the ground. This is a tuning edge case but worth documenting alongside the `gravityScale` and `0.1f` thresholds.
+
+All issues from this section are included in the master §15 summary table.
