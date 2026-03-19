@@ -13,6 +13,7 @@ namespace ZacharysNewman.PPC
         private float lastPlatformY;
         private bool isGrounded;
         private float lastTargetY;
+        private bool skipExternalAbsorption;
 
         public bool IsActive => true;
         public bool IsExclusive => false;
@@ -50,9 +51,18 @@ namespace ZacharysNewman.PPC
                 // Absorb external vertical forces (gravity pads, explosions, collisions).
                 // lastTargetY is what we drove rb.linearVelocity.y toward last step;
                 // any remaining deviation came from external forces in the same physics step.
-                float externalDelta = rb.linearVelocity.y - lastTargetY;
-                if (Mathf.Abs(externalDelta) > 0.01f)
-                    accumulatedY += externalDelta;
+                // Skip for one step after ApplyJumpImpulse: rb.linearVelocity.y hasn't caught up
+                // yet in the same FixedUpdate, so the delta would incorrectly cancel the jump.
+                if (skipExternalAbsorption)
+                {
+                    skipExternalAbsorption = false;
+                }
+                else
+                {
+                    float externalDelta = rb.linearVelocity.y - lastTargetY;
+                    if (Mathf.Abs(externalDelta) > 0.01f)
+                        accumulatedY += externalDelta;
+                }
 
                 accumulatedY += Physics.gravity.y * gravityScale * deltaTime;
             }
@@ -85,7 +95,10 @@ namespace ZacharysNewman.PPC
         {
             accumulatedY = jumpVelocity + platformY;
             isGrounded = false;
-            lastTargetY = accumulatedY; // prime baseline so next frame sees no false external delta
+            // rb.linearVelocity.y won't reflect jumpVelocity until after the aggregator runs,
+            // which may be later in the same FixedUpdate. Skip external absorption for one step
+            // so the delta check doesn't see (0 - jumpVelocity) and cancel the jump.
+            skipExternalAbsorption = true;
         }
 
         public void AddVerticalImpulse(float dv)
