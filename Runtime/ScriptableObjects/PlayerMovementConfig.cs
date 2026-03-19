@@ -29,6 +29,12 @@ namespace ZacharysNewman.PPC
         [SerializeField] private float velocityMultiplier = 1f;
         [SerializeField] private float maxRotationSpeed = 360f;
 
+        [Header("External Force Response")]
+        [Tooltip("Exponential horizontal drag on external impulses while airborne (fraction lost per second). 0 = no drag, 1 = instant stop.")]
+        [SerializeField] private float airExternalDrag = 0.5f;
+        [Tooltip("Linear deceleration rate (m/s²) applied to external horizontal impulses while grounded.")]
+        [SerializeField] private float groundExternalFriction = 15f;
+
 
         // Public properties
         public float WalkSpeed => walkSpeed;
@@ -45,6 +51,8 @@ namespace ZacharysNewman.PPC
         public float MaxStepHeight => maxStepHeight;
         public float VelocityMultiplier => velocityMultiplier;
         public float MaxRotationSpeed => maxRotationSpeed;
+        public float AirExternalDrag => airExternalDrag;
+        public float GroundExternalFriction => groundExternalFriction;
 
 
         // Public methods for runtime modification

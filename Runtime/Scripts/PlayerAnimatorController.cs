@@ -9,6 +9,7 @@ namespace ZacharysNewman.PPC
         [SerializeField] private PlayerController playerController;
         [SerializeField] private Rigidbody playerRigidbody;
         [SerializeField] private PlayerInput playerInput;
+        private PlayerMovement playerMovement;
 
         [Header("Settings")]
         [SerializeField] private bool getAnimatorFromChildren = true;
@@ -47,6 +48,7 @@ namespace ZacharysNewman.PPC
             // Auto-assign if not set
             if (playerRigidbody == null) playerRigidbody = playerController.GetComponent<Rigidbody>();
             if (playerInput == null) playerInput = playerController.GetPlayerInput();
+            playerMovement = playerController.GetPlayerMovement();
         }
 
         private void Start()
@@ -67,8 +69,11 @@ namespace ZacharysNewman.PPC
             if (playerController == null || animator == null || playerRigidbody == null || playerInput == null) return;
 
             // Sync Animator parameters based on PlayerController state
-            Vector3 horizontalVelocity = new Vector3(playerRigidbody.linearVelocity.x, 0, playerRigidbody.linearVelocity.z);
-            animator.SetFloat("Speed", horizontalVelocity.magnitude * playerInput.MoveInput.magnitude);
+            // Use velocity relative to the platform so standing on a fast elevator shows idle, not the elevator's speed
+            Vector3 baseVelocity = playerMovement != null ? playerMovement.BaseVelocity : Vector3.zero;
+            Vector3 relativeVelocity = playerRigidbody.linearVelocity - baseVelocity;
+            Vector3 horizontalRelative = new Vector3(relativeVelocity.x, 0f, relativeVelocity.z);
+            animator.SetFloat("Speed", horizontalRelative.magnitude * playerInput.MoveInput.magnitude);
 
             // Smooth movement direction from input (camera-relative)
             currentDirectionX = Mathf.Lerp(currentDirectionX, playerInput.MoveInput.x, Time.deltaTime * directionSmoothingSpeed);
