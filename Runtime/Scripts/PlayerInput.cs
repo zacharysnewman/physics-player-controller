@@ -23,9 +23,9 @@ namespace ZacharysNewman.PPC
         // Reference to CameraController for menu/use actions
         [SerializeField] private CameraController cameraController;
 
-        // Debug properties
-        public string CurrentControlScheme => GetComponent<UnityEngine.InputSystem.PlayerInput>()?.currentControlScheme ?? "None";
-        public int PlayerIndex => GetComponent<UnityEngine.InputSystem.PlayerInput>()?.playerIndex ?? -1;
+        // Debug properties — use the cached component instead of GetComponent every frame
+        public string CurrentControlScheme => playerInputComponent?.currentControlScheme ?? "None";
+        public int PlayerIndex => playerInputComponent?.playerIndex ?? -1;
 
         private UnityEngine.InputSystem.PlayerInput playerInputComponent;
 
@@ -47,7 +47,8 @@ namespace ZacharysNewman.PPC
             if (playerInputComponent == null || playerInputComponent.actions == null) return;
 
             // Poll input actions every frame, matching the original continuous update
-            MoveInput = playerInputComponent.actions["Move"].ReadValue<Vector2>() * inputSensitivity;
+            // Sensitivity applies to look only; MoveInput must stay in [-1,1] so speed calculations are correct
+            MoveInput = playerInputComponent.actions["Move"].ReadValue<Vector2>();
             LookInput = playerInputComponent.actions["Look"].ReadValue<Vector2>() * inputSensitivity;
             RunInput = playerInputComponent.actions["Run"].IsPressed();
             CrouchInput = playerInputComponent.actions["Crouch"].IsPressed();

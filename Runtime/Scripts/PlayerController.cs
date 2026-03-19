@@ -11,13 +11,12 @@ namespace ZacharysNewman.PPC
     [RequireComponent(typeof(PlayerClimb))]
     [RequireComponent(typeof(GroundChecker))]
     [RequireComponent(typeof(CameraController))]
-    [RequireComponent(typeof(DebugVisualizer))]
     [RequireComponent(typeof(VelocityAggregator))]
     [RequireComponent(typeof(VerticalVelocityLayer))]
     public class PlayerController : MonoBehaviour
     {
         [Header("Debug")]
-        [SerializeField] private bool showStateDebug = true;
+        [SerializeField] private bool showStateDebug = false;
 
         // Component references (auto-assigned, private so hidden from inspector)
         private PlayerInput playerInput;
@@ -128,7 +127,7 @@ namespace ZacharysNewman.PPC
             if (playerClimb == null) Debug.LogError("PlayerController: PlayerClimb component not found! This should not happen.");
             if (groundChecker == null) Debug.LogError("PlayerController: GroundChecker component not found! This should not happen.");
             if (cameraController == null) Debug.LogError("PlayerController: CameraController component not found! This should not happen.");
-            if (debugVisualizer == null) Debug.LogError("PlayerController: DebugVisualizer component not found! This should not happen.");
+            // debugVisualizer is optional — it can be removed from the prefab without breaking PlayerController
             if (velocityAggregator == null) Debug.LogError("PlayerController: VelocityAggregator component not found! This should not happen.");
             if (verticalLayer == null) Debug.LogError("PlayerController: VerticalVelocityLayer component not found! This should not happen.");
         }

@@ -66,14 +66,11 @@ namespace ZacharysNewman.PPC
                 coyoteTimer -= Time.deltaTime;
             }
 
-            // Coyote time starts when leaving ground
-            if (!groundChecker.IsGrounded && wasGrounded)
+            // Coyote time starts when leaving ground — but not after a real jump (which would allow a double-jump)
+            if (!groundChecker.IsGrounded && wasGrounded && !isJumping)
             {
                 coyoteTimer = config.CoyoteTime;
-                if (debugLogging)
-                {
-                    if (debugLogging) Debug.Log($"PlayerJump: Coyote time started. Timer: {coyoteTimer}");
-                }
+                if (debugLogging) Debug.Log($"PlayerJump: Coyote time started. Timer: {coyoteTimer}");
             }
 
             // Check if landed
@@ -93,10 +90,7 @@ namespace ZacharysNewman.PPC
             if (jumpInput && !wasJumpPressed && jumpBufferTimer <= 0)
             {
                 jumpBufferTimer = config.JumpBufferTime;
-                if (debugLogging)
-                {
-                    if (debugLogging) Debug.Log($"PlayerJump: Jump buffer set. Timer: {jumpBufferTimer}");
-                }
+                if (debugLogging) Debug.Log($"PlayerJump: Jump buffer set. Timer: {jumpBufferTimer}");
             }
 
             // Perform jump
