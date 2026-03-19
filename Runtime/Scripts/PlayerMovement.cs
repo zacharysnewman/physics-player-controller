@@ -27,6 +27,10 @@ namespace ZacharysNewman.PPC
         private float crouchSpeedMultiplier = 1f;
         private Vector3 currentHorizontalVelocity;
 
+        // External force tracking
+        private Vector3 externalHorizontalVelocity;
+        private Vector3 lastHorizontalContribution;
+
         // Moving platform support
         private Transform currentPlatform;
         private Vector3 previousPlatformPosition;
@@ -184,9 +188,23 @@ namespace ZacharysNewman.PPC
 
         public Vector3 GetVelocityContribution(float deltaTime)
         {
-            if (mainCamera == null || playerInput == null) return currentHorizontalVelocity;
+            if (mainCamera == null || playerInput == null) return currentHorizontalVelocity + externalHorizontalVelocity;
 
             TrackPlatformMovement();
+
+            // Absorb external horizontal forces (explosions, collisions, physics objects).
+            // lastHorizontalContribution is what we drove rb.linearVelocity.xz toward last step;
+            // any deviation is from external forces applied in the same physics step.
+            Vector3 actualHorizontal = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
+            Vector3 externalDelta = actualHorizontal - lastHorizontalContribution;
+            if (externalDelta.magnitude > 0.01f)
+                externalHorizontalVelocity += externalDelta;
+
+            // Decay external velocity: slow air drag when airborne, faster friction when grounded
+            if (isGrounded)
+                externalHorizontalVelocity = Vector3.MoveTowards(externalHorizontalVelocity, Vector3.zero, config.GroundExternalFriction * deltaTime);
+            else
+                externalHorizontalVelocity *= Mathf.Exp(-config.AirExternalDrag * deltaTime);
 
             Vector2 moveInput = playerInput.MoveInput;
             bool runInput = playerInput.RunInput;
@@ -237,15 +255,19 @@ namespace ZacharysNewman.PPC
             currentHorizontalVelocity = relativeVelocity + relativeChange + baseHorizontal;
 
             TargetVelocity = playerTargetVelocity + baseHorizontal;
-            CurrentVelocity = currentHorizontalVelocity;
+            CurrentVelocity = currentHorizontalVelocity + externalHorizontalVelocity;
             DebugMovementForce = relativeChange / deltaTime;
 
-            return currentHorizontalVelocity;
+            Vector3 contribution = currentHorizontalVelocity + externalHorizontalVelocity;
+            lastHorizontalContribution = contribution;
+            return contribution;
         }
 
         public void ResetHorizontalVelocity()
         {
             currentHorizontalVelocity = Vector3.zero;
+            externalHorizontalVelocity = Vector3.zero;
+            lastHorizontalContribution = Vector3.zero;
         }
 
         private Vector3 AdjustForTerrain(Vector3 moveDirection)

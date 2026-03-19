@@ -12,6 +12,7 @@ namespace ZacharysNewman.PPC
         private float platformY;
         private float lastPlatformY;
         private bool isGrounded;
+        private float lastTargetY;
 
         public bool IsActive => true;
         public bool IsExclusive => false;
@@ -29,12 +30,34 @@ namespace ZacharysNewman.PPC
         {
             if (isGrounded)
             {
-                accumulatedY = platformY;
+                // Absorb significant external upward forces (launch pads, explosions) while grounded.
+                // lastTargetY was 0 (platformY) last step; any upward deviation is external.
+                float externalDelta = rb.linearVelocity.y - lastTargetY;
+                if (externalDelta > 0.1f)
+                {
+                    // Launch off the ground and let gravity take it from here
+                    accumulatedY = rb.linearVelocity.y;
+                    isGrounded = false;
+                    accumulatedY += Physics.gravity.y * gravityScale * deltaTime;
+                }
+                else
+                {
+                    accumulatedY = platformY;
+                }
             }
             else
             {
+                // Absorb external vertical forces (gravity pads, explosions, collisions).
+                // lastTargetY is what we drove rb.linearVelocity.y toward last step;
+                // any remaining deviation came from external forces in the same physics step.
+                float externalDelta = rb.linearVelocity.y - lastTargetY;
+                if (Mathf.Abs(externalDelta) > 0.01f)
+                    accumulatedY += externalDelta;
+
                 accumulatedY += Physics.gravity.y * gravityScale * deltaTime;
             }
+
+            lastTargetY = accumulatedY;
             return new Vector3(0f, accumulatedY, 0f);
         }
 
@@ -62,6 +85,7 @@ namespace ZacharysNewman.PPC
         {
             accumulatedY = jumpVelocity + platformY;
             isGrounded = false;
+            lastTargetY = accumulatedY; // prime baseline so next frame sees no false external delta
         }
 
         public void AddVerticalImpulse(float dv)
