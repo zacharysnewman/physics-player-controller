@@ -93,7 +93,10 @@ namespace ZacharysNewman.PPC
 
         public void ApplyJumpImpulse(float jumpVelocity)
         {
-            accumulatedY = jumpVelocity + platformY;
+            // Take the max so an external upward velocity (launcher, explosion) already
+            // absorbed into accumulatedY isn't clamped down to jumpVelocity. This prevents
+            // the "ceiling bump" when jumping during coyote time after a launch pad.
+            accumulatedY = Mathf.Max(accumulatedY, jumpVelocity + platformY);
             isGrounded = false;
             // rb.linearVelocity.y won't reflect jumpVelocity until after the aggregator runs,
             // which may be later in the same FixedUpdate. Skip external absorption for one step
