@@ -1,6 +1,6 @@
 # Physics Player Controller — Full Evaluation
 
-> Sections §2–§15 reflect the current state of the **main** branch. §16 documents the velocity layer system introduced in that update and lists what was fixed relative to the original v1.0.1 evaluation.
+> Sections §2–§15 reflect the state of the **main** branch at the time of the original review. §16 documents the velocity layer system introduced in that update. §17 documents all fixes applied in the subsequent review pass.
 
 ---
 
@@ -21,6 +21,8 @@
 13. [Missing Features by System](#13-missing-features-by-system)
 14. [Bloat](#14-bloat)
 15. [Summary Table](#15-summary-table)
+16. [Velocity Layer System](#16-velocity-layer-system-main-branch)
+17. [Applied Fixes — Review Pass 2](#17-applied-fixes--review-pass-2)
 
 ---
 
@@ -593,48 +595,48 @@ Vector3 groundCheckPosition = transform.position + capsule.center;
 
 Ordered from most to least severe.
 
-| Severity | Issue | File | Line(s) | Type |
-|---|---|---|---|---|
-| **High** | `lastTargetY` stale after ladder dismount — player launches vertically | VerticalVelocityLayer.cs / PlayerClimb.cs | — | Bug |
-| **High** | Horizontal absorption fires on dismount — player launches laterally | PlayerMovement.cs / PlayerClimb.cs | 199, 268–270 | Bug |
-| **High** | Double-jump possible via coyote time after a normal jump | PlayerJump.cs | 68–70 | Bug |
-| **High** | Ground/ceiling ray origins at capsule center, not bottom/top edge | GroundChecker.cs | 67, 71 | Bug |
-| **High** | Step height uses hardcoded `- 1f` half-height, breaks during crouch | PlayerMovement.cs | 322 | Bug |
-| **High** | `inputSensitivity` applied to `MoveInput`, silently scales top speed | PlayerInput.cs | 50 | Bug |
-| **High** | Camera euler init wraps downward pitch to 270°+, snaps on start | CameraController.cs | 48–49 | Bug |
-| **High** | No `FacingDirection` property — integrators have no correct facing vector | CameraController.cs | — | Missing |
-| **High** | No air control reduction — full acceleration applies identically in the air | PlayerMovement.cs | — | Missing |
-| **High** | No variable jump height (cut on early release) | PlayerJump.cs | — | Missing |
-| **High** | `DebugVisualizer` is a hard `RequireComponent` — cannot be stripped from production | PlayerController.cs | 14 | Bloat |
-| **Medium** | `BaseVelocity.y` fed to `VerticalVelocityLayer` is one frame stale | VelocityAggregator.cs | 40–43 | Bug |
-| **Medium** | Speed animator param drops to 0 on input release before player stops moving | PlayerAnimatorController.cs | 71 | Bug |
-| **Medium** | Mid-air crouch center not corrected when player lands while still crouching | PlayerCrouch.cs | 86–107 | Bug |
-| **Medium** | Rotation applied twice per frame in `Update` + inside `HandleLook` | CameraController.cs | 65, 104 | Bug |
-| **Medium** | `IsGrounded` in animator derived from state machine, not `GroundChecker` directly | PlayerAnimatorController.cs | 80 | Bug |
-| **Medium** | Ladder camera-pitch inversion has zero dead zone — switches mode at 0.0001° | PlayerClimb.cs | 194 | Bug |
-| **Medium** | `playerToLadder` computed every physics step in `GetVelocityContribution()` but never used | PlayerClimb.cs | 156–158 | Bloat |
-| **Medium** | Ground debug logging fires 34+ `Debug.Log` entries per frame when enabled | GroundChecker.cs | 307–319 | Performance |
-| **Medium** | Two separate `mainCamera` inspector slots to assign same object (Movement + Climb) | PlayerMovement.cs / PlayerClimb.cs | 14, 20 | UX/Usability |
-| **Medium** | `CrouchHeight` duplicated in both `PlayerCrouchConfig` and `PlayerMovementConfig` — can drift | PlayerCrouchConfig / PlayerMovementConfig | — | Config |
-| **Medium** | `IsTouchingWall` detected every frame but consumed by no system | GroundChecker.cs | 188–222 | Bloat |
-| **Medium** | `PlayerState.Sliding` and `IsSliding` animator bool are permanently false (unimplemented) | PlayerController.cs / PlayerAnimatorController.cs | — | Bloat |
-| **Medium** | `showStateDebug` and `showParameterDebug` default to `true` — OnGUI renders in production | PlayerController.cs / PlayerAnimatorController.cs | — | Bloat |
-| **Medium** | No player snapping to ladder face — drifting off trigger causes abrupt exit | PlayerClimb.cs | — | Missing |
-| **Low** | Nested `if (debugLogging)` is always-true redundancy | PlayerJump.cs | 72–74, 95–98 | Bug |
-| **Low** | `GetComponent<PlayerInput>()` called on debug property getters every access | PlayerInput.cs | 27–28 | Performance |
-| **Low** | `GetComponent<Rigidbody>()` called every physics step in `TrackPlatformMovement()` | PlayerMovement.cs | — | Performance |
-| **Low** | `groundCheck`/`ceilingCheck` are child GameObjects — a `Vector3` field suffices | GroundChecker.cs | 44–53 | Bloat |
-| **Low** | `DebugMovementForce` is a public mutable field, not a property | PlayerMovement.cs | — | API |
-| **Low** | `PlatformYawOffset` is a public mutable field, not a property | CameraController.cs | 25 | API |
-| **Low** | Redundant component getter methods on `PlayerController` (`GetPlayerInput()`, etc.) | PlayerController.cs | — | API |
-| **Low** | Wall check distance hardcoded at `0.16f`, not in config | GroundChecker.cs | 192 | Config |
-| **Low** | Wall check uses global axis directions — diagonal walls not detected | GroundChecker.cs | 191 | Config |
-| **Low** | Mouse lock toggle logic in `PlayerInput` instead of `CameraController` | PlayerInput.cs | 58–74 | Architecture |
-| **Low** | `AddForce(delta/dt, ForceMode.Acceleration)` is equivalent to direct velocity set — unclear intent | VelocityAggregator.cs | 52 | Design |
-| **Low** | `rb.useGravity = false` in `Awake()` without warning or opt-out | VerticalVelocityLayer.cs | 28 | Design |
-| **Low** | Layer list in `VelocityAggregator` cached in `Start()` — not dynamic | VelocityAggregator.cs | 23 | Design |
-| **Low** | Launch pad detection can be suppressed by `SetGrounded(true)` before player lifts off | VerticalVelocityLayer.cs | 74–90 | Design |
-| **Low** | `.asmdef` has no `rootNamespace` set — IDE auto-generates namespace-less files | .asmdef | — | Tooling |
+| Severity | Issue | File | Line(s) | Type | Status |
+|---|---|---|---|---|---|
+| **High** | `lastTargetY` stale after ladder dismount — player launches vertically | VerticalVelocityLayer.cs / PlayerClimb.cs | — | Bug | ✓ Fixed |
+| **High** | Horizontal absorption fires on dismount — player launches laterally | PlayerMovement.cs / PlayerClimb.cs | 199, 268–270 | Bug | ✓ Fixed |
+| **High** | Double-jump possible via coyote time after a normal jump | PlayerJump.cs | 68–70 | Bug | ✓ Fixed |
+| **High** | Ground/ceiling ray origins at capsule center, not bottom/top edge | GroundChecker.cs | 67, 71 | Bug | ✓ Fixed |
+| **High** | Step height uses hardcoded `- 1f` half-height, breaks during crouch | PlayerMovement.cs | 322 | Bug | ✓ Fixed |
+| **High** | `inputSensitivity` applied to `MoveInput`, silently scales top speed | PlayerInput.cs | 50 | Bug | ✓ Fixed |
+| **High** | Camera euler init wraps downward pitch to 270°+, snaps on start | CameraController.cs | 48–49 | Bug | ✓ Fixed |
+| **High** | No `FacingDirection` property — integrators have no correct facing vector | CameraController.cs | — | Missing | ✓ Fixed |
+| **High** | No air control reduction — full acceleration applies identically in the air | PlayerMovement.cs | — | Missing | Open |
+| **High** | No variable jump height (cut on early release) | PlayerJump.cs | — | Missing | Open |
+| **High** | `DebugVisualizer` is a hard `RequireComponent` — cannot be stripped from production | PlayerController.cs | 14 | Bloat | ✓ Fixed |
+| **Medium** | `BaseVelocity.y` fed to `VerticalVelocityLayer` is one frame stale | VelocityAggregator.cs | 40–43 | Bug | Open |
+| **Medium** | Speed animator param drops to 0 on input release before player stops moving | PlayerAnimatorController.cs | 71 | Bug | ✓ Fixed |
+| **Medium** | Mid-air crouch center not corrected when player lands while still crouching | PlayerCrouch.cs | 86–107 | Bug | ✓ Fixed |
+| **Medium** | Rotation applied twice per frame in `Update` + inside `HandleLook` | CameraController.cs | 65, 104 | Bug | ✓ Fixed |
+| **Medium** | `IsGrounded` in animator derived from state machine, not `GroundChecker` directly | PlayerAnimatorController.cs | 80 | Bug | ✓ Fixed |
+| **Medium** | Ladder camera-pitch inversion has zero dead zone — switches mode at 0.0001° | PlayerClimb.cs | 194 | Bug | ✓ Fixed |
+| **Medium** | `playerToLadder` computed every physics step in `GetVelocityContribution()` but never used | PlayerClimb.cs | 156–158 | Bloat | ✓ Fixed |
+| **Medium** | Ground debug logging fires 34+ `Debug.Log` entries per frame when enabled | GroundChecker.cs | 307–319 | Performance | Open |
+| **Medium** | Two separate `mainCamera` inspector slots to assign same object (Movement + Climb) | PlayerMovement.cs / PlayerClimb.cs | 14, 20 | UX/Usability | Open |
+| **Medium** | `CrouchHeight` duplicated in both `PlayerCrouchConfig` and `PlayerMovementConfig` — can drift | PlayerCrouchConfig / PlayerMovementConfig | — | Config | Open |
+| **Medium** | `IsTouchingWall` detected every frame but consumed by no system | GroundChecker.cs | 188–222 | Bloat | Open |
+| **Medium** | `PlayerState.Sliding` and `IsSliding` animator bool are permanently false (unimplemented) | PlayerController.cs / PlayerAnimatorController.cs | — | Bloat | Open |
+| **Medium** | `showStateDebug` and `showParameterDebug` default to `true` — OnGUI renders in production | PlayerController.cs / PlayerAnimatorController.cs | — | Bloat | ✓ Fixed |
+| **Medium** | No player snapping to ladder face — drifting off trigger causes abrupt exit | PlayerClimb.cs | — | Missing | Open |
+| **Low** | Nested `if (debugLogging)` is always-true redundancy | PlayerJump.cs | 72–74, 95–98 | Bug | ✓ Fixed |
+| **Low** | `GetComponent<PlayerInput>()` called on debug property getters every access | PlayerInput.cs | 27–28 | Performance | ✓ Fixed |
+| **Low** | `GetComponent<Rigidbody>()` called every physics step in `TrackPlatformMovement()` | PlayerMovement.cs | — | Performance | ✓ Fixed |
+| **Low** | `groundCheck`/`ceilingCheck` are child GameObjects — a `Vector3` field suffices | GroundChecker.cs | 44–53 | Bloat | Open |
+| **Low** | `DebugMovementForce` is a public mutable field, not a property | PlayerMovement.cs | — | API | ~ Partial |
+| **Low** | `PlatformYawOffset` is a public mutable field, not a property | CameraController.cs | 25 | API | Open |
+| **Low** | Redundant component getter methods on `PlayerController` (`GetPlayerInput()`, etc.) | PlayerController.cs | — | API | Open |
+| **Low** | Wall check distance hardcoded at `0.16f`, not in config | GroundChecker.cs | 192 | Config | Open |
+| **Low** | Wall check uses global axis directions — diagonal walls not detected | GroundChecker.cs | 191 | Config | Open |
+| **Low** | Mouse lock toggle logic in `PlayerInput` instead of `CameraController` | PlayerInput.cs | 58–74 | Architecture | Open |
+| **Low** | `AddForce(delta/dt, ForceMode.Acceleration)` is equivalent to direct velocity set — unclear intent | VelocityAggregator.cs | 52 | Design | Open |
+| **Low** | `rb.useGravity = false` in `Awake()` without warning or opt-out | VerticalVelocityLayer.cs | 28 | Design | Open |
+| **Low** | Layer list in `VelocityAggregator` cached in `Start()` — not dynamic | VelocityAggregator.cs | 23 | Design | Open |
+| **Low** | Launch pad detection can be suppressed by `SetGrounded(true)` before player lifts off | VerticalVelocityLayer.cs | 74–90 | Design | Open |
+| **Low** | `.asmdef` has no `rootNamespace` set — IDE auto-generates namespace-less files | .asmdef | — | Tooling | ✓ Fixed |
 
 ---
 
@@ -790,3 +792,55 @@ if (grounded && accumulatedY > platformY + 0.1f) return;
 prevents the next `Update()` call from resetting `isGrounded = true` — but only while `accumulatedY > platformY + 0.1f`. For a weak launch pad that imparts less than 0.1 m/s of upward velocity, the suppression threshold may not hold, and `SetGrounded(true)` cancels the launch on the next Update before the player physically leaves the ground. This is a tuning edge case but worth documenting alongside the `gravityScale` and `0.1f` thresholds.
 
 All issues from this section are included in the master §15 summary table.
+
+---
+
+## 17. Applied Fixes — Review Pass 2
+
+Two commits applied in this pass: one targeting the issues found in the original §2–§11 review, and one addressing the new issues surfaced in §16. All fixes are on branch `claude/review-evaluation-issues-JdcO9`.
+
+### What Was Fixed
+
+| Issue | Fix Applied | Rationale |
+|---|---|---|
+| `RequireComponent(typeof(DebugVisualizer))` production dependency | Removed attribute; `ValidateRequiredComponents()` no longer errors on null `debugVisualizer` | `DebugVisualizer` was already guarded by null checks everywhere it is used. Making it optional is a one-line change with zero runtime risk and removes an otherwise mandatory debug dependency from production builds. |
+| `showStateDebug` / `showParameterDebug` default `true` | Defaulted both to `false` | OnGUI renders every frame in builds and in Play Mode when not needed. The fields are still exposed in the inspector; this only changes the out-of-box default. |
+| `inputSensitivity` applied to `MoveInput` | Removed `* inputSensitivity` from `MoveInput` assignment | Sensitivity is a look concept. Applying it to WASD silently reduces maximum speed by a fixed ratio, which contradicts every downstream assumption that `MoveInput.magnitude == 1` at full input. Look sensitivity is already a separate field in `CameraControllerConfig`; this field's scope is now correctly limited to look. |
+| `GetComponent` called on `CurrentControlScheme` / `PlayerIndex` debug properties | Changed to use already-cached `playerInputComponent` | `GetComponent` is an O(n) scan of the component list. Debug properties are polled every frame by the state debug display. Using the cached reference is a trivially safe fix. |
+| Double-jump via coyote time after a real jump | Added `&& !isJumping` guard to coyote time activation | Coyote time is intended for walk-off edges, not as a second-jump opportunity. The flag `isJumping` is already maintained correctly; this is a single-condition addition that exactly encodes the intent. |
+| Nested redundant `if (debugLogging)` in `PlayerJump` | Removed outer wrapper, kept inner guard | The inner check is always true when the outer passes — dead code. No behaviour change; reduces visual noise. |
+| Camera euler init gimbal wrap (downward pitch snaps on start) | Normalize `eulerAngles.x` to −180..180 with `rawPitch > 180f ? rawPitch - 360f : rawPitch` | Unity's `eulerAngles.x` returns 270–360 for downward pitches. The subsequent `Mathf.Clamp(cameraPitch, minAngle, maxAngle)` would immediately snap 315° to `maxAngle` (≈80°), forcing the camera nearly straight up. The fix is a two-line normalization — it is the canonical solution and has no side effects beyond reading the correct angle. |
+| Rotation applied twice per frame in `CameraController` | Removed the duplicate `localRotation` assignment from `Update()`; `HandleLook` remains the sole writer | Both assignments used identical values so the output was the same, but two write sites for the same transform property is a maintenance hazard — they could silently diverge. Removing the `Update()` copy is the minimal fix. |
+| No `FacingDirection` property on `CameraController` | Added `public Vector3 FacingDirection` computed from `cameraYaw + PlatformYawOffset` | With Y-rotation frozen on the Rigidbody (per PHYSICS-ROTATION-PLAN.md), `transform.forward` does not reflect where the player faces. Any integrator system (projectiles, raycasts, AI targeting) would silently aim in the wrong direction. A property backed by the authoritative camera yaw field gives a stable, correct API without coupling callers to camera internals. |
+| Step height hardcodes capsule half-height (`- 1f`) | Changed to `transform.position.y + capsule.center.y - capsule.height / 2f` | The hardcoded `1f` is the half-height of a default capsule. During a crouch (capsule height ≈ 1, center adjusted) `playerBottomY` is wrong, causing steps to fire when they shouldn't or not fire when they should. The formula is a direct geometric expression of the capsule's bottom surface — it self-corrects for any capsule size at all times. |
+| `GetComponent<Rigidbody>()` every physics step in `TrackPlatformMovement()` | Added `private Rigidbody currentPlatformRb`; assigned alongside `currentPlatform` in `UpdateGrounded()`, cleared on exit | `GetComponent` is called every `FixedUpdate` while the player is on a non-kinematic platform. The Rigidbody reference is stable for the duration of the contact and can trivially be cached. This removes repeated allocations and component scans from the hot physics path. |
+| Stale `lastTargetY` after ladder dismount — vertical launch | Added `VerticalVelocityLayer.ResetAbsorptionBaseline()`; called in `ExitClimb()` after zeroing `accumulatedY` | During climbing the vertical layer is skipped (exclusive), so `lastTargetY` freezes at the pre-climb value. On the first post-dismount step, the delta between `rb.linearVelocity.y` and the stale `lastTargetY` is absorbed as an external impulse, launching the player. `ResetAbsorptionBaseline()` sets `lastTargetY = accumulatedY` (0 after the zero-out) and sets `skipExternalAbsorption = true` (matching the same guard already used after `ApplyJumpImpulse`), giving the layer a clean reference point with no behaviour change on subsequent steps. |
+| Horizontal absorption fires on ladder dismount — lateral launch | Added `PlayerMovement.SeedHorizontalBaseline()`; called in `ExitClimb()` | `EnterClimb()` calls `ResetHorizontalVelocity()`, setting `lastHorizontalContribution = 0`. The horizontal layer is then skipped for the entire climb. On dismount, `actualHorizontal - 0` is a non-zero delta absorbed as an external impulse. `SeedHorizontalBaseline()` sets `lastHorizontalContribution = rb.linearVelocity.xz` so the delta is zero on the first post-dismount step. `currentHorizontalVelocity` is zeroed (clean slate for movement control) while `externalHorizontalVelocity` is also zeroed (any residual climb lateral velocity decays via air drag rather than being re-injected as an impulse). |
+| Camera pitch dead zone on ladder (zero-width, erratic near horizontal) | Changed threshold from `0.0f` to `±0.3f` | At exactly horizontal (cameraForward.y ≈ 0), the inversion mode switches with any tiny mouse movement, causing up/down input to flip randomly. A ±0.3 dead zone (≈17° band around horizontal) gives a stable neutral zone. The exact value is tunable; 0.3 is a reasonable default that matches how far the camera naturally pitches when looking at a mid-height ladder. |
+| `playerToLadder` computed every physics step but unused in `GetVelocityContribution()` | Removed the three dead-code lines | The variable is computed via a vector subtraction and normalize (non-trivial operations) every `FixedUpdate` while climbing, but is never read within that method. `VisualizeLadder()` computes it independently. |
+| Ground and ceiling ray origins at capsule center instead of bottom/top | Changed `groundCheck.localPosition` and `ceilingCheck.localPosition` to `capsule.center ∓ Vector3.up * (capsule.height / 2f - capsule.radius)` | Originating rays from the center requires `GroundCheckDistance ≈ height/2` to reach the ground — a value that is capsule-size-dependent, breaks during crouch (center shifts), and is not self-documenting. Originating from the bottom of the capsule sphere means the distance only needs to span the contact gap (~0.15 units), is geometrically correct for any capsule size, and self-adjusts during crouch as the capsule shrinks. Default config distances updated from 1.05/1.1 to 0.15/0.1. **Breaking change for existing config assets.** |
+| Speed animator parameter drops to 0 before player stops moving | Changed `horizontalRelative.magnitude * playerInput.MoveInput.magnitude` to `horizontalRelative.magnitude` | `MoveInput` drops to zero instantly on key release; multiplying it into `Speed` causes an immediate idle transition while the player is visually still decelerating. Velocity magnitude naturally falls to zero as movement decelerates — it is the physically correct signal. Input intent is already available separately via `IsCrouching`, `IsRunning`, etc. |
+| `IsGrounded` in animator derived from state machine states | Changed to `groundChecker.IsGrounded` via `playerController.GetGroundChecker()` | The state machine excludes `Jumping` and `Falling` but treats `Crouching` and `Climbing` as grounded. A crouching player initiating a jump is in `Crouching` state for one frame before the state machine transitions, so `IsGrounded = true` fires incorrectly during the jump. `GroundChecker.IsGrounded` is the authoritative physics-derived value and is already used by all other systems. |
+| Mid-air crouch center not corrected on landing | In `PlayerCrouch.Update()`, detect `!wasGrounded && isGrounded && isCrouching` and reapply the grounded center (`originalCenter + Vector3.down * delta / 2f`) | The intentional design (mid-air shifts capsule up to "lift legs"; grounded shifts capsule down) is preserved — the fix only triggers on the airborne→grounded transition. Without it, the upward-shifted capsule persists after landing, floating the collision volume above the floor until the player releases and re-crouches. The camera height is also recalculated on the transition. |
+| `.asmdef` has no `rootNamespace` | Set `"rootNamespace": "ZacharysNewman.PPC"` | Without this, any script created in the package via IDE tooling ("New Script" inside the assembly's folder) is generated without a namespace declaration, silently polluting the global namespace. One-field change, no runtime effect. |
+| `DebugMovementForce` public mutable field | Added `[HideInInspector]` attribute | Full fix (make private with a getter property) would require changing `DebugVisualizer` callers. The attribute prevents it appearing in the inspector and being accidentally edited, which was the immediate UX concern. The API surface issue remains — tracked as Open in §15. |
+
+### What Remains Open
+
+The following items from §15 were not addressed in this pass, either because they are architectural (require broader design decisions), missing features (scope beyond bug fixing), or low-impact enough to defer:
+
+- **Air control reduction** — requires new config field and design decision on default multiplier
+- **Variable jump height** — requires input-phase tracking (pressed vs. held)
+- **`BaseVelocity.y` one frame stale** — requires refactoring `TrackPlatformMovement` out of `GetVelocityContribution`
+- **Ground debug logging spam** — requires restructuring the per-raycast log into a post-loop summary
+- **Two `mainCamera` inspector slots** — requires `CameraController.MainCamera` property and `Awake()` auto-assign in both consumers
+- **`CrouchHeight` config duplication** — requires removing `CrouchingHeight` from `PlayerMovementConfig` and reading from `PlayerCrouch`
+- **`IsTouchingWall` unused / wall-jump** — missing feature
+- **`PlayerState.Sliding` unimplemented** — missing feature
+- **Player snapping to ladder face** — missing feature
+- **`groundCheck`/`ceilingCheck` as child GameObjects** — bloat reduction; safe to do but no correctness impact now that positions are computed correctly
+- **`PlatformYawOffset` public mutable field** — API cleanup
+- **Redundant component getters** — API surface decision
+- **Wall check config/direction issues** — dependent on whether wall-jump is ever implemented
+- **Mouse lock in `PlayerInput`** — architecture cleanup
+- **`VelocityAggregator` design notes** — low-impact design observations
