@@ -33,6 +33,7 @@ namespace ZacharysNewman.PPC
 
         // Moving platform support
         private Transform currentPlatform;
+        private Rigidbody currentPlatformRb;
         private Vector3 previousPlatformPosition;
         private Quaternion previousPlatformRotation;
         private Vector3 platformVelocity;
@@ -115,7 +116,7 @@ namespace ZacharysNewman.PPC
             Vector3 currentPosition = currentPlatform.position;
             Quaternion currentRotation = currentPlatform.rotation;
 
-            Rigidbody platformRb = currentPlatform.GetComponent<Rigidbody>();
+            Rigidbody platformRb = currentPlatformRb;
             if (platformRb != null && !platformRb.isKinematic)
             {
                 // Non-kinematic: read velocity directly from the physics body
@@ -161,6 +162,7 @@ namespace ZacharysNewman.PPC
                 if (currentPlatform != groundObject)
                 {
                     currentPlatform = groundObject;
+                    currentPlatformRb = groundObject.GetComponent<Rigidbody>();
                     previousPlatformPosition = currentPlatform.position;
                     previousPlatformRotation = currentPlatform.rotation;
                     platformVelocity = Vector3.zero;
@@ -173,6 +175,7 @@ namespace ZacharysNewman.PPC
             else
             {
                 currentPlatform = null;
+                currentPlatformRb = null;
                 BaseVelocity = Vector3.zero;
                 platformVelocity = Vector3.zero;
                 platformAngularVelocity = Vector3.zero;
@@ -270,6 +273,20 @@ namespace ZacharysNewman.PPC
             lastHorizontalContribution = Vector3.zero;
         }
 
+        /// <summary>
+        /// Seeds the horizontal absorption baseline from the current Rigidbody velocity so that
+        /// the external-force absorber sees zero delta on the next step. Call this when resuming
+        /// normal movement after an exclusive layer (e.g. climbing) exits, to prevent the residual
+        /// velocity difference from being treated as an impulse.
+        /// </summary>
+        public void SeedHorizontalBaseline()
+        {
+            Vector3 horizontal = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
+            currentHorizontalVelocity = Vector3.zero;
+            externalHorizontalVelocity = Vector3.zero;
+            lastHorizontalContribution = horizontal;
+        }
+
         private Vector3 AdjustForTerrain(Vector3 moveDirection)
         {
             if (moveDirection.magnitude < 0.01f) return moveDirection;
@@ -319,7 +336,7 @@ namespace ZacharysNewman.PPC
                 debugStepHitPoint = stepHit.point;
                 debugStepDetected = true;
 
-                float playerBottomY = transform.position.y - 1f;
+                float playerBottomY = transform.position.y + capsule.center.y - capsule.height / 2f;
                 float stepHeight = stepHit.point.y - playerBottomY;
 
                 if (stepHeight > 0f && stepHeight <= config.MaxStepHeight)
@@ -341,7 +358,7 @@ namespace ZacharysNewman.PPC
 
         public float WalkSpeed => config.WalkSpeed;
 
-        public Vector3 DebugMovementForce;
+        [HideInInspector] public Vector3 DebugMovementForce;
 
         public void VisualizePlatform()
         {

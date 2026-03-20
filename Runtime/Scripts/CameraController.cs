@@ -46,7 +46,10 @@ namespace ZacharysNewman.PPC
             if (mainCamera != null)
             {
                 cameraYaw = mainCamera.transform.eulerAngles.y;
-                cameraPitch = mainCamera.transform.eulerAngles.x;
+                float rawPitch = mainCamera.transform.eulerAngles.x;
+                // Unity returns eulerAngles.x in 0–360; downward pitches come back as 270–360.
+                // Normalize to -180..180 so the clamp in HandleLook works correctly.
+                cameraPitch = rawPitch > 180f ? rawPitch - 360f : rawPitch;
             }
             Cursor.lockState = CursorLockMode.Locked;
             Cursor.visible = false;
@@ -57,12 +60,6 @@ namespace ZacharysNewman.PPC
             if (playerInput != null)
             {
                 HandleLook(playerInput.LookInput);
-            }
-
-            // Apply rotation
-            if (mainCamera != null)
-            {
-                mainCamera.transform.localRotation = Quaternion.Euler(cameraPitch, cameraYaw + PlatformYawOffset, 0f);
             }
         }
 
@@ -120,6 +117,19 @@ namespace ZacharysNewman.PPC
         public void AdjustYaw(float delta)
         {
             cameraYaw += delta;
+        }
+
+        /// <summary>
+        /// The player's facing direction in world space (horizontal only, derived from camera yaw).
+        /// Use this instead of transform.forward when the Rigidbody freezes Y-rotation.
+        /// </summary>
+        public Vector3 FacingDirection
+        {
+            get
+            {
+                float radYaw = (cameraYaw + PlatformYawOffset) * Mathf.Deg2Rad;
+                return new Vector3(Mathf.Sin(radYaw), 0f, Mathf.Cos(radYaw));
+            }
         }
     }
 }

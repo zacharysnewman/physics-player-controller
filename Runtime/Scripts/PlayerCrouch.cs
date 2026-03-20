@@ -21,6 +21,7 @@ namespace ZacharysNewman.PPC
         // Crouch state
         private bool isCrouching;
         private bool wasCrouchPressed;
+        private bool wasGrounded;
         private float originalHeight;
         private Vector3 originalCenter;
         private float currentHeight;
@@ -52,6 +53,24 @@ namespace ZacharysNewman.PPC
 
         private void Update()
         {
+            bool isGrounded = groundChecker != null && groundChecker.IsGrounded;
+
+            // When landing while crouching: the capsule was shifted upward (mid-air "lift legs" mode).
+            // Switch to the grounded crouch position (shifted downward) so the collider sits correctly.
+            // This preserves the intentional mid-air shift — it only corrects it on landing.
+            if (isCrouching && !wasGrounded && isGrounded)
+            {
+                currentHeight = config.CrouchHeight;
+                currentCenter = originalCenter + Vector3.down * (originalHeight - config.CrouchHeight) / 2f;
+                if (cameraController != null)
+                {
+                    float heightAdjustment = (currentCenter.y - originalCenter.y) + (currentHeight - originalHeight) / 2f;
+                    cameraController.AdjustHeight(heightAdjustment);
+                }
+            }
+
+            wasGrounded = isGrounded;
+
             // Smoothly interpolate capsule dimensions
             capsule.height = Mathf.Lerp(capsule.height, currentHeight, Time.deltaTime * 10f);
             capsule.center = Vector3.Lerp(capsule.center, currentCenter, Time.deltaTime * 10f);

@@ -133,10 +133,19 @@ namespace ZacharysNewman.PPC
 
             isClimbing = false;
 
-            // Zero accumulated Y so stale climb speed doesn't launch the player
+            // Zero accumulated Y so stale climb speed doesn't launch the player, then sync the
+            // absorption baseline so the frozen lastTargetY isn't misread as an external impulse.
             if (verticalLayer != null)
             {
                 verticalLayer.AddVerticalImpulse(-verticalLayer.AccumulatedY);
+                verticalLayer.ResetAbsorptionBaseline();
+            }
+
+            // Seed horizontal baseline from current rb velocity so the delta between the frozen
+            // lastHorizontalContribution and the actual velocity isn't absorbed as a lateral impulse.
+            if (playerMovement != null)
+            {
+                playerMovement.SeedHorizontalBaseline();
             }
         }
 
@@ -159,10 +168,6 @@ namespace ZacharysNewman.PPC
             cameraRight.y = 0f;
             cameraRight.Normalize();
 
-            Vector3 playerToLadder = debugLadderBounds.center - transform.position;
-            playerToLadder.y = 0f;
-            playerToLadder.Normalize();
-
             float verticalInput = moveInput.y;
             float verticalDirection = 0f;
 
@@ -170,8 +175,8 @@ namespace ZacharysNewman.PPC
             {
                 if (debugLogging) Debug.Log($"Camera forward y: {cameraForward.y}, verticalInput: {verticalInput}");
 
-                bool isLookingUp = cameraForward.y > 0.0f;
-                bool isLookingDown = cameraForward.y < 0.0f;
+                bool isLookingUp = cameraForward.y > 0.3f;
+                bool isLookingDown = cameraForward.y < -0.3f;
 
                 if (isLookingDown)
                 {

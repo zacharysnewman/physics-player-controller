@@ -43,13 +43,13 @@ namespace ZacharysNewman.PPC
             {
                 groundCheck = new GameObject("GroundCheck").transform;
                 groundCheck.parent = transform;
-                groundCheck.localPosition = capsule.center;
+                groundCheck.localPosition = capsule.center - Vector3.up * (capsule.height / 2f - capsule.radius);
             }
             if (ceilingCheck == null)
             {
                 ceilingCheck = new GameObject("CeilingCheck").transform;
                 ceilingCheck.parent = transform;
-                ceilingCheck.localPosition = capsule.center;
+                ceilingCheck.localPosition = capsule.center + Vector3.up * (capsule.height / 2f - capsule.radius);
             }
 
             // Ensure config is set
@@ -61,14 +61,15 @@ namespace ZacharysNewman.PPC
 
         private void Update()
         {
-            // Update check positions based on current capsule
+            // Update check positions to bottom/top of the capsule sphere so the ray distance
+            // only needs to span the gap to the ground, not the full half-height.
             if (groundCheck != null)
             {
-                groundCheck.localPosition = capsule.center;
+                groundCheck.localPosition = capsule.center - Vector3.up * (capsule.height / 2f - capsule.radius);
             }
             if (ceilingCheck != null)
             {
-                ceilingCheck.localPosition = capsule.center;
+                ceilingCheck.localPosition = capsule.center + Vector3.up * (capsule.height / 2f - capsule.radius);
             }
 
             CheckGround();

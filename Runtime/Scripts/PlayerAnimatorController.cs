@@ -17,7 +17,7 @@ namespace ZacharysNewman.PPC
         [SerializeField] private float directionSmoothingSpeed = 5f;
 
         [Header("Debug")]
-        [SerializeField] private bool showParameterDebug = true;
+        [SerializeField] private bool showParameterDebug = false;
 
         private bool lastIsGrounded;
         private float debounceTimer;
@@ -73,7 +73,7 @@ namespace ZacharysNewman.PPC
             Vector3 baseVelocity = playerMovement != null ? playerMovement.BaseVelocity : Vector3.zero;
             Vector3 relativeVelocity = playerRigidbody.linearVelocity - baseVelocity;
             Vector3 horizontalRelative = new Vector3(relativeVelocity.x, 0f, relativeVelocity.z);
-            animator.SetFloat("Speed", horizontalRelative.magnitude * playerInput.MoveInput.magnitude);
+            animator.SetFloat("Speed", horizontalRelative.magnitude);
 
             // Smooth movement direction from input (camera-relative)
             currentDirectionX = Mathf.Lerp(currentDirectionX, playerInput.MoveInput.x, Time.deltaTime * directionSmoothingSpeed);
@@ -81,8 +81,10 @@ namespace ZacharysNewman.PPC
             animator.SetFloat("DirectionX", currentDirectionX);
             animator.SetFloat("DirectionY", currentDirectionY);
 
-            // Debounced IsGrounded
-            bool currentIsGrounded = playerController.CurrentState != PlayerController.PlayerState.Jumping && playerController.CurrentState != PlayerController.PlayerState.Falling;
+            // Debounced IsGrounded — read directly from GroundChecker so Crouching and Climbing
+            // states don't incorrectly count as grounded.
+            GroundChecker groundChecker = playerController.GetGroundChecker();
+            bool currentIsGrounded = groundChecker != null && groundChecker.IsGrounded;
             if (currentIsGrounded != lastIsGrounded)
             {
                 if (currentIsGrounded)

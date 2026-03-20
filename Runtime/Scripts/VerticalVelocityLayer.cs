@@ -109,6 +109,18 @@ namespace ZacharysNewman.PPC
             accumulatedY += dv;
         }
 
+        /// <summary>
+        /// Syncs the absorption baseline to the current accumulated target so the external-force
+        /// absorber sees zero delta on the next step. Call after zeroing accumulatedY (e.g. on
+        /// ladder dismount) so the difference between rb.linearVelocity.y and the new target
+        /// isn't misread as an external impulse and absorbed into accumulatedY.
+        /// </summary>
+        public void ResetAbsorptionBaseline()
+        {
+            lastTargetY = accumulatedY;
+            skipExternalAbsorption = true;
+        }
+
         public void SetPlatformY(float y)
         {
             lastPlatformY = platformY;

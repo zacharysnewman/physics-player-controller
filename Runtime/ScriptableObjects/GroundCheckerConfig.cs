@@ -6,12 +6,12 @@ namespace ZacharysNewman.PPC
     public class GroundCheckerConfig : ScriptableObject
     {
         [Header("Ground Check Settings")]
-        [SerializeField] private float groundCheckDistance = 1.15f; // Increased from 0.15f to account for ray origin at capsule center
+        [SerializeField] private float groundCheckDistance = 0.15f; // Rays originate at the bottom of the capsule sphere; only needs to span the ground gap
         [SerializeField] private LayerMask groundLayerMask = -1;
         [SerializeField] [Range(0.1f, 2.0f)] private float groundCheckRadiusMultiplier = 0.9f;
 
         [Header("Ceiling Check Settings")]
-        [SerializeField] private float ceilingCheckDistance = 1.1f; // Increased from 0.1f to account for ray origin at capsule center
+        [SerializeField] private float ceilingCheckDistance = 0.1f; // Rays originate at the top of the capsule sphere; only needs to span the ceiling gap
         [SerializeField] private LayerMask ceilingLayerMask = -1;
         [SerializeField] private float maxSlopeAngle = 45f;
 

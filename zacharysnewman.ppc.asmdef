@@ -1,6 +1,6 @@
 {
     "name": "zacharysnewman.ppc",
-    "rootNamespace": "",
+    "rootNamespace": "ZacharysNewman.PPC",
     "references": ["Unity.InputSystem"],
     "includePlatforms": [],
     "excludePlatforms": [],
