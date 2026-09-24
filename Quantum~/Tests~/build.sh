@@ -52,7 +52,21 @@ SIM_DIR="$BUILD_DIR/bin/$CONFIG"
 dotnet build "$HERE/Simulation/PPC.Simulation.csproj" -nologo -v q -c "$CONFIG" "${MSBUILD_PROPS[@]}" -o "$SIM_DIR"
 echo "OK: $SIM_DIR/Quantum.Simulation.dll"
 
-# 4. Headless tests (real Quantum session loop). Skip with SKIP_TESTS=1.
+# 4. The Playground sample's simulation code must compile against the package, as in a user's project
+#    (its own input.qtn replaces the harness fixtures).
+SAMPLE_SIM="$PACKAGE_ROOT/Samples~/Playground/Simulation"
+if [ -d "$SAMPLE_SIM" ]; then
+  echo "Compiling Playground sample simulation..."
+  mapfile -t SAMPLE_QTN < <(find "$PACKAGE_ROOT/Simulation" "$SAMPLE_SIM" -name '*.qtn' | sort)
+  dotnet "$BUILD_DIR/codegen/CodeGen.dll" "$BUILD_DIR/SampleGenerated" "${SAMPLE_QTN[@]}" >/dev/null
+  dotnet build "$HERE/Simulation/PPC.Simulation.csproj" -nologo -v q -c "$CONFIG" \
+    -p:QuantumSdkDir="$SDK_DIR" -p:QuantumLibDir="$LIB_DIR" -p:GeneratedDir="$BUILD_DIR/SampleGenerated" \
+    -p:GameSourceDir="$SAMPLE_SIM" -p:BaseIntermediateOutputPath="$BUILD_DIR/sample-obj/" \
+    -o "$BUILD_DIR/sample-bin/$CONFIG" >/dev/null || fail "Playground sample simulation doesn't compile"
+  echo "OK: Playground sample simulation compiles"
+fi
+
+# 5. Headless tests (real Quantum session loop). Skip with SKIP_TESTS=1.
 if [ "${SKIP_TESTS:-0}" != "1" ]; then
   echo "Running headless tests ($CONFIG)..."
   dotnet test "$HERE/Tests/PPC.Tests.csproj" -nologo -c "$CONFIG" "${MSBUILD_PROPS[@]}" -p:SimulationDir="$SIM_DIR" \

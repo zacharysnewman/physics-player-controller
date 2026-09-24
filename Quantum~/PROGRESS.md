@@ -9,16 +9,73 @@ gate** (`Tests~/build.sh`: CodeGen, compile, tests; runs in the cloud) and the *
 | Phase | Headless gate | Unity checkpoint | Notes |
 |---|---|---|---|
 | 0 — Spikes & validation | ✅ 10/10 tests (Debug + Release) | ⏳ git install + CodeGen in `Packages/` | Package route chosen |
-| 1 — Skeleton | — | — | Next |
-| 2 — Probes & horizontal movement | — | — | |
-| 3 — Vertical layer, jump, ceilings | — | — | |
-| 4 — Crouch | — | — | |
-| 5 — Moving platforms & external forces | — | — | |
-| 6 — Ladder climbing | — | — | |
-| 7 — View layer | — | — | |
-| 8 — Hardening & release | — | — | |
+| 1 — Skeleton | ✅ | ⏳ | Single `PPCConfig`; code spawning |
+| 2 — Probes & horizontal movement | ✅ | ⏳ | Probe-length and step-height bugs fixed |
+| 3 — Vertical layer, jump, ceilings | ✅ | ⏳ | Double jump fixed; ground following + snap |
+| 4 — Crouch | ✅ | ⏳ | Landing-centre bug fixed |
+| 5 — Moving platforms & external forces | ✅ | ⏳ | Transform-delta for kinematic platforms |
+| 6 — Ladder climbing | ✅ | ⏳ | Snap, jump-off, look-down threshold fixed |
+| 7 — View layer | ✅ sample sim compiles | ⏳ view scripts need Unity | Not compilable here |
+| 8 — Hardening & release | ✅ 72 tests; Debug == Release | ⏳ then tag `quantum-v0.1.0` | 3.3 ms/tick for 16 chars |
 
 Harness SDK: Quantum **3.0.0** Stable 1548 (`quantum-sdk-libs`). Package target: **3.0.13**.
+
+## Phase 8 — Hardening ✅
+
+- Four-player full-feature scenario is deterministic (600 ticks), and identical on the Debug and
+  Release libraries (`Tools/cross-config-check.sh`).
+- 16 characters: 3.3 ms/tick Release, 5.4 ms Debug (whole session).
+- Simulation code audited for non-deterministic constructs: none.
+
+## Unity checkpoint — what to verify
+
+The headless gate covers the simulation. In Unity (Quantum 3.0.x), please check:
+
+1. Install via git URL (`?path=/Quantum~#<branch>`), run Qtn CodeGen: no errors; `PPCCharacter` etc. generated.
+2. The view scripts (`PPCCameraView`, `PPCAnimatorView`, `PPCDebugView`) and the Playground's
+   `PlaygroundInputPoller` compile. They couldn't be compiled here.
+3. Playground per `Samples~/Playground/README.md`: walk/run/jump/crouch/climb feel, camera, crouch
+   eye height, animator parameters, moving platform.
+
+## Phase 7 — View layer ✅ (Unity compile pending)
+
+- `PPCCameraView`, `PPCAnimatorView`, `PPCDebugView`, `PPCSystemGroup`; Playground sample.
+- build.sh compiles the sample's simulation code against the package. View code checked against SDK
+  source only.
+
+## Phase 6 — Ladder climbing ✅
+
+- `PPCClimbSystem` (exclusive layer); `PPCLadder` component. Tests: `Phase6ClimbTests` (8).
+- Fixed from EVALUATION: face snapping, jump-off launch, look-down hair trigger.
+
+## Phase 5 — Moving platforms & external forces ✅
+
+- `PPCPlatformSystem`, `PPCForces`. Tests: `Phase5PlatformTests` (8). Harness: `HarnessMoverSystem`,
+  scheduled explosions.
+- Finding: Quantum kinematic bodies aren't moved by their velocity, so kinematic platforms use the transform change.
+
+## Phase 4 — Crouch ✅
+
+- `PPCCrouchSystem`. Tests: `Phase4CrouchTests` (9). Fixed: mid-air crouch capsule centre after landing.
+
+## Phase 3 — Vertical layer, jump, ceilings ✅
+
+- `PPCJumpSystem`, `PPCVerticalLayerSystem`; probe now reports `Ground.Gap`.
+- Tests: `Phase3VerticalTests` (12). Harness: events exposed (`s.Events`), relative input ticks (bug fix).
+- Fixed: double jump via coyote time; hovering above floors; false launches on slopes (ground following).
+
+## Phase 2 — Probes & horizontal movement ✅
+
+- `PPCProbe`, `PPCProbeSystem`, `PPCMovementLayerSystem`, full `PPCStateSystem`.
+- Tests: `Phase2MovementTests` (17). Harness: `HarnessKickSystem` for scheduled external impulses.
+- Fixed from EVALUATION/BUGS: probe lengths follow the crouched height; step height uses the real capsule.
+
+## Phase 1 — Skeleton ✅
+
+- DSL, `PPCConfig`, `PPCInputBridge`, `PPCSetupSystem`, `PPCSpawn`, `PPCInputSystem`, `PPCAggregateSystem`.
+- Tests: `Phase1SkeletonTests` (4) plus updated `PackageTests`.
+- Decisions: direct velocity drive; one config asset; per-project prototype scripts with code spawning.
+  See PLAN.md.
 
 ## Phase 0 — Spikes & validation
 

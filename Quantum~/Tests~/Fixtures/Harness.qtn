@@ -1,9 +1,13 @@
 // Harness-only DSL. Plays the role of "the game" that imports the package:
 // Quantum allows a single global `input`, so the package never defines one; games (and this
 // harness) do.
+// Game-level setting (the package doesn't set it): room for the 16-character cost test.
+#pragma max_players 16
+
 input {
   FPVector2 Move;
   FP LookYaw;
+  FP LookPitch;
   button Jump;
   button Run;
   button Crouch;

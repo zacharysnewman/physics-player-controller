@@ -197,106 +197,179 @@ Headless setup findings (details in `Tests~/README.md`):
 Checkpoint: headless gate green ✅ (10/10 tests, Debug and Release). Unity: package imports into a
 fresh Quantum 3.0.13 project via git URL, CodeGen picks up `PPC.qtn`, and a `PPCCharacter` entity ticks.
 
-### Phase 1 — Skeleton *(entity spawns and stands still)*
+### Phase 1 — Skeleton ✅ *(entity spawns and stands still)*
 
-- [ ] DSL: `PPCCharacter` (config refs, state), `PPCInput` struct, `PPCVelocityAccumulator`, `PPCGroundState`
-- [ ] Config assets: `PPCMovementConfig`, `PPCJumpConfig`, `PPCCrouchConfig`, `PPCClimbConfig`,
-      `PPCProbeConfig` (was `GroundCheckerConfig`), all `FP`, same defaults as the Unity version
-- [ ] Spawning: entity prototype with `Transform3D` + `PhysicsCollider3D` (capsule) + `PhysicsBody3D` + `PPCCharacter`;
-      `ISignalOnPlayerAdded` spawn example in the sample
-- [ ] Sample `input.qtn` + `PPCInputPoller` (Unity Input System → `Input`), including camera yaw
-- [ ] `PPCAggregateSystem` driving a constant zero target velocity; body with gravity disabled
-- [ ] **Decide** prototype MonoBehaviours (Phase 0 finding): ship them in `View/Generated` with fixed GUIDs
-      plus `[CodeGen(NoUnityPrototypeWrapper)]` on package components (recommended; what the KCC does),
-      with a harness check that the shipped files match what CodeGen would emit. Otherwise, let each
-      project generate them and keep package prefabs out of the package.
-- [ ] Default config assets live in `Samples~/Playground`, because of `AssetSearchPaths`
-- [ ] **Decide** the drive method: impulse `(target − v)·mass` vs. direct `body->Velocity = target`. Test both
-      against other dynamic bodies (does the character still push/get pushed?)
+- [x] DSL (`PPC.qtn`): one `PPCCharacter` component holding the config ref, `PPCInput`, previous input,
+      state, and a section per layer (`Ground`, `Horizontal`, `Vertical`, `Jump`, `Crouch`, `Climb`,
+      `Platform`). All systems share one filter (`PPCFilter`). Runtime sections are
+      `[ExcludeFromPrototype]`, so the inspector only shows `Config`. Plus `PPCPlayerLink`, `PPCLadder`
+      and events (`PPCJumped`, `PPCLanded`, `PPCCrouchChanged`, `PPCClimbStarted`, `PPCClimbEnded`).
+- [x] Config: **one** `PPCConfig` asset with sections (`Body`, `Movement`, `Probes`, `Jump`, `Crouch`,
+      `Climb`, `Platforms`) mirroring the Unity ScriptableObjects and their defaults. One asset ref per
+      character instead of five.
+- [x] Input: `PPCInputBridge` partial hook, implemented by the game in the same assembly (the harness
+      fixture does this). Unlinked characters (bots) take `PPCCharacter.Input` as written.
+- [x] Spawning: `PPCSetupSystem` (`ISignalOnComponentAdded<PPCCharacter>`) builds the dynamic body
+      (rotation frozen, gravity 0, no sleeping) and capsule from the config, so prototypes only need
+      `PPCCharacter`. `PPCSpawn.Character(...)` spawns from code with an optional player and view.
+- [x] `PPCAggregateSystem` sums the layers (or the exclusive climb layer) and drives the body.
+- [x] **Decided** the drive method: direct `body->Velocity = target` (equivalent to Unity's
+      `AddForce(Δv/dt, Acceleration)`). Other bodies still push the character (tested).
+- [x] **Decided** prototype MonoBehaviours: each project generates its own. Shipping them means also
+      shipping the generated adapter class, because `NoUnityPrototypeWrapper` suppresses that too
+      (found by running the generator), and keeping extracted generated code in sync. Nothing in the
+      package references them: the sample spawns from code, and entity view prefabs don't need them.
+- [ ] Default config asset in `Samples~/Playground` (because of `AssetSearchPaths`), in Phase 7
+- [ ] Sample `input.qtn` + Unity input poller, in Phase 7 (view code)
 
-Checkpoint: character spawns, stands on the floor, doesn't tip, doesn't drift; a thrown box can nudge it.
+Checkpoint: headless ✅ (`Phase1SkeletonTests`): configured from config, stands still on the floor
+without tipping or drifting, input arrives through the bridge, a heavy box pushes it.
 
-### Phase 2 — Probes & horizontal movement
+### Phase 2 — Probes & horizontal movement ✅
 
-- [ ] `PPCProbeSystem`: ground (multi-ray or shape cast), ground normal, slope angle, ceiling, wall;
-      layer masks from config. Fix the ray-origin bugs.
-- [ ] `PPCMovementLayerSystem`: camera-relative direction from input yaw; walk/run; acceleration,
-      deceleration, reverse deceleration, `maxAcceleration` clamp
-- [ ] Slope alignment (project onto ground plane), max slope angle
-- [ ] Step handling using real capsule dimensions (fix the half-height bug)
-- [ ] Air control factor (new config value; defaults to current behaviour)
-- [ ] External horizontal absorption: air drag + ground friction on the delta between last target and actual velocity
+- [x] `PPCProbeSystem`: ground and ceiling use the Unity layout (centre ray plus a ring of 16), walls use
+      4 axis rays; returns normal, slope angle and ground entity; `MaxSlopeAngle`; layer masks from the
+      config; the character's own collider and triggers are ignored (`PPCProbe.Raycast`).
+      **Fixed:** probe lengths follow the *current* capsule half-height, so they don't grow when crouched.
+- [x] `PPCMovementLayerSystem`: camera-relative direction from `Input.LookYaw`; walk/run; acceleration,
+      deceleration, faster reversal (dot < −0.1); `MaxVelocityChange` clamp; accelerates in the
+      platform's frame (ready for Phase 5)
+- [x] ~~Slope alignment~~ was ported here, then replaced in Phase 3 by ground following in the vertical
+      layer (see Phase 3).
+- [x] Steps: **fixed** to use the real capsule height (Unity hard-coded 1 m), plus a 1 cm minimum so
+      flat ground never causes tiny lifts, and a walkable-slope check on the step top
+- [x] Air control: `Movement.AirControl` (default 1 = Unity behaviour)
+- [x] External horizontal absorption: deviation from last tick's contribution beyond
+      `ExternalAbsorbThreshold`; linear friction on the ground, exponential drag in the air
+- [x] `PPCStateSystem`: the Unity state machine (Climbing > Crouching > Jumping/Falling > Running/Walking/Idle)
 
-Checkpoint: walk/run on flat, slopes, stairs; blocked by walls; slides off too-steep slopes; a side impulse
-decays per config.
+Checkpoint: headless ✅ (`Phase2MovementTests`, 17): probes (grounded, airborne, too steep, ceiling,
+wall), walk/run speeds and acceleration, camera yaw, deceleration, faster reversal, walls block, no
+diagonal speed-up, low step climbed, tall step blocks, air control, ground/air kick absorption and decay.
 
-### Phase 3 — Vertical layer, jump, ceilings
+### Phase 3 — Vertical layer, jump, ceilings ✅
 
-- [ ] `PPCVerticalLayerSystem`: accumulated Y, gravity scale, grounded clamp to platform Y
-- [ ] External vertical absorption (launch pad while grounded → launch; airborne deltas absorbed)
-- [ ] Jump: buffer + coyote measured in **ticks** (or `FP` seconds × `f.DeltaTime`), `max(accumulated, jump + platformY)`
-- [ ] Fix double-jump via coyote after a real jump
-- [ ] Ceiling hit cancels upward velocity
-- [ ] Re-evaluate the `skipExternalAbsorption` and grounded-suppression hacks; delete if unnecessary
-- [ ] Events: `PPCJumped`, `PPCLanded`
+- [x] `PPCVerticalLayerSystem`: accumulated Y, gravity × `Body.GravityScale`, platform-relative grounding,
+      walk-off dismount, ceiling cancel, launch detection while grounded, airborne absorption of
+      external vertical velocity
+- [x] Jump (`PPCJumpSystem`): buffer + coyote on simulation time, `max(accumulated, jump + platformY)`
+      so a launch isn't clamped. Events `PPCJumped` and `PPCLanded` (with impact speed).
+- [x] **Fixed** the double jump from coyote time after a real jump
+- [x] Ceiling hit cancels upward velocity
+- [x] Unity workarounds: `skipExternalAbsorption` is **removed** (a jump changes `AccumulatedY`, not
+      `LastTargetY`, so absorption is measured against what the body was driven to). Ignoring
+      "grounded" during a jump is **kept, for a different reason**: the ground probe reaches 0.15 m below
+      the feet and still sees the floor on the first ticks after takeoff.
+- [x] **Changed from Unity: ground following.** While grounded, the vertical layer picks the vertical
+      speed that keeps the horizontal motion along the ground surface, then closes any gap to the
+      ground within a tick (snap). Unity's approach (vertical 0 plus a half-strength slope projection
+      of the move direction) hovered up to 0.15 m above floors, and on slopes the solver's push-out
+      tripped launch detection (reproduced here: a 20° ramp launched the character). The now-unused
+      `SlopeAlignmentStrength` and `SlopeDetectionRayDistance` settings were removed.
 
-Checkpoint: jump height matches Unity version (same config); buffered and coyote jumps work; no double jump;
-launch pad launches; head-bonk stops the jump.
+Harness fix found here: scripted input received absolute frame numbers (Quantum doesn't start at 0),
+so "tick N" inputs never fired. Scripts now get ticks relative to the first simulated tick.
 
-### Phase 4 — Crouch
+Checkpoint: headless ✅ (`Phase3VerticalTests`, 12): falls and lands (event), jump apex 5 m, no bunny
+hop while held, buffered press, too-early press forgotten, coyote jump, coyote expiry, no double jump,
+ceiling stops the jump, launch pad, jump during a launch keeps the larger velocity, ramp up and down
+stays grounded with the along-slope speed.
 
-- [ ] `PPCCrouchSystem`: toggle/hold from input; swap capsule shape (`collider->Shape`) then
-      `ResetCenterOfMass` → `ResetInertia`
-- [ ] Keep feet planted when shrinking on ground; shrink toward the head in mid-air (fix landing-centre bug)
-- [ ] Stand-up blocked by ceiling (overlap check)
-- [ ] Speed multiplier into the movement layer; mid-air crouch boost
+### Phase 4 — Crouch ✅
 
-Checkpoint: crouch under a low bar, can't stand up beneath it, crouch-jump reaches a higher ledge,
-capsule is correct after landing.
+- [x] `PPCCrouchSystem`: hold-to-crouch like Unity (press crouches, release stands when there's room);
+      capsule shape swap, then `ResetCenterOfMass` → `ResetInertia`
+- [x] Feet stay planted when crouching on the ground; in mid-air the capsule shrinks towards the head.
+      **Fixed** the landing bug: the capsule is always centred on the entity (the entity moves by the
+      height difference), and standing up grows from the feet when grounded, or down first then up in
+      the air.
+- [x] Stand-up check: overlap test of a slightly slimmer standing capsule (more robust than Unity's
+      ceiling rays)
+- [x] Speed multiplier `Crouch.Speed / WalkSpeed`; `Crouch.MidAirBoost`; `PPCCrouchChanged` event
+- Note: the Unity version lerped the capsule size over ~0.1 s. Here it changes in one tick (simulation
+  state should be discrete); the view can smooth the camera.
 
-### Phase 5 — Moving platforms & external forces
+Checkpoint: headless ✅ (`Phase4CrouchTests`, 9): feet planted, stands back up, slower crouch walk,
+blocked standing under a bar, stays crouched under it and stands once clear, mid-air tuck keeps the
+head, crouch jump gains ~1 m of clearance, mid-air boost, landing crouched then standing from the feet.
 
-- [ ] `PPCPlatformSystem`: detect ground entity; base velocity from dynamic body velocity (+ angular × r) or
-      from kinematic `Transform3D` delta
-- [ ] Rotational carry (yaw follows platform), capped by `maxRotationSpeed`
-- [ ] Walk-off dismount seeds vertical velocity from platform
-- [ ] Sample: elevator, rotating disc, conveyor, launch pad, explosion impulse helper
+### Phase 5 — Moving platforms & external forces ✅
 
-Checkpoint: ride all platform types without jitter or sliding; jumping off carries momentum; explosion
-pushes character and decays correctly.
+- [x] `PPCPlatformSystem`: ground entity → base velocity. Dynamic platforms use body velocity +
+      angular × r (as in Unity). Kinematic and body-less platforms use the transform change since last
+      tick, applied as an exact rigid motion. **Found:** Quantum 3 doesn't move kinematic bodies by
+      their velocity (you move them and set velocity only for collision response), so trusting kinematic
+      velocity would break common setups. Run platform movers before the controller to avoid a tick of lag.
+- [x] Rotational carry: `Platform.YawDelta` (clamped by `MaxRotationSpeed`) for the view to turn the
+      camera; the body's rotation stays frozen
+- [x] Walk-off / jump-off keep the platform's momentum (vertical via `LastPlatformY`, horizontal via
+      the platform-relative movement loop, as in Unity)
+- [x] `PPCForces.AddVelocity` (launch pads) and `PPCForces.AddExplosion` (radial, linear falloff,
+      upward bias)
+- Note (Unity parity): a character that lands on a moving platform catches up at the
+  acceleration/deceleration rate instead of snapping to its velocity.
 
-### Phase 6 — Ladder climbing
+Checkpoint: headless ✅ (`Phase5PlatformTests`, 8): kinematic, script-moved and dynamic platforms
+carry without drift, walking is platform-relative, rotating disc carries around its circle and
+reports yaw, elevator up and down stays grounded, jump-off keeps momentum, explosion pushes only
+nearby characters.
 
-- [ ] Ladder detection (trigger signals or overlap query, config layer mask)
-- [ ] Exclusive climb layer: vertical from move input, horizontal suppressed
-- [ ] Snap to ladder face; exit at top/bottom; jump-off with configurable launch impulse
-- [ ] Events: `PPCClimbStarted`, `PPCClimbEnded`
+### Phase 6 — Ladder climbing ✅
 
-Checkpoint: climb up/down, dismount at top onto a ledge, jump off sideways.
+- [x] Ladder detection by component: a trigger collider on an entity with `PPCLadder` (overlap query each
+      tick, `Climb.LayerMask`). A ladder you let go of isn't re-grabbed until you've left it (Unity got
+      this from `OnTriggerEnter` semantics).
+- [x] Exclusive climb layer: forward/back climbs, strafing moves sideways; the other layers hold,
+      with the climb velocity as their baseline so letting go isn't treated as an external force
+- [x] **Fixed:** snap to the ladder face (`SnapStrength`, along the ladder's facing axis); jump-off
+      launch (`JumpOffVelocity`, up and away); look-down reversal needs `LookDownThreshold` (30°)
+      instead of flipping at level. The unused `playerToLadder` doesn't exist here.
+- [x] Let go on jump, on reaching the ground from above, or on leaving the volume (over the top).
+      Events `PPCClimbStarted` and `PPCClimbEnded`.
 
-### Phase 7 — View layer
+Checkpoint: headless ✅ (`Phase6ClimbTests`, 8): grab and hold height, climb speed with face snap,
+look-down reversal, a slight glance down doesn't reverse, strafe, jump-off launches away without
+re-grabbing, climbing down to the floor lets go, climbing over the top lands on the ledge.
 
-- [ ] `PPCCameraView`: first/third person, pitch limits, invert Y, sensitivity (view-only; yaw fed back into input)
-- [ ] Camera height follows crouch (fix double-count issue from `EVALUATION.md`)
-- [ ] `PPCAnimatorView`: reads `PPCState`, velocities, grounded; subscribes to events
-- [ ] `PPCDebugView`: on-screen state label + optional `Draw.*` probes (off by default — fixes the
-      "debug in production" issue)
-- [ ] Interpolation / misprediction smoothing check with Quantum's entity view settings
+### Phase 7 — View layer ✅ *(needs the Unity checkpoint: not compiled here)*
 
-Checkpoint: camera and animations are smooth locally and with simulated lag (Quantum's input delay /
-lag simulation tools).
+- [x] `PPCCameraView` (`QuantumEntityViewComponent`): first-person camera for the local player's
+      character. Yaw/pitch with sensitivity, invert and pitch limits; turns with rotating platforms
+      (`Platform.YawDelta`); eye height follows crouch with view-side smoothing (the simulation's
+      crouch is instant, like the Unity capsule lerp). Exposes `Local.Yaw/Pitch` for the input poller.
+- [x] `PPCAnimatorView`: the Unity `PlayerAnimatorController` parameter names (`Speed`, `DirectionX/Y`,
+      `IsGrounded`, `IsFalling`, `IsCrouching`, `IsRunning`, `IsSliding`, `IsClimbing`, `Jump` trigger
+      from `PPCJumped`); parameters the animator doesn't have are skipped
+- [x] `PPCDebugView`: state label and probe/velocity gizmos, optional (fixes "debug in production")
+- [x] `PPCSystemGroup`: one SystemsConfig entry for all controller systems (tested to move the
+      character exactly like the individual systems)
+- [x] Playground sample (`Samples~/Playground`): the game's `input.qtn`, input bridge, spawn system
+      (+ `RuntimeConfig` fields), Input System poller in its own asmdef (Quantum.Unity doesn't
+      reference the Input System), setup README. `PPCConfig` has a create menu.
+- Verification: the view and poller code **can't be compiled here** (no UnityEngine assemblies; a
+  NuGet repackaging of Unity's binaries exists but is unlicensed, so it isn't used). Every
+  Quantum/Unity API they call was checked against the SDK source (`QuantumEntityViewComponent`
+  lifecycle, `QuantumEvent.Subscribe/UnsubscribeListener`, `PlayerIsLocal`, `ToUnityVector3`,
+  `ToFPVector2`, menu paths). The sample's **simulation** code is compiled headlessly on every build.
 
-### Phase 8 — Hardening & release
+Checkpoint: headless ✅ (sample simulation compiles, `PPCSystemGroup` equivalence test). Unity:
+the view scripts compile; the Playground runs with camera, animator and crouch eye height.
 
-- [ ] Determinism check: run two clients (or the multi-client / replay tools) and compare checksums over a
-      scripted path through the Playground
-- [ ] Optional headless run via Quantum's exported dotnet simulation project + replay runner
-- [ ] Performance: 16+ characters, profile with the Quantum graph profiler
-- [ ] `README.md` (install, input hook, SystemsConfig setup, config reference), `CHANGELOG.md`, samples
-- [ ] Root `README`/`CHANGELOG` mention the Quantum package
-- [ ] Tag `quantum-v0.1.0`
+### Phase 8 — Hardening & release ✅ *(release tag after the Unity checkpoint)*
 
----
+- [x] Determinism: `Full_Scenario_With_Four_Players_Is_Deterministic`: 4 players with different
+      scripted inputs across a world with every feature (ramp, step, low bar, ladder + ledge, rotating
+      moving platform, explosion) for 600 ticks. Identical per-tick checksums on repeat runs.
+- [x] Cross-build determinism: `Tests~/Tools/cross-config-check.sh` runs that scenario on the Debug and
+      Release Quantum libraries. Identical checksums over 600 ticks.
+- [x] Determinism audit of `Simulation/`: no float/double, `System.Math`, randomness, clocks or
+      unordered collections
+- [x] Performance: 16 characters cost **3.3 ms/tick** (Release) / 5.4 ms (Debug) for the whole session
+      on the CI machine. `Sixteen_Characters_Cost` fails above 16.7 ms. Main cost: ~40 rays per
+      character per tick (17-ray ground and ceiling rings, as in Unity). Future optimisation: shape
+      casts instead of rings.
+- [x] `README.md`, `CHANGELOG.md`, `PROGRESS.md`, sample README
+- [ ] Unity checkpoint for all phases (see `PROGRESS.md`), then tag `quantum-v0.1.0`
 
 ## Risks & open questions
 
@@ -309,6 +382,7 @@ lag simulation tools).
 | Global `input` struct collision | `PPCInput` + mapping hook; sample ships an `input.qtn` |
 | API drift between 3.0.x patch releases | Pin to 3.0.13 in README; note the minimum version |
 | Headless harness uses SDK 3.0.0, package targets 3.0.13 | Unity checkpoint every phase; add `3.0.13/` to `quantum-sdk-libs` when available |
+| View code isn't compiled headlessly | APIs checked against SDK source; Unity checkpoint |
 | Headless gate can't cover view code, prefabs or feel | Unity checkpoint at the end of every phase |
 
 ---

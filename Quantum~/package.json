@@ -4,9 +4,22 @@
   "displayName": "Physics Player Controller (Quantum 3)",
   "description": "Deterministic port of the Physics Player Controller for Photon Quantum 3: a dynamic-body character controller driven by velocity layers. Requires the Photon Quantum 3 SDK (3.0.x) in the project.",
   "unity": "2021.3",
-  "keywords": ["quantum", "photon", "character controller", "physics", "deterministic"],
+  "keywords": [
+    "quantum",
+    "photon",
+    "character controller",
+    "physics",
+    "deterministic"
+  ],
   "author": {
     "name": "zacharysnewman",
     "url": "https://github.com/zacharysnewman"
-  }
+  },
+  "samples": [
+    {
+      "displayName": "Playground",
+      "description": "Input definition and poller, input bridge, spawn system and setup steps for a first-person test scene.",
+      "path": "Samples~/Playground"
+    }
+  ]
 }
