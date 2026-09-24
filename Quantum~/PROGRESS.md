@@ -13,12 +13,18 @@ gate** (`Tests~/build.sh`: CodeGen, compile, tests; runs in the cloud) and the *
 | 2 — Probes & horizontal movement | ✅ | ⏳ | Probe-length and step-height bugs fixed |
 | 3 — Vertical layer, jump, ceilings | ✅ | ⏳ | Double jump fixed; ground following + snap |
 | 4 — Crouch | ✅ | ⏳ | Landing-centre bug fixed |
-| 5 — Moving platforms & external forces | — | — | |
+| 5 — Moving platforms & external forces | ✅ | ⏳ | Transform-delta for kinematic platforms |
 | 6 — Ladder climbing | — | — | |
 | 7 — View layer | — | — | |
 | 8 — Hardening & release | — | — | |
 
 Harness SDK: Quantum **3.0.0** Stable 1548 (`quantum-sdk-libs`). Package target: **3.0.13**.
+
+## Phase 5 — Moving platforms & external forces ✅
+
+- `PPCPlatformSystem`, `PPCForces`. Tests: `Phase5PlatformTests` (8). Harness: `HarnessMoverSystem`,
+  scheduled explosions.
+- Finding: Quantum kinematic bodies aren't moved by their velocity, so kinematic platforms use the transform change.
 
 ## Phase 4 — Crouch ✅
 

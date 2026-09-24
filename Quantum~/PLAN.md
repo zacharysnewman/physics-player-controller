@@ -293,16 +293,26 @@ Checkpoint: headless ✅ (`Phase4CrouchTests`, 9): feet planted, stands back up,
 blocked standing under a bar, stays crouched under it and stands once clear, mid-air tuck keeps the
 head, crouch jump gains ~1 m of clearance, mid-air boost, landing crouched then standing from the feet.
 
-### Phase 5 — Moving platforms & external forces
+### Phase 5 — Moving platforms & external forces ✅
 
-- [ ] `PPCPlatformSystem`: detect ground entity; base velocity from dynamic body velocity (+ angular × r) or
-      from kinematic `Transform3D` delta
-- [ ] Rotational carry (yaw follows platform), capped by `maxRotationSpeed`
-- [ ] Walk-off dismount seeds vertical velocity from platform
-- [ ] Sample: elevator, rotating disc, conveyor, launch pad, explosion impulse helper
+- [x] `PPCPlatformSystem`: ground entity → base velocity. Dynamic platforms use body velocity +
+      angular × r (as in Unity). Kinematic and body-less platforms use the transform change since last
+      tick, applied as an exact rigid motion. **Found:** Quantum 3 doesn't move kinematic bodies by
+      their velocity (you move them and set velocity only for collision response), so trusting kinematic
+      velocity would break common setups. Run platform movers before the controller to avoid a tick of lag.
+- [x] Rotational carry: `Platform.YawDelta` (clamped by `MaxRotationSpeed`) for the view to turn the
+      camera; the body's rotation stays frozen
+- [x] Walk-off / jump-off keep the platform's momentum (vertical via `LastPlatformY`, horizontal via
+      the platform-relative movement loop, as in Unity)
+- [x] `PPCForces.AddVelocity` (launch pads) and `PPCForces.AddExplosion` (radial, linear falloff,
+      upward bias)
+- Note (Unity parity): a character that lands on a moving platform catches up at the
+  acceleration/deceleration rate instead of snapping to its velocity.
 
-Checkpoint: ride all platform types without jitter or sliding; jumping off carries momentum; explosion
-pushes character and decays correctly.
+Checkpoint: headless ✅ (`Phase5PlatformTests`, 8): kinematic, script-moved and dynamic platforms
+carry without drift, walking is platform-relative, rotating disc carries around its circle and
+reports yaw, elevator up and down stays grounded, jump-off keeps momentum, explosion pushes only
+nearby characters.
 
 ### Phase 6 — Ladder climbing
 

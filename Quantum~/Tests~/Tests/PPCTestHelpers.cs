@@ -10,9 +10,11 @@ namespace PPC.Tests {
                                           Action<PPCConfig> tweak = null, int seed = 0) {
       var (_, assets) = PPCTestWorld.DefaultAssets(tweak);
       HarnessKickSystem.Schedule.Clear();
+      HarnessKickSystem.Explosions.Clear();
+      HarnessMoverSystem.Movers.Clear();
       return new HeadlessSession(setup,
         input: input == null ? null : (tick, player) => input(tick),
-        configureSystems: c => { PPCSystems.AddTo(c); c.AddSystem<HarnessKickSystem>(); },
+        configureSystems: c => { c.AddSystem<HarnessMoverSystem>(); PPCSystems.AddTo(c); c.AddSystem<HarnessKickSystem>(); },
         seed: seed, extraAssets: assets);
     }
 

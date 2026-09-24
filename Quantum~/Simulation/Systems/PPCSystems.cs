@@ -9,6 +9,7 @@ namespace Quantum {
       config.AddSystem<PPCSetupSystem>();
       config.AddSystem<PPCInputSystem>();
       config.AddSystem<PPCProbeSystem>();
+      config.AddSystem<PPCPlatformSystem>();
       config.AddSystem<PPCCrouchSystem>();
       config.AddSystem<PPCJumpSystem>();
       config.AddSystem<PPCMovementLayerSystem>();

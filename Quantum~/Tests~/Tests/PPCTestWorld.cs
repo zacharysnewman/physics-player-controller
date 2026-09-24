@@ -40,6 +40,14 @@ namespace PPC.Tests {
       return e;
     }
 
+    /// <summary>Box with a collider but no body (moved by script, like an animated platform).</summary>
+    public static EntityRef ScriptedBox(Frame f, FPVector3 center, FPVector3 halfExtents) {
+      var e = f.Create();
+      f.Set(e, Transform3D.Create(center));
+      f.Set(e, PhysicsCollider3D.Create(f, Shape3D.CreateBox(halfExtents)));
+      return e;
+    }
+
     public static EntityRef Floor(Frame f, FP topY, FP halfSize = default) {
       if (halfSize == default) halfSize = 50;
       return Box(f, new FPVector3(0, topY - FP._0_50, 0), new FPVector3(halfSize, FP._0_50, halfSize));
