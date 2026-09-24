@@ -43,7 +43,7 @@ namespace Quantum {
 
       // Keep any larger upward velocity already absorbed (e.g. from a launch pad).
       c->Vertical.AccumulatedY = FPMath.Max(c->Vertical.AccumulatedY, velocity + c->Vertical.PlatformY);
-      c->Vertical.IsGrounded = false;
+      c->Ground.IsGrounded = false;   // off the ground for every system from this tick
 
       c->Jump.BufferTimer = 0;
       c->Jump.CoyoteTimer = 0;

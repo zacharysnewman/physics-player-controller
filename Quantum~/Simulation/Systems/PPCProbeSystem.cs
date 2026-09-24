@@ -10,6 +10,7 @@ namespace Quantum {
   /// </summary>
   public unsafe class PPCProbeSystem : PPCSystemBase {
     const int RingRays = 16;
+    static readonly FP RisingMargin = FP._0_10;
 
     // Unit ring directions, computed once. Built on first use (not in a static constructor) so the
     // fixed-point trig tables are loaded by then.
@@ -45,7 +46,15 @@ namespace Quantum {
         c->Ground.Gap = groundHitDistance - halfHeight;
         c->Ground.SlopeAngle = PPCProbe.SlopeAngle(ground.Normal);
         c->Ground.Entity = ground.Entity;
-        c->Ground.IsGrounded = c->Ground.SlopeAngle <= probes.MaxSlopeAngle;
+        var walkable = c->Ground.SlopeAngle <= probes.MaxSlopeAngle;
+        // Rising faster than the ground below (a jump or launch in progress): the probe reaches below
+        // the feet and still sees the floor for a few ticks, so keep the previous answer until the
+        // character stops rising. Walking up a slope also rises, but it was grounded already.
+        // "The ground below" is last tick's GroundVelocity, tracked even while airborne, so riding a
+        // lift isn't mistaken for a jump.
+        var groundVy = c->Platform.Entity == ground.Entity ? c->Platform.GroundVelocity.Y : FP._0;
+        var rising = c->Vertical.AccumulatedY > groundVy + RisingMargin;
+        c->Ground.IsGrounded = walkable && (!rising || c->Ground.WasGrounded);
       } else {
         c->Ground.IsGrounded = false;
         c->Ground.Normal = FPVector3.Up;

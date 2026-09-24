@@ -128,7 +128,9 @@ namespace PPC.Tests {
 
       var liftTop = (s.Frame.Get<Transform3D>(lift).Position.Y + FP._0_50).AsFloat;
       Assert.InRange(s.Feet(e) - liftTop, -0.03f, 0.05f);
-      Assert.True(ungrounded <= 1, $"lost ground {ungrounded} ticks");
+      // Spawned onto an already-moving lift: its velocity is only known after one tick of tracking, so
+      // the first ticks can read as airborne. (Walking onto a lift, the probe starts tracking it first.)
+      Assert.True(ungrounded <= 2, $"lost ground {ungrounded} ticks");
     }
 
     [Fact]

@@ -24,7 +24,9 @@ struct PPCInput {
   Boolean Crouch;
 }
 
-// Probe results (PPCProbeSystem).
+// Probe results (PPCProbeSystem). IsGrounded is the one "grounded" every system uses: it is off from
+// the tick the character jumps or is launched until it stops rising, even while the probe still
+// reaches the floor.
 struct PPCGroundInfo {
   Boolean IsGrounded;
   Boolean WasGrounded;
@@ -50,7 +52,6 @@ struct PPCVerticalLayer {
   FP PlatformY;
   FP LastPlatformY;
   FP TargetY;                  // this layer's vertical velocity this tick (read back next tick, like Contribution)
-  Boolean IsGrounded;
 }
 
 struct PPCJumpState {
@@ -73,10 +74,11 @@ struct PPCClimbState {
 }
 
 struct PPCPlatformState {
-  EntityRef Entity;
+  EntityRef Entity;            // what the ground probe sees (tracked even while airborne)
   FPVector3 PreviousPosition;
   FPQuaternion PreviousRotation;
-  FPVector3 BaseVelocity;
+  FPVector3 GroundVelocity;    // velocity of that ground under the character, grounded or not
+  FPVector3 BaseVelocity;      // GroundVelocity while grounded (the carry), else zero
   FP YawDelta;                 // platform yaw change this tick (degrees), for the camera
 }
 

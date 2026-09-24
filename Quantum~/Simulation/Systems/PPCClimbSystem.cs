@@ -57,7 +57,6 @@ namespace Quantum {
       c->Horizontal.External = FPVector3.Zero;
       c->Horizontal.Contribution = c->Climb.Velocity.Flat();
       c->Vertical.AccumulatedY = FP._0;
-      c->Vertical.IsGrounded = c->Ground.IsGrounded;
       c->Vertical.TargetY = c->Climb.Velocity.Y;
     }
 
@@ -88,7 +87,7 @@ namespace Quantum {
         var launch = config.Climb.JumpOffVelocity;
         c->Horizontal.Current = away * launch.Z;
         c->Vertical.AccumulatedY = launch.Y;
-        c->Vertical.IsGrounded = false;
+        c->Ground.IsGrounded = false;
         c->Jump.JumpedThisTick = true;
       }
       f.Events.PPCClimbEnded(filter.Entity);

@@ -14,7 +14,6 @@ namespace Quantum {
   public unsafe class PPCVerticalLayerSystem : PPCSystemBase {
     static readonly FP LaunchThreshold = FP._0_10;
     static readonly FP AbsorbThreshold = FP.FromString("0.01");
-    static readonly FP JumpInFlightMargin = FP._0_10;
 
     protected override void Update(Frame f, ref PPCFilter filter, PPCConfig config) {
       var c = filter.Character;
@@ -31,14 +30,9 @@ namespace Quantum {
       v->LastPlatformY = v->PlatformY;
       v->PlatformY = c->Platform.BaseVelocity.Y;
 
-      // Grounding. While a jump is in flight the ground probe (which reaches below the feet) can still
-      // report ground for a few ticks; ignore it until the character is no longer moving up.
-      var wasGrounded = v->IsGrounded;
-      var probeGrounded = c->Ground.IsGrounded;
-      if (!(probeGrounded && v->AccumulatedY > v->PlatformY + JumpInFlightMargin)) {
-        v->IsGrounded = probeGrounded;
-      }
-      if (wasGrounded && !v->IsGrounded && !c->Jump.JumpedThisTick) {
+      // Grounding comes from PPCProbeSystem (shared by every system; see PPCGroundInfo).
+      var wasGrounded = c->Ground.WasGrounded;
+      if (wasGrounded && !c->Ground.IsGrounded && !c->Jump.JumpedThisTick) {
         v->AccumulatedY = v->LastPlatformY;   // walk-off: keep the platform's vertical motion
       }
 
@@ -47,11 +41,13 @@ namespace Quantum {
         v->AccumulatedY = FP._0;
       }
 
-      if (v->IsGrounded) {
-        // A significant upward deviation while grounded is a launch (launch pad, explosion).
-        if (bodyY - v->TargetY > LaunchThreshold) {
+      if (c->Ground.IsGrounded) {
+        // A significant upward deviation while grounded is a launch (launch pad, explosion), unless
+        // the ground itself explains it (a lift pushing the character up at its own speed).
+        var explained = FPMath.Max(v->TargetY, c->Platform.GroundVelocity.Y);
+        if (bodyY - explained > LaunchThreshold) {
           v->AccumulatedY = bodyY + gravity * dt;
-          v->IsGrounded = false;
+          c->Ground.IsGrounded = false;
         } else {
           // Follow the ground: pick the vertical speed that keeps the (platform-relative) horizontal
           // motion along the surface, so the solver never has to push the character out of a slope.
@@ -72,7 +68,7 @@ namespace Quantum {
         v->AccumulatedY += gravity * dt;
       }
 
-      if (!wasGrounded && v->IsGrounded) {
+      if (!wasGrounded && c->Ground.IsGrounded) {
         f.Events.PPCLanded(filter.Entity, FPMath.Max(FP._0, -v->TargetY));
       }
 
