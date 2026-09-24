@@ -9,7 +9,7 @@ namespace PPC.Tests {
     public const long FrictionlessGuid = 101;
 
     /// <summary>
-    /// A config with the package defaults (no material set, so the automatic frictionless one is used),
+    /// A config with the Unity parity preset (no material set, so the automatic frictionless one is used),
     /// plus a separate frictionless material asset for tests that set one explicitly.
     /// </summary>
     public static (PPCConfig config, AssetObject[] assets) DefaultAssets(Action<PPCConfig> tweak = null) {
@@ -22,6 +22,8 @@ namespace PPC.Tests {
       HeadlessSession.Identify(material, FrictionlessGuid, "Tests/Frictionless");
 
       var config = AssetObject.Create<PPCConfig>();
+      // The behaviour tests were written against the Unity package's numbers.
+      config.ApplyUnityParity();
       tweak?.Invoke(config);
       HeadlessSession.Identify(config, ConfigGuid, "Tests/PPCConfig");
       return (config, new AssetObject[] { config, material });

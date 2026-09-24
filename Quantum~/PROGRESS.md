@@ -16,15 +16,30 @@ gate** (`Tests~/build.sh`: CodeGen, compile, tests; runs in the cloud) and the *
 | 5 — Moving platforms & external forces | ✅ | ⏳ | Transform-delta for kinematic platforms |
 | 6 — Ladder climbing | ✅ | ⏳ | Snap, jump-off, look-down threshold fixed |
 | 7 — View layer | ✅ sample sim compiles | ⏳ view scripts need Unity | Not compilable here |
-| 8 — Hardening & release | ✅ 72 tests; Debug == Release | ⏳ then tag `quantum-v0.1.0` | 3.3 ms/tick for 16 chars |
+| 8 — Hardening & release | ✅ Debug == Release | ⏳ then tag `quantum-v0.1.0` | 16 chars ≈ 3–4.5 ms/tick |
+| Post-review cleanup | ✅ 80 tests; golden trace | ⏳ | Refactor, optional config, recommended feel |
 
 Harness SDK: Quantum **3.0.0** Stable 1548 (`quantum-sdk-libs`). Package target: **3.0.13**.
+
+## Post-review cleanup ✅
+
+After the review of the merged port (behaviour locked by `GoldenTraceTests`, which compares every
+player's position and state per tick of the four-player scenario):
+- **Refactor** (golden deviation 0): dead state removed, climbing's layer hold in one place, clearer
+  names, shared helpers, the harness reuses the sample's input/bridge, cheaper probes.
+- **Config** (golden deviation ≤ 0.00012 m): optional config (`PPCConfig.Default`), automatic
+  frictionless material, probe margins, `Jump.Height`, no-effect settings removed, `Advanced` section.
+- **Feel defaults**: recommended values plus `ApplyUnityParity()`; crouch ignores run. The behaviour
+  tests run under the Unity parity preset; `ConfigPresetTests` cover the new defaults.
+- Performance: no measurable change (machine noise is larger than the probe savings).
+- Open for discussion: one shared "grounded" (review item 12); shape casts instead of ray rings (13).
 
 ## Phase 8 — Hardening ✅
 
 - Four-player full-feature scenario is deterministic (600 ticks), and identical on the Debug and
   Release libraries (`Tools/cross-config-check.sh`).
-- 16 characters: 3.3 ms/tick Release, 5.4 ms Debug (whole session).
+- 16 characters: 3.3–4.6 ms/tick Release depending on the shared machine's load (repeat runs of
+  the same code vary that much), 5.4 ms Debug (whole session).
 - Simulation code audited for non-deterministic constructs: none.
 
 ## Unity checkpoint — what to verify

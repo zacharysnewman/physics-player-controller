@@ -45,7 +45,7 @@ namespace Quantum {
         TryStep(f, ref filter, config, moveDirection);
       }
 
-      var speed = (input.Run ? m.RunSpeed : m.WalkSpeed) * h->SpeedMultiplier;
+      var speed = c->Crouch.IsCrouching ? config.Crouch.Speed : input.Run ? m.RunSpeed : m.WalkSpeed;
       var playerTarget = moveDirection * speed;
 
       // Accelerate in the platform's frame so standing on a moving platform needs no input.

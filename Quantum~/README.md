@@ -5,7 +5,7 @@ for **Photon Quantum 3**: a dynamic-body character controller driven by velocity
 alternative to Quantum's kinematic KCC addon. Because the character is a real physics body, it reacts
 to the world: other bodies push it, and explosions and launch pads throw it.
 
-> **Status: 0.1.0 preview.** The simulation is complete and covered by 72 headless tests. The Unity
+> **Status: 0.1.0 preview.** The simulation is complete and covered by 80 headless tests. The Unity
 > side still needs its first check in the editor. See [PROGRESS.md](PROGRESS.md) and [PLAN.md](PLAN.md).
 
 ## Features
@@ -68,6 +68,15 @@ Then run **Tools → Quantum → CodeGen → Run Qtn CodeGen**.
 
 The **Playground** sample (Package Manager → Samples) does all of this, with a step-by-step setup.
 
+## Tuning
+
+Everything lives in one `PPCConfig` asset, and it's optional (characters without one use the
+defaults). The defaults are a snappy first-person feel: walk 5 m/s, run 7 m/s, 40 m/s² acceleration,
+1.25 m jumps, 0.4 air control, 0.35 m steps. To get the Unity package's original numbers (run 10 m/s,
+10 m/s², 5 m jumps, full air control, 0.5 m steps), right-click the asset → **Apply Unity Parity**, or
+call `config.ApplyUnityParity()`. **Apply Recommended Feel** goes back. Rarely needed knobs are under
+**Advanced**.
+
 ## How it works
 
 Each tick, after Quantum's physics step:
@@ -108,5 +117,5 @@ layer; crouch is instant in the simulation (the camera smooths it).
 
 ## Development
 
-`Tests~/build.sh` generates, compiles and tests the simulation without Unity: 72 tests,
+`Tests~/build.sh` generates, compiles and tests the simulation without Unity: 80 tests,
 determinism and Debug-vs-Release checks. See [Tests~/README.md](Tests~/README.md).

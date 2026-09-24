@@ -42,7 +42,6 @@ struct PPCHorizontalLayer {
   FPVector3 Current;           // player-driven horizontal velocity
   FPVector3 External;          // absorbed external horizontal velocity (explosions, pushes)
   FPVector3 Contribution;      // this layer's velocity this tick (read back next tick to detect external forces)
-  FP SpeedMultiplier;          // crouch slows this down
 }
 
 // Vertical velocity layer (PPCVerticalLayerSystem).

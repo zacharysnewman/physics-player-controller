@@ -9,7 +9,6 @@ namespace Quantum {
   public unsafe class PPCSetupSystem : SystemSignalsOnly, ISignalOnComponentAdded<PPCCharacter> {
     public void OnAdded(Frame f, EntityRef entity, PPCCharacter* character) {
       Configure(f, entity, PPCConfig.Resolve(f, character->Config));
-      character->Horizontal.SpeedMultiplier = FP._1;
       character->Ground.Normal = FPVector3.Up;
     }
 

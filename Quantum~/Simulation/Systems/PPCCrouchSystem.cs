@@ -42,7 +42,6 @@ namespace Quantum {
       if (!grounded && config.Crouch.MidAirBoost > 0) {
         c->Vertical.AccumulatedY += config.Crouch.MidAirBoost;
       }
-      c->Horizontal.SpeedMultiplier = config.Crouch.Speed / config.Movement.WalkSpeed;
       f.Events.PPCCrouchChanged(filter.Entity, true);
     }
 
@@ -68,7 +67,6 @@ namespace Quantum {
 
       filter.Transform->Position = standAt;
       SetShape(f, ref filter, config, crouching: false);
-      c->Horizontal.SpeedMultiplier = FP._1;
       f.Events.PPCCrouchChanged(filter.Entity, false);
     }
 
