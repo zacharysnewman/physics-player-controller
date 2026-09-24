@@ -247,18 +247,33 @@ Checkpoint: headless ✅ (`Phase2MovementTests`, 17): probes (grounded, airborne
 wall), walk/run speeds and acceleration, camera yaw, deceleration, faster reversal, walls block, no
 diagonal speed-up, low step climbed, tall step blocks, air control, ground/air kick absorption and decay.
 
-### Phase 3 — Vertical layer, jump, ceilings
+### Phase 3 — Vertical layer, jump, ceilings ✅
 
-- [ ] `PPCVerticalLayerSystem`: accumulated Y, gravity scale, grounded clamp to platform Y
-- [ ] External vertical absorption (launch pad while grounded → launch; airborne deltas absorbed)
-- [ ] Jump: buffer + coyote measured in **ticks** (or `FP` seconds × `f.DeltaTime`), `max(accumulated, jump + platformY)`
-- [ ] Fix double-jump via coyote after a real jump
-- [ ] Ceiling hit cancels upward velocity
-- [ ] Re-evaluate the `skipExternalAbsorption` and grounded-suppression hacks; delete if unnecessary
-- [ ] Events: `PPCJumped`, `PPCLanded`
+- [x] `PPCVerticalLayerSystem`: accumulated Y, gravity × `Body.GravityScale`, platform-relative grounding,
+      walk-off dismount, ceiling cancel, launch detection while grounded, airborne absorption of
+      external vertical velocity
+- [x] Jump (`PPCJumpSystem`): buffer + coyote on simulation time, `max(accumulated, jump + platformY)`
+      so a launch isn't clamped. Events `PPCJumped` and `PPCLanded` (with impact speed).
+- [x] **Fixed** the double jump from coyote time after a real jump
+- [x] Ceiling hit cancels upward velocity
+- [x] Unity workarounds: `skipExternalAbsorption` is **removed** (a jump changes `AccumulatedY`, not
+      `LastTargetY`, so absorption is measured against what the body was driven to). Ignoring
+      "grounded" during a jump is **kept, for a different reason**: the ground probe reaches 0.15 m below
+      the feet and still sees the floor on the first ticks after takeoff.
+- [x] **Changed from Unity: ground following.** While grounded, the vertical layer picks the vertical
+      speed that keeps the horizontal motion along the ground surface, then closes any gap to the
+      ground within a tick (snap). Unity's approach (vertical 0 plus a half-strength slope projection
+      of the move direction) hovered up to 0.15 m above floors, and on slopes the solver's push-out
+      tripped launch detection (reproduced here: a 20° ramp launched the character). The now-unused
+      `SlopeAlignmentStrength` and `SlopeDetectionRayDistance` settings were removed.
 
-Checkpoint: jump height matches Unity version (same config); buffered and coyote jumps work; no double jump;
-launch pad launches; head-bonk stops the jump.
+Harness fix found here: scripted input received absolute frame numbers (Quantum doesn't start at 0),
+so "tick N" inputs never fired. Scripts now get ticks relative to the first simulated tick.
+
+Checkpoint: headless ✅ (`Phase3VerticalTests`, 12): falls and lands (event), jump apex 5 m, no bunny
+hop while held, buffered press, too-early press forgotten, coyote jump, coyote expiry, no double jump,
+ceiling stops the jump, launch pad, jump during a launch keeps the larger velocity, ramp up and down
+stays grounded with the along-slope speed.
 
 ### Phase 4 — Crouch
 

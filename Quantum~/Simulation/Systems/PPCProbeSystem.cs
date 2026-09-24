@@ -24,8 +24,9 @@ namespace Quantum {
 
       // Ground
       var groundDistance = halfHeight + (probes.GroundCheckDistance - standingHalf);
-      if (RingCast(f, filter.Entity, center, FPVector3.Down, groundDistance, ringRadius, probes.GroundLayerMask, out var ground)) {
+      if (RingCast(f, filter.Entity, center, FPVector3.Down, groundDistance, ringRadius, probes.GroundLayerMask, out var ground, out var groundHitDistance)) {
         c->Ground.Normal = ground.Normal;
+        c->Ground.Gap = groundHitDistance - halfHeight;
         c->Ground.SlopeAngle = PPCProbe.SlopeAngle(ground.Normal);
         c->Ground.Entity = ground.Entity;
         c->Ground.IsGrounded = c->Ground.SlopeAngle <= probes.MaxSlopeAngle;
@@ -33,13 +34,14 @@ namespace Quantum {
         c->Ground.IsGrounded = false;
         c->Ground.Normal = FPVector3.Up;
         c->Ground.SlopeAngle = FP._0;
+        c->Ground.Gap = FP._0;
         c->Ground.Entity = EntityRef.None;
       }
 
       // Ceiling
       var ceilingDistance = halfHeight + (probes.CeilingCheckDistance - standingHalf);
       c->Ground.IsCeilingBlocked = RingCast(f, filter.Entity, center, FPVector3.Up, ceilingDistance, ringRadius,
-                                            probes.CeilingLayerMask, out _);
+                                            probes.CeilingLayerMask, out _, out _);
 
       // Walls (fixed world axes, like the Unity version)
       c->Ground.IsTouchingWall = false;
@@ -57,9 +59,10 @@ namespace Quantum {
     }
 
     /// <summary>Centre ray plus a ring of rays; returns the closest hit.</summary>
-    static bool RingCast(Frame f, EntityRef self, FPVector3 center, FPVector3 dir, FP distance, FP radius, int mask, out Hit3D closest) {
+    static bool RingCast(Frame f, EntityRef self, FPVector3 center, FPVector3 dir, FP distance, FP radius, int mask,
+                         out Hit3D closest, out FP best) {
       closest = default;
-      var best = FP.MaxValue;
+      best = FP.MaxValue;
       bool found = false;
 
       for (int i = -1; i < RingRays; i++) {

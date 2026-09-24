@@ -24,6 +24,24 @@ namespace PPC.Tests {
       return new FPVector3(v.X, 0, v.Z).Magnitude.AsFloat;
     }
 
+    /// <summary>Counts events of type <typeparamref name="T"/> raised from now on.</summary>
+    public static Func<int> Count<T>(this HeadlessSession s) where T : EventBase {
+      int n = 0;
+      s.Events.Subscribe(s, (T _) => n++);
+      return () => n;
+    }
+
+    /// <summary>Highest capsule-bottom height reached over <paramref name="ticks"/> ticks.</summary>
+    public static float MaxFeet(this HeadlessSession s, EntityRef e, int ticks, FP halfHeight = default) {
+      if (halfHeight == default) halfHeight = FP._1;
+      float max = float.MinValue;
+      for (int i = 0; i < ticks; i++) {
+        s.Step(1);
+        max = Math.Max(max, (s.Position(e).Y - halfHeight).AsFloat);
+      }
+      return max;
+    }
+
     /// <summary>Seconds → ticks at the harness rate.</summary>
     public static int Ticks(float seconds) => (int)Math.Round(seconds * HeadlessSession.UpdateFps);
   }

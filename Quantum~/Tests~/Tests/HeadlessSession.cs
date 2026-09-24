@@ -19,14 +19,17 @@ namespace PPC.Tests {
     readonly ResourceManagerStatic _resources;
     readonly Func<int, int, Quantum.Input> _input;
     readonly List<ulong> _checksums = new List<ulong>();
+    int _firstInputFrame = -1;
 
     public SessionRunner Runner { get; }
+    /// <summary>Subscribe to simulation events, e.g. <c>s.Events.Subscribe(this, (EventPPCJumped e) => ...)</c>.</summary>
+    public EventDispatcher Events { get; }
     public QuantumGame Game => (QuantumGame)Runner.DeterministicGame;
     public Frame Frame => (Frame)Runner.Session.FrameVerified;
     public IReadOnlyList<ulong> Checksums => _checksums;
 
     /// <param name="setup">Builds the scene on the first frame (see <see cref="HarnessBootstrapSystem"/>).</param>
-    /// <param name="input">Scripted input: (tick, player) → input.</param>
+    /// <param name="input">Scripted input: (tick, player) → input. Tick 0 is the first simulated tick.</param>
     /// <param name="configureSystems">Adds the systems under test; core systems are added first.</param>
     public HeadlessSession(Action<Frame> setup, Func<int, int, Quantum.Input> input = null,
                            Action<SystemsConfig> configureSystems = null, int playerCount = 1, int seed = 0,
@@ -72,11 +75,14 @@ namespace PPC.Tests {
 
       var callbacks = new CallbackDispatcher();
       callbacks.Subscribe(this, (CallbackPollInput c) => {
-        var i = _input != null ? _input(c.Frame, c.PlayerSlot) : default;
+        // Scripts see ticks relative to the first polled frame (Quantum doesn't start at frame 0).
+        if (_firstInputFrame < 0) _firstInputFrame = c.Frame;
+        var i = _input != null ? _input(c.Frame - _firstInputFrame, c.PlayerSlot) : default;
         c.SetInput(i, DeterministicInputFlags.Repeatable);
       });
 
       HarnessBootstrapSystem.Setup = setup;
+      Events = new EventDispatcher();
 
       Runner = SessionRunner.Start(new SessionRunner.Arguments {
         RunnerFactory = new DotNetRunnerFactory(),
@@ -84,7 +90,7 @@ namespace PPC.Tests {
         ResourceManager = _resources,
         AssetSerializer = new QuantumJsonSerializer(),
         CallbackDispatcher = callbacks,
-        EventDispatcher = new EventDispatcher(),
+        EventDispatcher = Events,
         GameFlags = QuantumGameFlags.DisableInterpolatableStates,
         PlayerCount = playerCount,
         SessionConfig = new DeterministicSessionConfig {

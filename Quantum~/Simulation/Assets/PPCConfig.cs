@@ -47,10 +47,6 @@ namespace Quantum {
       public FP MaxVelocityChange = 10;
       [Tooltip("Scales acceleration while airborne. 1 = same as on the ground (the Unity package's behaviour).")]
       public FP AirControl = FP._1;
-      [Tooltip("0 = ignore slopes, 1 = move fully along the ground plane.")]
-      public FP SlopeAlignmentStrength = FP._0_50;
-      [Tooltip("Length of the slope-detection ray from the capsule centre (m).")]
-      public FP SlopeDetectionRayDistance = 3;
       [Tooltip("Tallest step the character climbs automatically (m).")]
       public FP MaxStepHeight = FP._0_50;
       [Tooltip("How far ahead of the capsule edge to look for steps (m).")]

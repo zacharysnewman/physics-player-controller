@@ -4,14 +4,17 @@ namespace Quantum {
   /// <summary>
   /// Horizontal velocity layer, ported from the Unity package's PlayerMovement: camera-relative walk/run
   /// with acceleration, deceleration and faster reversal, worked out relative to the platform being
-  /// stood on; slope alignment and automatic steps while grounded; and absorption of external
-  /// horizontal forces, which then decay (friction on the ground, drag in the air).
+  /// stood on; automatic steps while grounded; and absorption of external horizontal forces, which then
+  /// decay (friction on the ground, drag in the air).
+  /// <para>
+  /// Output is purely horizontal. Following slopes is the vertical layer's job (it keeps the combined
+  /// velocity along the ground), which replaces the Unity version's partial slope alignment.
+  /// </para>
   /// </summary>
   public unsafe class PPCMovementLayerSystem : PPCSystemBase {
     static readonly FP InputDeadzone = FP._0_10;
     static readonly FP ReverseDotThreshold = -FP._0_10;
     static readonly FP MinDirection = FP.FromString("0.01");
-    static readonly FP SlopeProbeOffset = FP._0_50;
     static readonly FP MinStep = FP.FromString("0.01");
 
     protected override void Update(Frame f, ref PPCFilter filter, PPCConfig config) {
@@ -37,7 +40,6 @@ namespace Quantum {
       var moveDirection = yaw * FPVector3.Forward * input.Move.Y + yaw * FPVector3.Right * input.Move.X;
 
       if (grounded && moveDirection.Magnitude > MinDirection) {
-        moveDirection = AlignToTerrain(f, ref filter, config, moveDirection);
         TryStep(f, ref filter, config, moveDirection);
       }
 
@@ -67,18 +69,6 @@ namespace Quantum {
       h->Current = relativeVelocity + change + baseHorizontal;
       h->Target = playerTarget + baseHorizontal;
       h->LastContribution = h->Current + h->External;
-    }
-
-    /// <summary>Moves along the ground plane, blended by SlopeAlignmentStrength (Unity: AdjustForTerrain).</summary>
-    static FPVector3 AlignToTerrain(Frame f, ref PPCFilter filter, PPCConfig config, FPVector3 moveDirection) {
-      var m = config.Movement;
-      var origin = PPCProbe.CapsuleCenter(filter.Transform, filter.Collider) + moveDirection.Normalized * SlopeProbeOffset;
-      if (!PPCProbe.Raycast(f, filter.Entity, origin, FPVector3.Down, m.SlopeDetectionRayDistance,
-                            config.Probes.GroundLayerMask, out var hit, out _)) {
-        return moveDirection;
-      }
-      var projected = FPVector3.ProjectOnPlane(moveDirection, hit.Normal);
-      return FPVector3.Lerp(moveDirection, projected, m.SlopeAlignmentStrength);
     }
 
     /// <summary>

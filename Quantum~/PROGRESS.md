@@ -11,7 +11,7 @@ gate** (`Tests~/build.sh`: CodeGen, compile, tests; runs in the cloud) and the *
 | 0 — Spikes & validation | ✅ 10/10 tests (Debug + Release) | ⏳ git install + CodeGen in `Packages/` | Package route chosen |
 | 1 — Skeleton | ✅ | ⏳ | Single `PPCConfig`; code spawning |
 | 2 — Probes & horizontal movement | ✅ | ⏳ | Probe-length and step-height bugs fixed |
-| 3 — Vertical layer, jump, ceilings | — | — | |
+| 3 — Vertical layer, jump, ceilings | ✅ | ⏳ | Double jump fixed; ground following + snap |
 | 4 — Crouch | — | — | |
 | 5 — Moving platforms & external forces | — | — | |
 | 6 — Ladder climbing | — | — | |
@@ -19,6 +19,12 @@ gate** (`Tests~/build.sh`: CodeGen, compile, tests; runs in the cloud) and the *
 | 8 — Hardening & release | — | — | |
 
 Harness SDK: Quantum **3.0.0** Stable 1548 (`quantum-sdk-libs`). Package target: **3.0.13**.
+
+## Phase 3 — Vertical layer, jump, ceilings ✅
+
+- `PPCJumpSystem`, `PPCVerticalLayerSystem`; probe now reports `Ground.Gap`.
+- Tests: `Phase3VerticalTests` (12). Harness: events exposed (`s.Events`), relative input ticks (bug fix).
+- Fixed: double jump via coyote time; hovering above floors; false launches on slopes (ground following).
 
 ## Phase 2 — Probes & horizontal movement ✅
 

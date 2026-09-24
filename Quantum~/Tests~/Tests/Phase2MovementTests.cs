@@ -168,7 +168,7 @@ namespace PPC.Tests {
       EntityRef e = default;
       using var s = PPCTest.Session(f => {
         Floor(f, 0);
-        Box(f, new FPVector3(0, FP.FromString("0.15"), 4), new FPVector3(3, FP.FromString("0.15"), 2)); // 0.3 m step from z = 2
+        Box(f, new FPVector3(0, FP.FromString("0.15"), 12), new FPVector3(3, FP.FromString("0.15"), 10)); // 0.3 m step from z = 2
         e = SpawnCharacter(f, FPVector3.Zero);
       }, input: t => Move(0, 1));
       s.Step(PPCTest.Ticks(2f));
@@ -183,7 +183,7 @@ namespace PPC.Tests {
       EntityRef e = default;
       using var s = PPCTest.Session(f => {
         Floor(f, 0);
-        Box(f, new FPVector3(0, FP.FromString("0.4"), 4), new FPVector3(3, FP.FromString("0.4"), 2)); // 0.8 m
+        Box(f, new FPVector3(0, FP.FromString("0.4"), 12), new FPVector3(3, FP.FromString("0.4"), 10)); // 0.8 m
         e = SpawnCharacter(f, FPVector3.Zero);
       }, input: t => Move(0, 1));
       s.Step(PPCTest.Ticks(2f));
