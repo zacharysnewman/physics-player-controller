@@ -57,8 +57,9 @@ Then run **Tools → Quantum → CodeGen → Run Qtn CodeGen**.
    ```
 2. **Systems.** Add `PPCSystemGroup` to your `SystemsConfig` after Quantum's core systems (including
    `PhysicsSystem3D`). From code: `PPCSystems.AddTo(systemsConfig)`.
-3. **Config.** *Create → Quantum → Physics Player Controller → Character Config* (keep it under
-   `Assets/`). A frictionless `PhysicsMaterial` on **Body → Material** is recommended.
+3. **Config (optional).** Without one, characters use `PPCConfig.Default`. To tune:
+   *Create → Quantum → Physics Player Controller → Character Config* (keep it under `Assets/`).
+   Characters get a frictionless physics material automatically unless you set one.
 4. **Spawn.** `PPCSpawn.Character(f, config, feetPosition, player: player, view: viewAsset)`, or an
    entity prototype with just a `PPCCharacter` (plus `PPCPlayerLink`). `PPCSetupSystem` adds the
    physics body and capsule.

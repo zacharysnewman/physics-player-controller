@@ -46,7 +46,7 @@ namespace PPC.Tests {
     /// <summary>Current capsule half-height, from the character's config.</summary>
     public static FP HalfHeight(this HeadlessSession s, EntityRef e) {
       var c = s.Character(e);
-      return s.Frame.FindAsset(c.Config).HalfHeight(c.Crouch.IsCrouching);
+      return PPCConfig.Resolve(s.Frame, c.Config).HalfHeight(c.Crouch.IsCrouching);
     }
 
     /// <summary>Height of the capsule bottom.</summary>

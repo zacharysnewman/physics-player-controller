@@ -48,9 +48,9 @@ namespace Quantum {
 
       p->PreviousPosition = platform->Position;
       p->PreviousRotation = platform->Rotation;
-      p->BaseVelocity = velocity * config.Platforms.VelocityMultiplier;
+      p->BaseVelocity = velocity;
 
-      var maxYaw = config.Platforms.MaxRotationSpeed * dt;
+      var maxYaw = config.Advanced.MaxPlatformYawSpeed * dt;
       p->YawDelta = FPMath.Clamp(yawDelta, -maxYaw, maxYaw);
     }
 

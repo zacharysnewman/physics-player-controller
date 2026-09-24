@@ -34,13 +34,12 @@ namespace Quantum {
       var probes = config.Probes;
       var center = PPCProbe.CapsuleCenter(filter.Transform, filter.Collider);
       var halfHeight = config.HalfHeight(c->Crouch.IsCrouching);
-      var standingHalf = config.HalfHeight(false);
-      var ringRadius = config.Body.Radius * probes.RadiusMultiplier;
+      var ringRadius = config.Body.Radius * config.Advanced.ProbeRingRadius;
 
       c->Ground.WasGrounded = c->Ground.IsGrounded;
 
       // Ground
-      var groundDistance = halfHeight + (probes.GroundCheckDistance - standingHalf);
+      var groundDistance = halfHeight + probes.GroundProbeMargin;
       if (RingCast(f, filter.Entity, center, FPVector3.Down, groundDistance, ringRadius, probes.GroundLayerMask, out var ground, out var groundHitDistance)) {
         c->Ground.Normal = ground.Normal;
         c->Ground.Gap = groundHitDistance - halfHeight;
@@ -56,7 +55,7 @@ namespace Quantum {
       }
 
       // Ceiling
-      var ceilingDistance = halfHeight + (probes.CeilingCheckDistance - standingHalf);
+      var ceilingDistance = halfHeight + probes.CeilingProbeMargin;
       c->Ground.IsCeilingBlocked = RingCast(f, filter.Entity, center, FPVector3.Up, ceilingDistance, ringRadius,
                                             probes.CeilingLayerMask, out _, out _, detailed: false);
 
@@ -65,7 +64,7 @@ namespace Quantum {
       c->Ground.WallNormal = FPVector3.Zero;
       for (int i = 0; i < 4; i++) {
         var dir = i switch { 0 => FPVector3.Forward, 1 => FPVector3.Back, 2 => FPVector3.Left, _ => FPVector3.Right };
-        if (PPCProbe.Raycast(f, filter.Entity, center + dir * ringRadius, dir, probes.WallCheckDistance,
+        if (PPCProbe.Raycast(f, filter.Entity, center + dir * ringRadius, dir, config.Advanced.WallCheckDistance,
                              probes.GroundLayerMask, out var wall, out _) &&
             PPCProbe.SlopeAngle(wall.Normal) > WallMinAngle) {
           c->Ground.IsTouchingWall = true;

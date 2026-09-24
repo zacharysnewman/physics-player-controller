@@ -10,8 +10,7 @@ namespace Quantum {
     /// </summary>
     public static EntityRef Character(Frame f, AssetRef<PPCConfig> config, FPVector3 feet, FP yawDegrees = default,
                                       PlayerRef player = default, AssetRef<EntityView> view = default) {
-      var settings = f.FindAsset(config);
-      var halfHeight = settings != null ? settings.HalfHeight(false) : FP._1;
+      var halfHeight = PPCConfig.Resolve(f, config).HalfHeight(false);
 
       var e = f.Create();
       f.Set(e, Transform3D.Create(feet + FPVector3.Up * halfHeight, FPQuaternion.Euler(0, yawDegrees, 0)));

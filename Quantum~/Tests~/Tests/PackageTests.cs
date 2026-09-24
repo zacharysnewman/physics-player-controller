@@ -46,17 +46,21 @@ namespace PPC.Tests {
     }
 
     [Fact]
-    public void Character_Without_Config_Is_Ignored_Safely() {
+    public void Character_Without_Config_Uses_The_Defaults() {
       EntityRef e = default;
       using var s = new HeadlessSession(f => {
+        PPCTestWorld.Floor(f, 0);
         e = f.Create();
-        f.Set(e, Transform3D.Create());
+        f.Set(e, Transform3D.Create(new Photon.Deterministic.FPVector3(0, 1, 0)));
+        f.Set(e, new PPCPlayerLink { Player = 0 });
         f.Add(e, new PPCCharacter());
-      }, configureSystems: PPCSystems.AddTo);
+      }, input: (t, p) => PPCTestWorld.Move(0, 1), configureSystems: PPCSystems.AddTo);
 
-      s.Step(10);
+      s.Step(90);
 
-      Assert.False(s.Frame.Has<PhysicsBody3D>(e));
+      Assert.True(s.Frame.Has<PhysicsBody3D>(e));
+      var v = s.Frame.Get<PhysicsBody3D>(e).Velocity;
+      Assert.InRange(v.Z.AsFloat, PPCConfig.Default.Movement.WalkSpeed.AsFloat - 0.05f, PPCConfig.Default.Movement.WalkSpeed.AsFloat + 0.05f);
     }
   }
 }

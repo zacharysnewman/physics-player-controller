@@ -4,8 +4,8 @@ namespace Quantum {
 
   /// <summary>
   /// All tuning for a Physics Player Controller character. Sections mirror the Unity package's
-  /// ScriptableObjects (PlayerMovementConfig, GroundCheckerConfig, PlayerJumpConfig, ...) with the
-  /// same defaults, converted to fixed point.
+  /// ScriptableObjects (PlayerMovementConfig, GroundCheckerConfig, PlayerJumpConfig, ...).
+  /// A character with no config uses <see cref="Default"/>.
   /// </summary>
   [Serializable]
 #if QUANTUM_UNITY
@@ -18,7 +18,18 @@ namespace Quantum {
     public JumpSettings Jump = new JumpSettings();
     public CrouchSettings Crouch = new CrouchSettings();
     public ClimbSettings Climb = new ClimbSettings();
-    public PlatformSettings Platforms = new PlatformSettings();
+    [Tooltip("Internal tuning. The defaults suit almost every game.")]
+    public AdvancedSettings Advanced = new AdvancedSettings();
+
+    /// <summary>
+    /// Settings used by characters whose <c>PPCCharacter.Config</c> isn't set. Shared and read-only:
+    /// don't modify it; create a config asset instead.
+    /// </summary>
+    public static readonly PPCConfig Default = new PPCConfig();
+
+    /// <summary>The config behind <paramref name="config"/>, or <see cref="Default"/> if it isn't set.</summary>
+    public static PPCConfig Resolve(Frame f, AssetRef<PPCConfig> config) =>
+      config.IsValid && f.TryFindAsset(config, out PPCConfig found) ? found : Default;
 
     [Serializable]
     public class BodySettings {
@@ -26,11 +37,11 @@ namespace Quantum {
       public FP Radius = FP._0_50;
       [Tooltip("Total capsule height when standing (m). The entity's position is the capsule centre.")]
       public FP StandingHeight = FP._2;
-      [Tooltip("Body mass (kg). Jump velocity is Jump.Force / Mass.")]
+      [Tooltip("Body mass (kg). Affects how the character pushes and is pushed by other bodies.")]
       public FP Mass = FP._1;
       [Tooltip("Physics layer of the character's collider.")]
       public int Layer = 0;
-      [Tooltip("Physics material for the character. Leave empty for the simulation default; a frictionless material is recommended so floor friction doesn't fight the controller.")]
+      [Tooltip("Physics material for the character. Leave empty for a frictionless material (recommended: friction slows sliding along walls).")]
       public AssetRef<PhysicsMaterial> Material;
       [Tooltip("Multiplier on the physics gravity for the vertical layer.")]
       public FP GravityScale = FP._1;
@@ -46,42 +57,32 @@ namespace Quantum {
       public FP Deceleration = 10;
       [Tooltip("Acceleration used when input points against the current velocity (m/s²).")]
       public FP ReverseDeceleration = 20;
-      [Tooltip("Largest velocity change considered per tick (m/s).")]
-      public FP MaxVelocityChange = 10;
-      [Tooltip("Scales acceleration while airborne. 1 = same as on the ground (the Unity package's behaviour).")]
+      [Tooltip("Scales acceleration while airborne. 1 = same as on the ground.")]
       public FP AirControl = FP._1;
       [Tooltip("Tallest step the character climbs automatically (m).")]
       public FP MaxStepHeight = FP._0_50;
-      [Tooltip("How far ahead of the capsule edge to look for steps (m).")]
-      public FP StepProbeDistance = FP.FromString("0.01");
       [Tooltip("Exponential horizontal drag on external velocity while airborne (fraction lost per second).")]
       public FP AirExternalDrag = FP._0_50;
       [Tooltip("Linear deceleration of external horizontal velocity while grounded (m/s²).")]
       public FP GroundExternalFriction = 15;
-      [Tooltip("Velocity deviations smaller than this are treated as numerical noise, not external forces (m/s).")]
-      public FP ExternalAbsorbThreshold = FP.FromString("0.01");
     }
 
     [Serializable]
     public class ProbeSettings {
-      [Tooltip("Ground ray length measured from the capsule centre (m). Default = half height + 0.15.")]
-      public FP GroundCheckDistance = FP.FromString("1.15");
-      public int GroundLayerMask = -1;
-      [Tooltip("Radius of the ring of ground/ceiling rays, as a fraction of the capsule radius.")]
-      public FP RadiusMultiplier = FP.FromString("0.9");
-      [Tooltip("Ceiling ray length measured from the capsule centre (m). Default = half height + 0.1.")]
-      public FP CeilingCheckDistance = FP.FromString("1.1");
-      public int CeilingLayerMask = -1;
+      [Tooltip("How far below the feet the ground is still detected (m).")]
+      public FP GroundProbeMargin = FP.FromString("0.15");
+      [Tooltip("How far above the head a ceiling is detected (m).")]
+      public FP CeilingProbeMargin = FP._0_10;
       [Tooltip("Steepest walkable slope (degrees).")]
       public FP MaxSlopeAngle = 45;
-      [Tooltip("Wall ray length beyond the ring radius (m).")]
-      public FP WallCheckDistance = FP.FromString("0.16");
+      public int GroundLayerMask = -1;
+      public int CeilingLayerMask = -1;
     }
 
     [Serializable]
     public class JumpSettings {
-      [Tooltip("Jump impulse (N·s). Velocity = Force / Body.Mass.")]
-      public FP Force = 10;
+      [Tooltip("Jump apex above the take-off point (m), with this config's gravity.")]
+      public FP Height = 5;
       [Tooltip("A press is remembered this long before landing (s).")]
       public FP BufferTime = FP.FromString("0.2");
       [Tooltip("Jumping is still allowed this long after walking off an edge (s).")]
@@ -101,7 +102,7 @@ namespace Quantum {
       public FP Speed = 3;
       [Tooltip("Layers searched for ladder triggers (entities with a PPCLadder component).")]
       public int LayerMask = -1;
-      [Tooltip("Looking down more than this (degrees) makes forward input climb down. The Unity version flipped at exactly level.")]
+      [Tooltip("Looking down more than this (degrees) makes forward input climb down.")]
       public FP LookDownThreshold = 30;
       [Tooltip("Velocity applied when jumping off a ladder: Y = up, Z = away from the ladder (m/s).")]
       public FPVector3 JumpOffVelocity = new FPVector3(0, 4, 3);
@@ -110,16 +111,28 @@ namespace Quantum {
     }
 
     [Serializable]
-    public class PlatformSettings {
-      [Tooltip("Multiplier on the platform velocity the character inherits.")]
-      public FP VelocityMultiplier = FP._1;
-      [Tooltip("Cap on how fast the character's yaw follows a rotating platform (deg/s).")]
-      public FP MaxRotationSpeed = 360;
+    public class AdvancedSettings {
+      [Tooltip("How far ahead of the capsule edge to look for steps (m).")]
+      public FP StepProbeDistance = FP.FromString("0.01");
+      [Tooltip("Velocity deviations smaller than this are treated as numerical noise, not external forces (m/s).")]
+      public FP ExternalAbsorbThreshold = FP.FromString("0.01");
+      [Tooltip("Radius of the ring of ground/ceiling rays, as a fraction of the capsule radius.")]
+      public FP ProbeRingRadius = FP.FromString("0.9");
+      [Tooltip("Wall ray length beyond the probe ring (m).")]
+      public FP WallCheckDistance = FP.FromString("0.16");
+      [Tooltip("Cap on how fast the camera turns with a rotating platform (deg/s).")]
+      public FP MaxPlatformYawSpeed = 360;
     }
 
     public FP HalfHeight(bool crouching) => (crouching ? Crouch.Height : Body.StandingHeight) / 2;
 
     /// <summary>How far the capsule centre moves when crouching or standing up.</summary>
     public FP CrouchHeightDelta => HalfHeight(false) - HalfHeight(true);
+
+    /// <summary>Take-off speed that reaches <see cref="JumpSettings.Height"/> under this config's gravity.</summary>
+    public unsafe FP JumpVelocity(Frame f) {
+      var gravity = FPMath.Abs(f.PhysicsSceneSettings->Gravity.Y * Body.GravityScale);
+      return FPMath.Sqrt(2 * gravity * Jump.Height);
+    }
   }
 }

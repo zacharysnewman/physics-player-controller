@@ -88,9 +88,7 @@ namespace Quantum {
 
     float TargetEyeHeight(Frame frame) {
       if (!frame.TryGet<PPCCharacter>(EntityRef, out var character)) return 0f;
-      var config = frame.FindAsset(character.Config);
-      if (config == null) return 0f;
-      return config.HalfHeight(character.Crouch.IsCrouching).AsFloat - EyeBelowTop;
+      return PPCConfig.Resolve(frame, character.Config).HalfHeight(character.Crouch.IsCrouching).AsFloat - EyeBelowTop;
     }
   }
 }

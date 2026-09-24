@@ -8,7 +8,10 @@ namespace PPC.Tests {
     public const long ConfigGuid = 100;
     public const long FrictionlessGuid = 101;
 
-    /// <summary>A config with the Unity defaults and a frictionless material, plus that material.</summary>
+    /// <summary>
+    /// A config with the package defaults (no material set, so the automatic frictionless one is used),
+    /// plus a separate frictionless material asset for tests that set one explicitly.
+    /// </summary>
     public static (PPCConfig config, AssetObject[] assets) DefaultAssets(Action<PPCConfig> tweak = null) {
       var material = AssetObject.Create<PhysicsMaterial>();
       material.FrictionStatic = FP._0;
@@ -19,13 +22,13 @@ namespace PPC.Tests {
       HeadlessSession.Identify(material, FrictionlessGuid, "Tests/Frictionless");
 
       var config = AssetObject.Create<PPCConfig>();
-      config.Body.Material = new AssetRef<PhysicsMaterial>(material.Guid);
       tweak?.Invoke(config);
       HeadlessSession.Identify(config, ConfigGuid, "Tests/PPCConfig");
       return (config, new AssetObject[] { config, material });
     }
 
     public static AssetRef<PPCConfig> ConfigRef => new AssetRef<PPCConfig>(new AssetGuid(ConfigGuid));
+    public static AssetRef<PhysicsMaterial> FrictionlessRef => new AssetRef<PhysicsMaterial>(new AssetGuid(FrictionlessGuid));
 
     /// <summary>Spawns a character (driven by player 0 unless told otherwise) whose feet rest at <paramref name="feet"/>.</summary>
     public static EntityRef SpawnCharacter(Frame f, FPVector3 feet, PlayerRef? player = null) =>

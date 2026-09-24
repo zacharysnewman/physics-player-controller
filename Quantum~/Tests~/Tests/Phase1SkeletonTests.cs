@@ -25,7 +25,35 @@ namespace PPC.Tests {
       Assert.Equal(Shape3DType.Capsule, collider.Shape.Type);
       Assert.Equal(config.Body.Radius, collider.Shape.Capsule.Radius);
       Assert.Equal(config.HalfHeight(false), collider.Shape.Capsule.Extent + collider.Shape.Capsule.Radius);
-      Assert.Equal(config.Body.Material, collider.Material);
+    }
+
+    [Fact]
+    public void Without_A_Material_Characters_Share_An_Automatic_Frictionless_One() {
+      var (_, assets) = PPCTestWorld.DefaultAssets();
+      EntityRef a = default, b = default;
+      using var s = new HeadlessSession(f => {
+        a = PPCTestWorld.SpawnCharacter(f, FPVector3.Zero, 0);
+        b = PPCTestWorld.SpawnCharacter(f, new FPVector3(3, 0, 0), 1);
+      }, configureSystems: PPCSystems.AddTo, playerCount: 2, extraAssets: assets);
+      s.Step(1);
+
+      var material = s.Frame.Get<PhysicsCollider3D>(a).Material;
+      Assert.True(material.IsValid);
+      Assert.Equal(material, s.Frame.Get<PhysicsCollider3D>(b).Material);
+      var asset = s.Frame.FindAsset(material);
+      Assert.Equal(FP._0, asset.FrictionStatic);
+      Assert.Equal(FP._0, asset.FrictionDynamic);
+    }
+
+    [Fact]
+    public void An_Explicit_Material_Is_Used() {
+      var (_, assets) = PPCTestWorld.DefaultAssets(c => c.Body.Material = PPCTestWorld.FrictionlessRef);
+      EntityRef e = default;
+      using var s = new HeadlessSession(f => e = PPCTestWorld.SpawnCharacter(f, FPVector3.Zero),
+                                        configureSystems: PPCSystems.AddTo, extraAssets: assets);
+      s.Step(1);
+
+      Assert.Equal(PPCTestWorld.FrictionlessRef, s.Frame.Get<PhysicsCollider3D>(e).Material);
     }
 
     [Fact]

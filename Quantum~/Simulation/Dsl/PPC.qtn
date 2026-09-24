@@ -96,6 +96,11 @@ component PPCCharacter {
   [ExcludeFromPrototype] FPVector3 TargetVelocity;   // final velocity the body was driven towards
 }
 
+// Shared per-game controller data (created on demand by PPCSetupSystem).
+singleton component PPCShared {
+  AssetRef<PhysicsMaterial> FrictionlessMaterial;
+}
+
 // Links a character to the player whose input drives it.
 component PPCPlayerLink {
   PlayerRef Player;

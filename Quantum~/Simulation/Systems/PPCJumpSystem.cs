@@ -39,7 +39,7 @@ namespace Quantum {
 
     static void Perform(Frame f, ref PPCFilter filter, PPCConfig config) {
       var c = filter.Character;
-      var velocity = config.Jump.Force / config.Body.Mass;
+      var velocity = config.JumpVelocity(f);
 
       // Keep any larger upward velocity already absorbed (e.g. from a launch pad).
       c->Vertical.AccumulatedY = FPMath.Max(c->Vertical.AccumulatedY, velocity + c->Vertical.PlatformY);

@@ -31,7 +31,7 @@ namespace Quantum {
       // External forces: whatever moved the body away from what we drove it towards last tick.
       var actual = filter.Body->Velocity.Flat();
       var externalDelta = actual - h->Contribution;
-      if (externalDelta.Magnitude > m.ExternalAbsorbThreshold) {
+      if (externalDelta.Magnitude > config.Advanced.ExternalAbsorbThreshold) {
         h->External += externalDelta;
       }
       h->External = grounded
@@ -51,7 +51,7 @@ namespace Quantum {
       // Accelerate in the platform's frame so standing on a moving platform needs no input.
       var baseHorizontal = c->Platform.BaseVelocity.Flat();
       var relativeVelocity = h->Current - baseHorizontal;
-      var relativeDelta = FPVector3.ClampMagnitude(playerTarget - relativeVelocity, m.MaxVelocityChange);
+      var relativeDelta = playerTarget - relativeVelocity;
 
       var dot = relativeVelocity.Magnitude > MinDirection && playerTarget.Magnitude > MinDirection
         ? FPVector3.Dot(relativeVelocity.Normalized, playerTarget.Normalized)
@@ -85,7 +85,7 @@ namespace Quantum {
       if (flatDirection.Magnitude < MinDirection) {
         return;
       }
-      var origin = center + flatDirection.Normalized * (config.Body.Radius + m.StepProbeDistance);
+      var origin = center + flatDirection.Normalized * (config.Body.Radius + config.Advanced.StepProbeDistance);
       if (!PPCProbe.Raycast(f, filter.Entity, origin, FPVector3.Down, halfHeight * 2, config.Probes.GroundLayerMask,
                             out var hit, out _)) {
         return;
