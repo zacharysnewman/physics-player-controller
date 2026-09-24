@@ -8,7 +8,7 @@ namespace Quantum {
   /// <para>
   /// The Unity version's <c>skipExternalAbsorption</c> flag is gone: it worked around Update and
   /// FixedUpdate running at different rates. Here the jump changes <c>AccumulatedY</c> but not
-  /// <c>LastTargetY</c>, so the deviation check is always against what the body was actually driven to.
+  /// <c>TargetY</c>, so the deviation check is always against what the body was actually driven to.
   /// </para>
   /// </summary>
   public unsafe class PPCVerticalLayerSystem : PPCSystemBase {
@@ -24,11 +24,7 @@ namespace Quantum {
       var bodyY = filter.Body->Velocity.Y;
 
       if (c->Climb.IsClimbing) {
-        // Exclusive climb layer is driving (see PPCMovementLayerSystem).
-        v->AccumulatedY = FP._0;
-        v->IsGrounded = c->Ground.IsGrounded;
-        v->LastTargetY = c->Climb.Velocity.Y;
-        return;
+        return;   // the exclusive climb layer drives (and holds this layer; see PPCClimbSystem)
       }
 
       // Platform vertical velocity (PPCPlatformSystem).
@@ -53,7 +49,7 @@ namespace Quantum {
 
       if (v->IsGrounded) {
         // A significant upward deviation while grounded is a launch (launch pad, explosion).
-        if (bodyY - v->LastTargetY > LaunchThreshold) {
+        if (bodyY - v->TargetY > LaunchThreshold) {
           v->AccumulatedY = bodyY + gravity * dt;
           v->IsGrounded = false;
         } else {
@@ -63,13 +59,13 @@ namespace Quantum {
           // here: it could hover up to the probe margin (0.15 m) above the floor, and on slopes the
           // solver's push-out looked like a launch.
           var n = c->Ground.Normal;
-          var horizontal = c->Horizontal.LastContribution - new FPVector3(c->Platform.BaseVelocity.X, 0, c->Platform.BaseVelocity.Z);
+          var horizontal = c->Horizontal.Contribution - c->Platform.BaseVelocity.Flat();
           var alongSlope = n.Y > FP._0_10 ? -(n.X * horizontal.X + n.Z * horizontal.Z) / n.Y : FP._0;
           v->AccumulatedY = v->PlatformY + alongSlope - FPMath.Max(FP._0, c->Ground.Gap) / dt;
         }
       } else {
         // Airborne: absorb external vertical forces, then integrate gravity.
-        var external = bodyY - v->LastTargetY;
+        var external = bodyY - v->TargetY;
         if (FPMath.Abs(external) > AbsorbThreshold && !c->Jump.JumpedThisTick) {
           v->AccumulatedY += external;
         }
@@ -77,10 +73,10 @@ namespace Quantum {
       }
 
       if (!wasGrounded && v->IsGrounded) {
-        f.Events.PPCLanded(filter.Entity, FPMath.Max(FP._0, -v->LastTargetY));
+        f.Events.PPCLanded(filter.Entity, FPMath.Max(FP._0, -v->TargetY));
       }
 
-      v->LastTargetY = v->AccumulatedY;
+      v->TargetY = v->AccumulatedY;
     }
   }
 }

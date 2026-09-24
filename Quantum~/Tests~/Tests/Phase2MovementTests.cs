@@ -35,8 +35,7 @@ namespace PPC.Tests {
     public void Too_Steep_Ground_Is_Not_Walkable() {
       EntityRef e = default;
       using var s = PPCTest.Session(f => {
-        var ramp = Box(f, new FPVector3(0, -1, 0), new FPVector3(5, FP._0_50, 5));
-        f.Unsafe.GetPointer<Transform3D>(ramp)->Rotation = FPQuaternion.Euler(0, 0, 60);
+        Ramp(f, new FPVector3(0, -1, 0), new FPVector3(5, FP._0_50, 5), pitch: 0, roll: 60);
         e = SpawnCharacter(f, new FPVector3(0, FP._0_50, 0));
       });
       s.Step(2);

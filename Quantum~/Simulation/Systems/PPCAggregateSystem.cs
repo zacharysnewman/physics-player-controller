@@ -16,7 +16,7 @@ namespace Quantum {
         // Exclusive layer: climbing replaces the other layers entirely.
         target = c->Climb.Velocity;
       } else {
-        target = c->Horizontal.LastContribution + new FPVector3(0, c->Vertical.LastTargetY, 0);
+        target = c->Horizontal.Contribution + new FPVector3(0, c->Vertical.TargetY, 0);
       }
 
       c->TargetVelocity = target;

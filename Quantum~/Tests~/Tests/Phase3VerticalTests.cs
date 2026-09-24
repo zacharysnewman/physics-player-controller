@@ -187,8 +187,7 @@ namespace PPC.Tests {
       int turn = PPCTest.Ticks(1.6f);
       using var s = PPCTest.Session(f => {
         Floor(f, 0);
-        var ramp = Box(f, new FPVector3(0, 0, 6), new FPVector3(2, FP._0_50, 5));
-        f.Unsafe.GetPointer<Transform3D>(ramp)->Rotation = FPQuaternion.Euler(-20, 0, 0);
+        Ramp(f, new FPVector3(0, 0, 6), new FPVector3(2, FP._0_50, 5), pitch: -20);
         e = SpawnCharacter(f, FPVector3.Zero);
       }, input: t => Move(0, t < turn ? FP._1 : -FP._1));
 

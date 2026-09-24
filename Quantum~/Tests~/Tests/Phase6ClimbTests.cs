@@ -10,17 +10,10 @@ namespace PPC.Tests {
   public unsafe class Phase6ClimbTests {
     // Ladder: trigger 1 m wide, 0.2 m deep, from the floor to 3.2 m, centred on z = 1 and facing +Z.
     // A 3 m ledge starts right behind it (z ≥ 1.1). The character starts at z = 0 facing +Z.
-    static EntityRef _ladder;
-
     static void World(Frame f) {
       Floor(f, 0);
       Box(f, new FPVector3(0, FP.FromString("1.5"), FP.FromString("3.1")), new FPVector3(3, FP.FromString("1.5"), 2));
-      _ladder = f.Create();
-      f.Set(_ladder, Transform3D.Create(new FPVector3(0, FP.FromString("1.6"), 1)));
-      var trigger = PhysicsCollider3D.Create(f, Shape3D.CreateBox(new FPVector3(FP._0_50, FP.FromString("1.6"), FP._0_10)));
-      trigger.IsTrigger = true;
-      f.Set(_ladder, trigger);
-      f.Set(_ladder, new PPCLadder());
+      Ladder(f, new FPVector3(0, FP.FromString("1.6"), 1), new FPVector3(FP._0_50, FP.FromString("1.6"), FP._0_10));
     }
 
     static HeadlessSession Session(out EntityRef e, System.Func<int, Quantum.Input> input) {

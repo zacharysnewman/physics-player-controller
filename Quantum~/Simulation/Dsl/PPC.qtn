@@ -41,8 +41,7 @@ struct PPCGroundInfo {
 struct PPCHorizontalLayer {
   FPVector3 Current;           // player-driven horizontal velocity
   FPVector3 External;          // absorbed external horizontal velocity (explosions, pushes)
-  FPVector3 LastContribution;  // what this layer drove the body towards last tick
-  FPVector3 Target;            // requested velocity (debug / animation)
+  FPVector3 Contribution;      // this layer's velocity this tick (read back next tick to detect external forces)
   FP SpeedMultiplier;          // crouch slows this down
 }
 
@@ -51,7 +50,7 @@ struct PPCVerticalLayer {
   FP AccumulatedY;
   FP PlatformY;
   FP LastPlatformY;
-  FP LastTargetY;
+  FP TargetY;                  // this layer's vertical velocity this tick (read back next tick, like Contribution)
   Boolean IsGrounded;
 }
 
@@ -59,7 +58,6 @@ struct PPCJumpState {
   FP BufferTimer;
   FP CoyoteTimer;
   Boolean IsJumping;
-  Boolean JumpedThisAirtime;   // blocks coyote jumps after a real jump
   Boolean JumpedThisTick;
 }
 

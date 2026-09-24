@@ -19,7 +19,7 @@ namespace Quantum {
         state = PPCState.Crouching;
       } else if (!c->Ground.IsGrounded) {
         state = velocity.Y > FP._0 || c->Jump.IsJumping ? PPCState.Jumping : PPCState.Falling;
-      } else if (new FPVector3(velocity.X, 0, velocity.Z).Magnitude > MovingSpeed) {
+      } else if (velocity.Flat().Magnitude > MovingSpeed) {
         state = c->Input.Run ? PPCState.Running : PPCState.Walking;
       } else {
         state = PPCState.Idle;

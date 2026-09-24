@@ -1,14 +1,4 @@
-// Harness-only DSL. Plays the role of "the game" that imports the package:
-// Quantum allows a single global `input`, so the package never defines one; games (and this
-// harness) do.
-// Game-level setting (the package doesn't set it): room for the 16-character cost test.
+// Harness-only DSL. The harness plays "the game" using the Playground sample's input and bridge
+// (compiled alongside, see build.sh); this adds game-level settings the tests need.
+// Room for the 16-character cost test (the package doesn't set this; games do).
 #pragma max_players 16
-
-input {
-  FPVector2 Move;
-  FP LookYaw;
-  FP LookPitch;
-  button Jump;
-  button Run;
-  button Crouch;
-}

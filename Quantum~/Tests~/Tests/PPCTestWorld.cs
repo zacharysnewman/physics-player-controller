@@ -32,11 +32,26 @@ namespace PPC.Tests {
       PPCSpawn.Character(f, ConfigRef, feet, player: player ?? (PlayerRef)0);
 
     /// <summary>Kinematic box whose top face is at <paramref name="topY"/>.</summary>
-    public static EntityRef Box(Frame f, FPVector3 center, FPVector3 halfExtents) {
+    public static EntityRef Box(Frame f, FPVector3 center, FPVector3 halfExtents, FPQuaternion? rotation = null) {
       var e = f.Create();
-      f.Set(e, Transform3D.Create(center));
+      f.Set(e, Transform3D.Create(center, rotation ?? FPQuaternion.Identity));
       f.Set(e, PhysicsCollider3D.Create(f, Shape3D.CreateBox(halfExtents)));
       f.Set(e, PhysicsBody3D.CreateKinematic());
+      return e;
+    }
+
+    /// <summary>A kinematic box tilted by <paramref name="pitch"/> (about X) and <paramref name="roll"/> (about Z), in degrees.</summary>
+    public static EntityRef Ramp(Frame f, FPVector3 center, FPVector3 halfExtents, FP pitch, FP roll = default) =>
+      Box(f, center, halfExtents, FPQuaternion.Euler(pitch, 0, roll));
+
+    /// <summary>A ladder: trigger box with a <see cref="PPCLadder"/>, facing its local +Z.</summary>
+    public static EntityRef Ladder(Frame f, FPVector3 center, FPVector3 halfExtents) {
+      var e = f.Create();
+      f.Set(e, Transform3D.Create(center));
+      var trigger = PhysicsCollider3D.Create(f, Shape3D.CreateBox(halfExtents));
+      trigger.IsTrigger = true;
+      f.Set(e, trigger);
+      f.Set(e, new PPCLadder());
       return e;
     }
 

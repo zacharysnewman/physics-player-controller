@@ -28,8 +28,7 @@ namespace Quantum {
         return;   // jumping off a ladder is handled by PPCClimbSystem
       }
 
-      var pressed = c->Input.Jump && !c->PreviousInput.Jump;
-      if (pressed && j->BufferTimer <= 0) {
+      if (c->JumpPressed && j->BufferTimer <= 0) {
         j->BufferTimer = config.Jump.BufferTime;
       }
 

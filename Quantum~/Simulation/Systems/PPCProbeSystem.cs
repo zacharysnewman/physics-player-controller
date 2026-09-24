@@ -10,6 +10,23 @@ namespace Quantum {
   /// </summary>
   public unsafe class PPCProbeSystem : PPCSystemBase {
     const int RingRays = 16;
+
+    // Unit ring directions, computed once. Built on first use (not in a static constructor) so the
+    // fixed-point trig tables are loaded by then.
+    static FPVector3[] _ring;
+    static FPVector3[] Ring {
+      get {
+        if (_ring == null) {
+          var ring = new FPVector3[RingRays];
+          for (int i = 0; i < RingRays; i++) {
+            var angle = i * (FP.PiTimes2 / RingRays);
+            ring[i] = new FPVector3(FPMath.Cos(angle), 0, FPMath.Sin(angle));
+          }
+          _ring = ring;
+        }
+        return _ring;
+      }
+    }
     static readonly FP WallMinAngle = 45;
 
     protected override void Update(Frame f, ref PPCFilter filter, PPCConfig config) {
@@ -41,7 +58,7 @@ namespace Quantum {
       // Ceiling
       var ceilingDistance = halfHeight + (probes.CeilingCheckDistance - standingHalf);
       c->Ground.IsCeilingBlocked = RingCast(f, filter.Entity, center, FPVector3.Up, ceilingDistance, ringRadius,
-                                            probes.CeilingLayerMask, out _, out _);
+                                            probes.CeilingLayerMask, out _, out _, detailed: false);
 
       // Walls (fixed world axes, like the Unity version)
       c->Ground.IsTouchingWall = false;
@@ -59,19 +76,27 @@ namespace Quantum {
     }
 
     /// <summary>Centre ray plus a ring of rays; returns the closest hit.</summary>
+    /// <param name="detailed">false when only "hit or not" matters: skips normals and hit points, stops at
+    /// the first hit, and leaves <paramref name="closest"/>/<paramref name="best"/> unset.</param>
     static bool RingCast(Frame f, EntityRef self, FPVector3 center, FPVector3 dir, FP distance, FP radius, int mask,
-                         out Hit3D closest, out FP best) {
+                         out Hit3D closest, out FP best, bool detailed = true) {
       closest = default;
       best = FP.MaxValue;
       bool found = false;
+      var ring = Ring;
 
       for (int i = -1; i < RingRays; i++) {
         var origin = center;
         if (i >= 0) {
-          var angle = i * (FP.PiTimes2 / RingRays);
-          origin += new FPVector3(FPMath.Cos(angle) * radius, 0, FPMath.Sin(angle) * radius);
+          origin += new FPVector3(ring[i].X * radius, 0, ring[i].Z * radius);
         }
-        if (PPCProbe.Raycast(f, self, origin, dir, distance, mask, out var hit, out var d) && d < best) {
+        if (!PPCProbe.Raycast(f, self, origin, dir, distance, mask, out var hit, out var d, detailed)) {
+          continue;
+        }
+        if (!detailed) {
+          return true;   // only "hit or not" was asked: no need to cast the remaining rays
+        }
+        if (d < best) {
           best = d;
           closest = hit;
           found = true;

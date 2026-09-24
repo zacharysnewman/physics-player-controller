@@ -118,5 +118,8 @@ namespace Quantum {
     }
 
     public FP HalfHeight(bool crouching) => (crouching ? Crouch.Height : Body.StandingHeight) / 2;
+
+    /// <summary>How far the capsule centre moves when crouching or standing up.</summary>
+    public FP CrouchHeightDelta => HalfHeight(false) - HalfHeight(true);
   }
 }

@@ -22,17 +22,11 @@ namespace PPC.Tests {
     /// <summary>Floor, ramp, step, low bar, ladder to a ledge, a moving platform and an explosion.</summary>
     internal static void ScenarioWorld(Frame f) {
       Floor(f, 0);
-      var ramp = Box(f, new FPVector3(-6, 0, 6), new FPVector3(2, FP._0_50, 5));
-      f.Unsafe.GetPointer<Transform3D>(ramp)->Rotation = FPQuaternion.Euler(-20, 0, 0);
+      Ramp(f, new FPVector3(-6, 0, 6), new FPVector3(2, FP._0_50, 5), pitch: -20);
       Box(f, new FPVector3(6, FP.FromString("0.15"), 8), new FPVector3(2, FP.FromString("0.15"), 4));   // step
       Box(f, new FPVector3(0, 2, 8), new FPVector3(2, FP._0_50, 1));                                    // low bar
       Box(f, new FPVector3(12, FP.FromString("1.5"), FP.FromString("3.1")), new FPVector3(2, FP.FromString("1.5"), 2)); // ledge
-      var ladder = f.Create();
-      f.Set(ladder, Transform3D.Create(new FPVector3(12, FP.FromString("1.6"), 1)));
-      var trigger = PhysicsCollider3D.Create(f, Shape3D.CreateBox(new FPVector3(FP._0_50, FP.FromString("1.6"), FP._0_10)));
-      trigger.IsTrigger = true;
-      f.Set(ladder, trigger);
-      f.Set(ladder, new PPCLadder());
+      Ladder(f, new FPVector3(12, FP.FromString("1.6"), 1), new FPVector3(FP._0_50, FP.FromString("1.6"), FP._0_10));
       var platform = Box(f, new FPVector3(-12, FP.FromString("0.25"), 0), new FPVector3(2, FP.FromString("0.25"), 2));
       HarnessMoverSystem.Movers[platform] = (new FPVector3(0, 0, FP._1), 30);
 

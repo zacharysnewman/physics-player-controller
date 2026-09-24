@@ -35,8 +35,7 @@ namespace Quantum {
       }
 
       // Let go?
-      var jumpPressed = c->Input.Jump && !c->PreviousInput.Jump;
-      if (jumpPressed) {
+      if (c->JumpPressed) {
         Release(f, ref filter, config, jumpOff: true);
         return;
       }
@@ -46,19 +45,25 @@ namespace Quantum {
       }
       climb->Ladder = ladder;
       climb->Velocity = ClimbVelocity(f, ref filter, config);
+      HoldOtherLayers(c);
     }
 
-    static EntityRef FindLadder(Frame f, ref PPCFilter filter, PPCConfig config) {
-      var hits = f.Physics3D.OverlapShape(filter.Transform->Position, FPQuaternion.Identity, filter.Collider->Shape,
-                                          config.Climb.LayerMask, QueryOptions.HitAll);
-      for (int i = 0; i < hits.Count; i++) {
-        var e = hits[i].Entity;
-        if (e != filter.Entity && e.IsValid && f.Has<PPCLadder>(e)) {
-          return e;
-        }
-      }
-      return EntityRef.None;
+    /// <summary>
+    /// While this exclusive layer drives, the horizontal and vertical layers stand still. Their
+    /// contributions are set to the climb velocity, so letting go isn't mistaken for an external force.
+    /// </summary>
+    static void HoldOtherLayers(PPCCharacter* c) {
+      c->Horizontal.Current = FPVector3.Zero;
+      c->Horizontal.External = FPVector3.Zero;
+      c->Horizontal.Contribution = c->Climb.Velocity.Flat();
+      c->Vertical.AccumulatedY = FP._0;
+      c->Vertical.IsGrounded = c->Ground.IsGrounded;
+      c->Vertical.TargetY = c->Climb.Velocity.Y;
     }
+
+    static EntityRef FindLadder(Frame f, ref PPCFilter filter, PPCConfig config) =>
+      PPCProbe.FindOverlapping<PPCLadder>(f, filter.Entity, filter.Transform->Position, filter.Collider->Shape,
+                                          config.Climb.LayerMask);
 
     static void Grab(Frame f, ref PPCFilter filter, EntityRef ladder) {
       var c = filter.Character;
@@ -99,14 +104,12 @@ namespace Quantum {
         vertical = -vertical;   // looking down the ladder: forward goes down
       }
 
-      var right = FPQuaternion.Euler(0, input.LookYaw, 0) * FPVector3.Right;
-      var velocity = FPVector3.Up * (vertical * speed) + right * (input.Move.X * speed);
+      var velocity = FPVector3.Up * (vertical * speed) + input.CameraRight * (input.Move.X * speed);
 
       // Pull onto the ladder face: keep a fixed distance in front of the ladder along its facing axis.
       if (config.Climb.SnapStrength > 0 && f.Unsafe.TryGetPointer<Transform3D>(c->Climb.Ladder, out var t) &&
           f.Unsafe.TryGetPointer<PhysicsCollider3D>(c->Climb.Ladder, out var col) && col->Shape.Type == Shape3DType.Box) {
-        var facing = t->Rotation * FPVector3.Forward;
-        var depth = FPVector3.Dot(filter.Transform->Position - t->Position, facing);
+        var (facing, depth) = LadderFrame(t, filter.Transform->Position);
         var side = depth >= 0 ? FP._1 : -FP._1;
         // Slightly inside touching distance, so the character never hovers at the trigger's edge.
         var target = side * (col->Shape.Box.Extents.Z + config.Body.Radius - FP._0_10);
@@ -117,9 +120,14 @@ namespace Quantum {
 
     static FPVector3 AwayFromLadder(Frame f, ref PPCFilter filter, EntityRef ladder) {
       if (!f.Unsafe.TryGetPointer<Transform3D>(ladder, out var t)) return FPVector3.Zero;
-      var facing = t->Rotation * FPVector3.Forward;
-      var depth = FPVector3.Dot(filter.Transform->Position - t->Position, facing);
+      var (facing, depth) = LadderFrame(t, filter.Transform->Position);
       return depth >= 0 ? facing : -facing;
+    }
+
+    /// <summary>The ladder's facing axis (local +Z) and how far in front of it (signed) a point is.</summary>
+    static (FPVector3 facing, FP depth) LadderFrame(Transform3D* ladder, FPVector3 point) {
+      var facing = ladder->Rotation * FPVector3.Forward;
+      return (facing, FPVector3.Dot(point - ladder->Position, facing));
     }
   }
 }
