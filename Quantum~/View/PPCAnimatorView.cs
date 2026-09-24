@@ -46,7 +46,7 @@ namespace Quantum {
       if (!frame.TryGet<PPCCharacter>(EntityRef, out var c) || !frame.TryGet<PhysicsBody3D>(EntityRef, out var body)) return;
 
       var relative = body.Velocity - c.Platform.BaseVelocity;
-      var horizontalSpeed = new FPVector3(relative.X, 0, relative.Z).Magnitude.AsFloat;
+      var horizontalSpeed = relative.Flat().Magnitude.AsFloat;
       var move = new Vector2(c.Input.Move.X.AsFloat, c.Input.Move.Y.AsFloat);
       _direction = Vector2.Lerp(_direction, move, 1f - Mathf.Exp(-DirectionSmoothing * Time.deltaTime));
 

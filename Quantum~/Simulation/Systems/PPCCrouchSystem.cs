@@ -14,6 +14,8 @@ namespace Quantum {
   /// </list>
   /// </summary>
   public unsafe class PPCCrouchSystem : PPCSystemBase {
+    static readonly FP Skin = FP.FromString("0.02");
+
     protected override void Update(Frame f, ref PPCFilter filter, PPCConfig config) {
       var c = filter.Character;
       if (c->Climb.IsClimbing) {
@@ -21,19 +23,16 @@ namespace Quantum {
         return;
       }
 
-      var held = c->Input.Crouch;
-      var pressed = held && !c->PreviousInput.Crouch;
-
-      if (pressed && !c->Crouch.IsCrouching) {
+      if (c->CrouchPressed && !c->Crouch.IsCrouching) {
         Crouch(f, ref filter, config);
-      } else if (!held && c->Crouch.IsCrouching) {
+      } else if (!c->Input.Crouch && c->Crouch.IsCrouching) {
         TryStand(f, ref filter, config);
       }
     }
 
     static void Crouch(Frame f, ref PPCFilter filter, PPCConfig config) {
       var c = filter.Character;
-      var delta = config.HalfHeight(false) - config.HalfHeight(true);
+      var delta = config.CrouchHeightDelta;
       var grounded = c->Ground.IsGrounded;
 
       // Grounded: keep the feet where they are. Airborne: keep the head, pull the feet up.
@@ -43,13 +42,12 @@ namespace Quantum {
       if (!grounded && config.Crouch.MidAirBoost > 0) {
         c->Vertical.AccumulatedY += config.Crouch.MidAirBoost;
       }
-      c->Horizontal.SpeedMultiplier = config.Crouch.Speed / config.Movement.WalkSpeed;
       f.Events.PPCCrouchChanged(filter.Entity, true);
     }
 
     static void TryStand(Frame f, ref PPCFilter filter, PPCConfig config) {
       var c = filter.Character;
-      var delta = config.HalfHeight(false) - config.HalfHeight(true);
+      var delta = config.CrouchHeightDelta;
       var position = filter.Transform->Position;
 
       // Grounded: grow upwards from the feet. Airborne: grow down to the feet first, else upwards.
@@ -69,22 +67,14 @@ namespace Quantum {
 
       filter.Transform->Position = standAt;
       SetShape(f, ref filter, config, crouching: false);
-      c->Horizontal.SpeedMultiplier = FP._1;
       f.Events.PPCCrouchChanged(filter.Entity, false);
     }
 
-    /// <summary>Would the standing capsule at <paramref name="center"/> overlap anything solid?</summary>
+    /// <summary>Is there room for the standing capsule at <paramref name="center"/>?</summary>
     static bool Fits(Frame f, ref PPCFilter filter, PPCConfig config, FPVector3 center) {
       // Slightly slimmer than the real capsule so touching the floor or a wall doesn't count.
-      var skin = FP.FromString("0.02");
-      var shape = Shape3D.CreateCapsule(config.Body.Radius - skin,
-                                        FPMath.Max(FP._0, config.HalfHeight(false) - config.Body.Radius - skin));
-      var hits = f.Physics3D.OverlapShape(center, FPQuaternion.Identity, shape, config.Probes.CeilingLayerMask,
-                                          QueryOptions.HitStatics | QueryOptions.HitKinematics | QueryOptions.HitDynamics);
-      for (int i = 0; i < hits.Count; i++) {
-        if (hits[i].Entity != filter.Entity) return false;
-      }
-      return true;
+      var shape = PPCCapsule.Shape(config, crouching: false, inset: Skin);
+      return !PPCProbe.OverlapsOther(f, filter.Entity, center, shape, config.Probes.CeilingLayerMask);
     }
 
     static void SetShape(Frame f, ref PPCFilter filter, PPCConfig config, bool crouching) {

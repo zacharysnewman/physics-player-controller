@@ -18,8 +18,9 @@
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
     <NoWarn>$(NoWarn);CS0162;CS0414;CS0649;CS0169;CS0067</NoWarn>
     <PackageRoot>$(MSBuildThisFileDirectory)../..</PackageRoot>
-    <!-- The "game" code compiled with the package: the harness fixtures, or a sample's Simulation folder. -->
-    <GameSourceDir Condition="'$(GameSourceDir)' == ''">$(MSBuildThisFileDirectory)../Fixtures</GameSourceDir>
+    <!-- The "game" code compiled with the package: a sample's Simulation folder, plus (for tests) the
+         harness fixtures. -->
+    <GameSourceDir Condition="'$(GameSourceDir)' == ''">$(PackageRoot)/Samples~/Playground/Simulation</GameSourceDir>
   </PropertyGroup>
 
   <ItemGroup>
@@ -27,6 +28,7 @@
     <Compile Include="$(GeneratedDir)/*.cs" />
     <Compile Include="$(PackageRoot)/Simulation/**/*.cs" />
     <Compile Include="$(GameSourceDir)/**/*.cs" />
+    <Compile Include="$(FixturesDir)/**/*.cs" Condition="'$(FixturesDir)' != ''" />
   </ItemGroup>
 
   <ItemGroup>

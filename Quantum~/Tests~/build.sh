@@ -39,8 +39,10 @@ unzip -qo "$ZIP" -d "$LIB_DIR"
 
 MSBUILD_PROPS=(-p:QuantumSdkDir="$SDK_DIR" -p:QuantumLibDir="$LIB_DIR" -p:GeneratedDir="$GENERATED_DIR")
 
-# 2. CodeGen: every .qtn in the package plus the harness fixtures.
-mapfile -t QTN_FILES < <(find "$PACKAGE_ROOT/Simulation" "$HERE/Fixtures" -name '*.qtn' 2>/dev/null | sort)
+# 2. CodeGen: every .qtn in the package, the Playground sample (the harness's "game": input + bridge)
+#    and the harness fixtures.
+SAMPLE_SIM="$PACKAGE_ROOT/Samples~/Playground/Simulation"
+mapfile -t QTN_FILES < <(find "$PACKAGE_ROOT/Simulation" "$SAMPLE_SIM" "$HERE/Fixtures" -name '*.qtn' 2>/dev/null | sort)
 [ "${#QTN_FILES[@]}" -gt 0 ] || fail "no .qtn files found"
 echo "CodeGen..."
 dotnet build "$HERE/Tools/CodeGen/CodeGen.csproj" -nologo -v q -c Release "${MSBUILD_PROPS[@]}" -o "$BUILD_DIR/codegen" >/dev/null
@@ -49,12 +51,12 @@ dotnet "$BUILD_DIR/codegen/CodeGen.dll" "$GENERATED_DIR" "${QTN_FILES[@]}"
 # 3. Compile the simulation.
 echo "Compiling simulation ($CONFIG)..."
 SIM_DIR="$BUILD_DIR/bin/$CONFIG"
-dotnet build "$HERE/Simulation/PPC.Simulation.csproj" -nologo -v q -c "$CONFIG" "${MSBUILD_PROPS[@]}" -o "$SIM_DIR"
+dotnet build "$HERE/Simulation/PPC.Simulation.csproj" -nologo -v q -c "$CONFIG" "${MSBUILD_PROPS[@]}" \
+  -p:GameSourceDir="$SAMPLE_SIM" -p:FixturesDir="$HERE/Fixtures" -o "$SIM_DIR"
 echo "OK: $SIM_DIR/Quantum.Simulation.dll"
 
-# 4. The Playground sample's simulation code must compile against the package, as in a user's project
-#    (its own input.qtn replaces the harness fixtures).
-SAMPLE_SIM="$PACKAGE_ROOT/Samples~/Playground/Simulation"
+# 4. The Playground sample's simulation code must also compile on its own against the package, as in a
+#    user's project (no harness fixtures).
 if [ -d "$SAMPLE_SIM" ]; then
   echo "Compiling Playground sample simulation..."
   mapfile -t SAMPLE_QTN < <(find "$PACKAGE_ROOT/Simulation" "$SAMPLE_SIM" -name '*.qtn' | sort)

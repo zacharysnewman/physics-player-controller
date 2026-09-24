@@ -27,9 +27,9 @@ A successful run ends with `Passed: N` and no failures. Output goes to `.build/`
    would (with its own `input` instead of the fixtures).
 5. Runs the xUnit tests in `Tests/` against the assembly from step 3. They start real Quantum sessions.
 
-`Fixtures/` holds harness-only simulation code that plays the role of "the game": an `input`
-definition (the package can't define one; Quantum allows one per game), a bootstrap system that
-lets tests build their scene, and probes. It never ships.
+The harness plays "the game" with the Playground sample's `input` and input bridge (compiled
+alongside), plus `Fixtures/`: harness-only systems (bootstrap, kicks, movers, probes) and game-level
+settings (`#pragma max_players 16`). None of it ships.
 
 ## Test suites
 
@@ -40,6 +40,15 @@ lets tests build their scene, and probes. It never ships.
 | `PhysicsApiTests` | The Quantum physics API the port relies on |
 | `Phase1SkeletonTests` … `Phase6ClimbTests` | Each phase's behaviour (see `../PLAN.md`) |
 | `Phase8HardeningTests` | Four-player full-feature determinism; 16-character cost |
+| `GoldenTraceTests` | Behaviour lock: the four-player scenario matches `Golden/scenario-trace.txt` within 1 mm |
+| `ConfigPresetTests` | Recommended defaults, the Unity parity preset, crouch ignoring run |
+| `GroundedConsistencyTests` | One shared "grounded": jumping and launching states, platform jump-off |
+| `CharacterStackingTests` | Standing on heads; not carried unless `CarriedByCharacters` |
+| `StepSmoothnessTests` | Stairs and ledges at full speed without leaving the ground; writes `step-report.txt` |
+
+The behaviour tests use the **Unity parity** preset (`PPCTestWorld.DefaultAssets`), since they were
+written against the Unity package's numbers. When a change is *meant* to alter behaviour, regenerate
+the golden trace with `PPC_UPDATE_GOLDEN=1` and say why in the commit.
 
 `Tools/cross-config-check.sh` runs the four-player scenario on the Debug and the Release Quantum
 libraries and checks the per-tick checksums match.

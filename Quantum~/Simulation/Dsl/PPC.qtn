@@ -24,7 +24,9 @@ struct PPCInput {
   Boolean Crouch;
 }
 
-// Probe results (PPCProbeSystem).
+// Probe results (PPCProbeSystem). IsGrounded is the one "grounded" every system uses: it is off from
+// the tick the character jumps or is launched until it stops rising, even while the probe still
+// reaches the floor.
 struct PPCGroundInfo {
   Boolean IsGrounded;
   Boolean WasGrounded;
@@ -41,9 +43,7 @@ struct PPCGroundInfo {
 struct PPCHorizontalLayer {
   FPVector3 Current;           // player-driven horizontal velocity
   FPVector3 External;          // absorbed external horizontal velocity (explosions, pushes)
-  FPVector3 LastContribution;  // what this layer drove the body towards last tick
-  FPVector3 Target;            // requested velocity (debug / animation)
-  FP SpeedMultiplier;          // crouch slows this down
+  FPVector3 Contribution;      // this layer's velocity this tick (read back next tick to detect external forces)
 }
 
 // Vertical velocity layer (PPCVerticalLayerSystem).
@@ -51,15 +51,13 @@ struct PPCVerticalLayer {
   FP AccumulatedY;
   FP PlatformY;
   FP LastPlatformY;
-  FP LastTargetY;
-  Boolean IsGrounded;
+  FP TargetY;                  // this layer's vertical velocity this tick (read back next tick, like Contribution)
 }
 
 struct PPCJumpState {
   FP BufferTimer;
   FP CoyoteTimer;
   Boolean IsJumping;
-  Boolean JumpedThisAirtime;   // blocks coyote jumps after a real jump
   Boolean JumpedThisTick;
 }
 
@@ -76,10 +74,11 @@ struct PPCClimbState {
 }
 
 struct PPCPlatformState {
-  EntityRef Entity;
+  EntityRef Entity;            // what the ground probe sees (tracked even while airborne)
   FPVector3 PreviousPosition;
   FPQuaternion PreviousRotation;
-  FPVector3 BaseVelocity;
+  FPVector3 GroundVelocity;    // velocity of that ground under the character, grounded or not
+  FPVector3 BaseVelocity;      // GroundVelocity while grounded (the carry), else zero
   FP YawDelta;                 // platform yaw change this tick (degrees), for the camera
 }
 
@@ -96,6 +95,11 @@ component PPCCharacter {
   [ExcludeFromPrototype] PPCClimbState Climb;
   [ExcludeFromPrototype] PPCPlatformState Platform;
   [ExcludeFromPrototype] FPVector3 TargetVelocity;   // final velocity the body was driven towards
+}
+
+// Shared per-game controller data (created on demand by PPCSetupSystem).
+singleton component PPCShared {
+  AssetRef<PhysicsMaterial> FrictionlessMaterial;
 }
 
 // Links a character to the player whose input drives it.

@@ -17,8 +17,9 @@ namespace Quantum {
       var ground = c->Ground.Entity;
       var dt = f.DeltaTime;
 
-      if (!c->Ground.IsGrounded || !ground.IsValid || !f.Unsafe.TryGetPointer<Transform3D>(ground, out var platform)) {
+      if (!ground.IsValid || !f.Unsafe.TryGetPointer<Transform3D>(ground, out var platform)) {
         p->Entity = EntityRef.None;
+        p->GroundVelocity = FPVector3.Zero;
         p->BaseVelocity = FPVector3.Zero;
         p->YawDelta = FP._0;
         return;
@@ -35,7 +36,11 @@ namespace Quantum {
 
       FPVector3 velocity;
       FP yawDelta;
-      if (f.Unsafe.TryGetPointer<PhysicsBody3D>(ground, out var body) && !body->IsKinematic) {
+      if (!config.Movement.CarriedByCharacters && f.Has<PPCCharacter>(ground)) {
+        // Standing on another character: solid ground, but it doesn't carry you.
+        velocity = FPVector3.Zero;
+        yawDelta = FP._0;
+      } else if (f.Unsafe.TryGetPointer<PhysicsBody3D>(ground, out var body) && !body->IsKinematic) {
         var r = characterPosition - platform->Position;
         velocity = body->Velocity + FPVector3.Cross(body->AngularVelocity, r);
         yawDelta = body->AngularVelocity.Y * dt * FP.Rad2Deg;
@@ -48,10 +53,15 @@ namespace Quantum {
 
       p->PreviousPosition = platform->Position;
       p->PreviousRotation = platform->Rotation;
-      p->BaseVelocity = velocity * config.Platforms.VelocityMultiplier;
 
-      var maxYaw = config.Platforms.MaxRotationSpeed * dt;
-      p->YawDelta = FPMath.Clamp(yawDelta, -maxYaw, maxYaw);
+      // Track the ground under the character even while airborne (the probe uses it to tell a jump
+      // from riding a lift), but only carry the character while it stands on it.
+      p->GroundVelocity = velocity;
+      var grounded = c->Ground.IsGrounded;
+      p->BaseVelocity = grounded ? velocity : FPVector3.Zero;
+
+      var maxYaw = config.Advanced.MaxPlatformYawSpeed * dt;
+      p->YawDelta = grounded ? FPMath.Clamp(yawDelta, -maxYaw, maxYaw) : FP._0;
     }
 
     /// <summary>Signed yaw (degrees) of a rotation, measured on the horizontal plane.</summary>

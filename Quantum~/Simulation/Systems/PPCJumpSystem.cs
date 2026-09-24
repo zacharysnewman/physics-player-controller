@@ -28,8 +28,7 @@ namespace Quantum {
         return;   // jumping off a ladder is handled by PPCClimbSystem
       }
 
-      var pressed = c->Input.Jump && !c->PreviousInput.Jump;
-      if (pressed && j->BufferTimer <= 0) {
+      if (c->JumpPressed && j->BufferTimer <= 0) {
         j->BufferTimer = config.Jump.BufferTime;
       }
 
@@ -40,11 +39,11 @@ namespace Quantum {
 
     static void Perform(Frame f, ref PPCFilter filter, PPCConfig config) {
       var c = filter.Character;
-      var velocity = config.Jump.Force / config.Body.Mass;
+      var velocity = config.JumpVelocity(f);
 
       // Keep any larger upward velocity already absorbed (e.g. from a launch pad).
       c->Vertical.AccumulatedY = FPMath.Max(c->Vertical.AccumulatedY, velocity + c->Vertical.PlatformY);
-      c->Vertical.IsGrounded = false;
+      c->Ground.IsGrounded = false;   // off the ground for every system from this tick
 
       c->Jump.BufferTimer = 0;
       c->Jump.CoyoteTimer = 0;

@@ -25,40 +25,33 @@ namespace Quantum {
       var grounded = c->Ground.IsGrounded;
 
       if (c->Climb.IsClimbing) {
-        // Exclusive climb layer is driving: hold, with the climb velocity as the baseline so letting
-        // go doesn't look like an external force.
-        h->Current = FPVector3.Zero;
-        h->External = FPVector3.Zero;
-        h->LastContribution = Flat(c->Climb.Velocity);
-        return;
+        return;   // the exclusive climb layer drives (and holds this layer; see PPCClimbSystem)
       }
 
       // External forces: whatever moved the body away from what we drove it towards last tick.
-      var actual = Flat(filter.Body->Velocity);
-      var externalDelta = actual - h->LastContribution;
-      if (externalDelta.Magnitude > m.ExternalAbsorbThreshold) {
+      var actual = filter.Body->Velocity.Flat();
+      var externalDelta = actual - h->Contribution;
+      if (externalDelta.Magnitude > config.Advanced.ExternalAbsorbThreshold) {
         h->External += externalDelta;
       }
       h->External = grounded
         ? FPVector3.MoveTowards(h->External, FPVector3.Zero, m.GroundExternalFriction * dt)
         : h->External * FPMath.Exp(-m.AirExternalDrag * dt);
 
-      // Camera-relative direction.
       var input = c->Input;
-      var yaw = FPQuaternion.Euler(0, input.LookYaw, 0);
-      var moveDirection = yaw * FPVector3.Forward * input.Move.Y + yaw * FPVector3.Right * input.Move.X;
+      var moveDirection = input.MoveDirection;
 
       if (grounded && moveDirection.Magnitude > MinDirection) {
         TryStep(f, ref filter, config, moveDirection);
       }
 
-      var speed = (input.Run ? m.RunSpeed : m.WalkSpeed) * h->SpeedMultiplier;
+      var speed = c->Crouch.IsCrouching ? config.Crouch.Speed : input.Run ? m.RunSpeed : m.WalkSpeed;
       var playerTarget = moveDirection * speed;
 
       // Accelerate in the platform's frame so standing on a moving platform needs no input.
-      var baseHorizontal = Flat(c->Platform.BaseVelocity);
+      var baseHorizontal = c->Platform.BaseVelocity.Flat();
       var relativeVelocity = h->Current - baseHorizontal;
-      var relativeDelta = FPVector3.ClampMagnitude(playerTarget - relativeVelocity, m.MaxVelocityChange);
+      var relativeDelta = playerTarget - relativeVelocity;
 
       var dot = relativeVelocity.Magnitude > MinDirection && playerTarget.Magnitude > MinDirection
         ? FPVector3.Dot(relativeVelocity.Normalized, playerTarget.Normalized)
@@ -76,8 +69,7 @@ namespace Quantum {
 
       var change = FPVector3.MoveTowards(FPVector3.Zero, relativeDelta, accelRate * dt);
       h->Current = relativeVelocity + change + baseHorizontal;
-      h->Target = playerTarget + baseHorizontal;
-      h->LastContribution = h->Current + h->External;
+      h->Contribution = h->Current + h->External;
     }
 
     /// <summary>
@@ -89,11 +81,11 @@ namespace Quantum {
       var c = filter.Character;
       var center = PPCProbe.CapsuleCenter(filter.Transform, filter.Collider);
       var halfHeight = config.HalfHeight(c->Crouch.IsCrouching);
-      var flatDirection = Flat(moveDirection);
+      var flatDirection = moveDirection.Flat();
       if (flatDirection.Magnitude < MinDirection) {
         return;
       }
-      var origin = center + flatDirection.Normalized * (config.Body.Radius + m.StepProbeDistance);
+      var origin = center + flatDirection.Normalized * (config.Body.Radius + config.Advanced.StepProbeDistance);
       if (!PPCProbe.Raycast(f, filter.Entity, origin, FPVector3.Down, halfHeight * 2, config.Probes.GroundLayerMask,
                             out var hit, out _)) {
         return;
@@ -105,7 +97,5 @@ namespace Quantum {
         filter.Transform->Position.Y += stepHeight;
       }
     }
-
-    static FPVector3 Flat(FPVector3 v) => new FPVector3(v.X, 0, v.Z);
   }
 }

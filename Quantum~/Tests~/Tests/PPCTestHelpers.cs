@@ -34,23 +34,26 @@ namespace PPC.Tests {
     }
 
     /// <summary>Highest capsule-bottom height reached over <paramref name="ticks"/> ticks.</summary>
-    public static float MaxFeet(this HeadlessSession s, EntityRef e, int ticks, FP halfHeight = default) {
-      if (halfHeight == default) halfHeight = FP._1;
+    public static float MaxFeet(this HeadlessSession s, EntityRef e, int ticks) {
       float max = float.MinValue;
       for (int i = 0; i < ticks; i++) {
         s.Step(1);
-        max = Math.Max(max, (s.Position(e).Y - halfHeight).AsFloat);
+        max = Math.Max(max, s.Feet(e));
       }
       return max;
     }
 
-    /// <summary>Height of the capsule bottom (default config: half height 1 standing, 0.5 crouched).</summary>
-    public static float Feet(this HeadlessSession s, EntityRef e) =>
-      (s.Position(e).Y - (s.Character(e).Crouch.IsCrouching ? FP._0_50 : FP._1)).AsFloat;
+    /// <summary>Current capsule half-height, from the character's config.</summary>
+    public static FP HalfHeight(this HeadlessSession s, EntityRef e) {
+      var c = s.Character(e);
+      return PPCConfig.Resolve(s.Frame, c.Config).HalfHeight(c.Crouch.IsCrouching);
+    }
+
+    /// <summary>Height of the capsule bottom.</summary>
+    public static float Feet(this HeadlessSession s, EntityRef e) => (s.Position(e).Y - s.HalfHeight(e)).AsFloat;
 
     /// <summary>Top of the capsule.</summary>
-    public static float Head(this HeadlessSession s, EntityRef e) =>
-      (s.Position(e).Y + (s.Character(e).Crouch.IsCrouching ? FP._0_50 : FP._1)).AsFloat;
+    public static float Head(this HeadlessSession s, EntityRef e) => (s.Position(e).Y + s.HalfHeight(e)).AsFloat;
 
     /// <summary>Seconds → ticks at the harness rate.</summary>
     public static int Ticks(float seconds) => (int)Math.Round(seconds * HeadlessSession.UpdateFps);
