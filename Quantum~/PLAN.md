@@ -234,8 +234,8 @@ without tipping or drifting, input arrives through the bridge, a heavy box pushe
 - [x] `PPCMovementLayerSystem`: camera-relative direction from `Input.LookYaw`; walk/run; acceleration,
       deceleration, faster reversal (dot < −0.1); `MaxVelocityChange` clamp; accelerates in the
       platform's frame (ready for Phase 5)
-- [x] Slope alignment (ray ahead, project onto the ground plane, blend by `SlopeAlignmentStrength`).
-      Behaviour tests with gravity are in Phase 3.
+- [x] ~~Slope alignment~~ was ported here, then replaced in Phase 3 by ground following in the vertical
+      layer (see Phase 3).
 - [x] Steps: **fixed** to use the real capsule height (Unity hard-coded 1 m), plus a 1 cm minimum so
       flat ground never causes tiny lifts, and a walkable-slope check on the step top
 - [x] Air control: `Movement.AirControl` (default 1 = Unity behaviour)
