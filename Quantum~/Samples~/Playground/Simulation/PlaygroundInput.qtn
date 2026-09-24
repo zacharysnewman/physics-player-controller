@@ -1,0 +1,10 @@
+// The game's input. Quantum allows one `input` per game, so it lives in the game (this sample),
+// not in the controller package. If your game already has one, add these fields to it instead.
+input {
+  FPVector2 Move;
+  FP LookYaw;
+  FP LookPitch;
+  button Jump;
+  button Run;
+  button Crouch;
+}

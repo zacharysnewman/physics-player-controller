@@ -8,6 +8,9 @@ namespace Quantum {
   /// same defaults, converted to fixed point.
   /// </summary>
   [Serializable]
+#if QUANTUM_UNITY
+  [UnityEngine.CreateAssetMenu(menuName = "Quantum/Physics Player Controller/Character Config", fileName = "PPCConfig")]
+#endif
   public partial class PPCConfig : AssetObject {
     public BodySettings Body = new BodySettings();
     public MovementSettings Movement = new MovementSettings();

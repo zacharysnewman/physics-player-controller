@@ -1,4 +1,5 @@
 namespace PPC.Tests {
+  using System.Linq;
   using Quantum;
   using Xunit;
   using Assert = Xunit.Assert;
@@ -16,6 +17,32 @@ namespace PPC.Tests {
       Assert.Contains(typeof(PPCSetupSystem), types);
       Assert.True(types.IndexOf(typeof(PPCInputSystem)) < types.IndexOf(typeof(PPCAggregateSystem)));
       Assert.Equal(typeof(PPCStateSystem), types[types.Count - 1]);
+    }
+
+    [Fact]
+    public void System_Group_Moves_The_Character_Exactly_Like_Individual_Systems() {
+      // Frame checksums include the system list itself (the group is one extra system), so compare
+      // the character's trajectory instead.
+      string Run(bool useGroup) {
+        var (_, assets) = PPCTestWorld.DefaultAssets();
+        EntityRef e = default;
+        using var s = new HeadlessSession(f => {
+          PPCTestWorld.Floor(f, 0);
+          e = PPCTestWorld.SpawnCharacter(f, Photon.Deterministic.FPVector3.Zero);
+        },
+        input: (t, p) => PPCTestWorld.Move(0, 1, jump: t == 30, crouch: t > 60),
+        configureSystems: c => { if (useGroup) c.AddSystem<PPCSystemGroup>(); else PPCSystems.AddTo(c); },
+        extraAssets: assets);
+        var trace = new System.Text.StringBuilder();
+        for (int i = 0; i < 120; i++) {
+          s.Step(1);
+          var c = s.Frame.Get<PPCCharacter>(e);
+          trace.Append(s.Frame.Get<Transform3D>(e).Position).Append(c.State).Append(';');
+        }
+        return trace.ToString();
+      }
+
+      Assert.Equal(Run(false), Run(true));
     }
 
     [Fact]

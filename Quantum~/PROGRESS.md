@@ -15,10 +15,16 @@ gate** (`Tests~/build.sh`: CodeGen, compile, tests; runs in the cloud) and the *
 | 4 — Crouch | ✅ | ⏳ | Landing-centre bug fixed |
 | 5 — Moving platforms & external forces | ✅ | ⏳ | Transform-delta for kinematic platforms |
 | 6 — Ladder climbing | ✅ | ⏳ | Snap, jump-off, look-down threshold fixed |
-| 7 — View layer | — | — | |
+| 7 — View layer | ✅ sample sim compiles | ⏳ view scripts need Unity | Not compilable here |
 | 8 — Hardening & release | — | — | |
 
 Harness SDK: Quantum **3.0.0** Stable 1548 (`quantum-sdk-libs`). Package target: **3.0.13**.
+
+## Phase 7 — View layer ✅ (Unity compile pending)
+
+- `PPCCameraView`, `PPCAnimatorView`, `PPCDebugView`, `PPCSystemGroup`; Playground sample.
+- build.sh compiles the sample's simulation code against the package. View code checked against SDK
+  source only.
 
 ## Phase 6 — Ladder climbing ✅
 

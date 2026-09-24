@@ -331,17 +331,29 @@ Checkpoint: headless ✅ (`Phase6ClimbTests`, 8): grab and hold height, climb sp
 look-down reversal, a slight glance down doesn't reverse, strafe, jump-off launches away without
 re-grabbing, climbing down to the floor lets go, climbing over the top lands on the ledge.
 
-### Phase 7 — View layer
+### Phase 7 — View layer ✅ *(needs the Unity checkpoint: not compiled here)*
 
-- [ ] `PPCCameraView`: first/third person, pitch limits, invert Y, sensitivity (view-only; yaw fed back into input)
-- [ ] Camera height follows crouch (fix double-count issue from `EVALUATION.md`)
-- [ ] `PPCAnimatorView`: reads `PPCState`, velocities, grounded; subscribes to events
-- [ ] `PPCDebugView`: on-screen state label + optional `Draw.*` probes (off by default — fixes the
-      "debug in production" issue)
-- [ ] Interpolation / misprediction smoothing check with Quantum's entity view settings
+- [x] `PPCCameraView` (`QuantumEntityViewComponent`): first-person camera for the local player's
+      character. Yaw/pitch with sensitivity, invert and pitch limits; turns with rotating platforms
+      (`Platform.YawDelta`); eye height follows crouch with view-side smoothing (the simulation's
+      crouch is instant, like the Unity capsule lerp). Exposes `Local.Yaw/Pitch` for the input poller.
+- [x] `PPCAnimatorView`: the Unity `PlayerAnimatorController` parameter names (`Speed`, `DirectionX/Y`,
+      `IsGrounded`, `IsFalling`, `IsCrouching`, `IsRunning`, `IsSliding`, `IsClimbing`, `Jump` trigger
+      from `PPCJumped`); parameters the animator doesn't have are skipped
+- [x] `PPCDebugView`: state label and probe/velocity gizmos, optional (fixes "debug in production")
+- [x] `PPCSystemGroup`: one SystemsConfig entry for all controller systems (tested to move the
+      character exactly like the individual systems)
+- [x] Playground sample (`Samples~/Playground`): the game's `input.qtn`, input bridge, spawn system
+      (+ `RuntimeConfig` fields), Input System poller in its own asmdef (Quantum.Unity doesn't
+      reference the Input System), setup README. `PPCConfig` has a create menu.
+- Verification: the view and poller code **can't be compiled here** (no UnityEngine assemblies; a
+  NuGet repackaging of Unity's binaries exists but is unlicensed, so it isn't used). Every
+  Quantum/Unity API they call was checked against the SDK source (`QuantumEntityViewComponent`
+  lifecycle, `QuantumEvent.Subscribe/UnsubscribeListener`, `PlayerIsLocal`, `ToUnityVector3`,
+  `ToFPVector2`, menu paths). The sample's **simulation** code is compiled headlessly on every build.
 
-Checkpoint: camera and animations are smooth locally and with simulated lag (Quantum's input delay /
-lag simulation tools).
+Checkpoint: headless ✅ (sample simulation compiles, `PPCSystemGroup` equivalence test). Unity:
+the view scripts compile; the Playground runs with camera, animator and crouch eye height.
 
 ### Phase 8 — Hardening & release
 
