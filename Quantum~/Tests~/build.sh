@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Headless build of the Quantum port: runs Quantum's .qtn CodeGen, then compiles the
-# deterministic simulation against the non-Unity Quantum libraries. No Unity required.
+# Headless build of the Quantum port: runs Quantum's .qtn CodeGen, compiles the deterministic
+# simulation against the non-Unity Quantum libraries, then runs the headless tests. No Unity required.
 #
-# Usage: ./build.sh [Debug|Release]
+# Usage: ./build.sh [Debug|Release]     (SKIP_TESTS=1 to only build)
 #
 # QUANTUM_SDK_DIR  folder laid out like a Unity project's Assets/Photon/Quantum.
 #                  Default: ../quantum-sdk-libs/<QUANTUM_SDK_VERSION> next to this repo.
@@ -30,6 +30,9 @@ ZIP="$SDK_DIR/Editor/Dotnet/Quantum.Dotnet.$CONFIG.zip"
 
 echo "Quantum SDK: $SDK_DIR ($(head -n1 "$SDK_DIR/build_info.txt" 2>/dev/null || echo 'unknown build'))"
 
+# 0. Every file Unity imports from the package needs a committed .meta (git packages are read-only).
+"$HERE/Tools/check-metas.sh" || fail "fix .meta files (Tools/check-metas.sh --fix creates missing ones)"
+
 # 1. Unpack the non-Unity Quantum libraries.
 rm -rf "$LIB_DIR" && mkdir -p "$LIB_DIR"
 unzip -qo "$ZIP" -d "$LIB_DIR"
@@ -45,5 +48,13 @@ dotnet "$BUILD_DIR/codegen/CodeGen.dll" "$GENERATED_DIR" "${QTN_FILES[@]}"
 
 # 3. Compile the simulation.
 echo "Compiling simulation ($CONFIG)..."
-dotnet build "$HERE/Simulation/PPC.Simulation.csproj" -nologo -v q -c "$CONFIG" "${MSBUILD_PROPS[@]}" -o "$BUILD_DIR/bin/$CONFIG"
-echo "OK: $BUILD_DIR/bin/$CONFIG/Quantum.Simulation.dll"
+SIM_DIR="$BUILD_DIR/bin/$CONFIG"
+dotnet build "$HERE/Simulation/PPC.Simulation.csproj" -nologo -v q -c "$CONFIG" "${MSBUILD_PROPS[@]}" -o "$SIM_DIR"
+echo "OK: $SIM_DIR/Quantum.Simulation.dll"
+
+# 4. Headless tests (real Quantum session loop). Skip with SKIP_TESTS=1.
+if [ "${SKIP_TESTS:-0}" != "1" ]; then
+  echo "Running headless tests ($CONFIG)..."
+  dotnet test "$HERE/Tests/PPC.Tests.csproj" -nologo -c "$CONFIG" "${MSBUILD_PROPS[@]}" -p:SimulationDir="$SIM_DIR" \
+    --results-directory "$BUILD_DIR/test-results" --logger "console;verbosity=normal"
+fi

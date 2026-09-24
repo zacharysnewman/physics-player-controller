@@ -1,0 +1,17 @@
+// Physics Player Controller — simulation state.
+// Note: the package never defines `input`; Quantum allows only one per game (see PLAN.md).
+
+enum PPCState {
+  Idle,
+  Walking,
+  Running,
+  Crouching,
+  Sliding,
+  Jumping,
+  Falling,
+  Climbing
+}
+
+component PPCCharacter {
+  PPCState State;
+}

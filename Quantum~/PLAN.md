@@ -66,7 +66,7 @@ collide with the game's own input. Instead:
 
 | Unity PPC | Quantum port |
 |---|---|
-| `Rigidbody` (rotation frozen, no gravity) | `PhysicsBody3D` dynamic, rotation frozen, gravity scale 0 (verify flag names in Phase 0) |
+| `Rigidbody` (rotation frozen, no gravity) | `PhysicsBody3D` dynamic, `RotationFreeze = FreezeAll`, `GravityScale = 0` (verified in Phase 0) |
 | `CapsuleCollider` | `PhysicsCollider3D` with `Shape3D` capsule (Quantum uses radius + **extent**, not height) |
 | `IVelocityLayer` + `GetComponents` | Fixed-order systems; each writes its contribution into a per-entity `PPCVelocityAccumulator` component |
 | `IsExclusive` (climb) | Flag on the accumulator: when set, non-exclusive contributions are dropped |
@@ -133,7 +133,7 @@ Every phase has two gates:
 
 1. **Headless gate (automated, runs in the cloud):** `Quantum~/Tests~/build.sh` generates code from the
    `.qtn` files and compiles the simulation against the Quantum libraries, with no Unity involved
-   (see `Tests~/README.md`). Once Phase 0 adds a headless runner, this gate also runs the phase's
+   (see `Tests~/README.md`), then runs the headless tests in a real Quantum session: the phase's
    behaviour tests and a determinism check.
 2. **Unity checkpoint (manual):** imports cleanly, no Quantum determinism warnings, and the listed
    behaviours are verified in the Playground scene. Only needed for what the headless gate can't
@@ -142,29 +142,42 @@ Every phase has two gates:
 The headless harness currently builds against SDK **3.0.0** (from the private `quantum-sdk-libs`
 repo), while the package targets **3.0.13**. The Unity checkpoint is where 3.0.13 gets checked.
 
-### Phase 0 — Spikes & validation *(small; unblocks everything)*
+### Phase 0 — Spikes & validation ✅ *(headless part done; one Unity check left)*
 
 Goal: prove the packaging and the risky APIs before writing real code.
 
 - [x] Headless build harness: `.qtn` CodeGen + simulation compile via .NET (`Tests~/build.sh`)
-- [ ] Headless runner: start a local session from the dotnet libraries, step N ticks with scripted input,
-      read component state back; compare checksums of two identical runs (determinism)
-- [ ] Create `Quantum~/package.json` (`com.zacharysnewman.ppc.quantum`, Unity 2021.3+ or whatever 3.0.13 requires)
-- [ ] Minimal `.asmref` → `Quantum.Simulation`, one `.qtn` with a dummy component, one empty system
-- [ ] **Verify:** git install with `?path=/Quantum~` works
-- [x] **Verify:** Quantum CodeGen picks up `.qtn` files inside `Packages/` — likely yes: the SDK's
+- [x] Headless runner (`Tests~/Tests/HeadlessSession.cs`): a real `SessionRunner` in Local mode with the
+      asset database built in code, scripted input, exact one-tick stepping, per-tick checksums.
+      `HarnessTests` checks input delivery, determinism (two identical 180-tick physics runs match) and
+      a control (a different seed diverges).
+- [x] `Quantum~/package.json` (`com.zacharysnewman.ppc.quantum`, Unity 2021.3+, which is Quantum 3's minimum)
+- [x] `.asmref`s → `Quantum.Simulation` (`Simulation/`) and `Quantum.Unity` (`View/`), using the SDK's fixed
+      assembly GUIDs; `PPC.qtn` (`PPCState`, `PPCCharacter`); `PPCSystems.AddTo`; stub `PPCStateSystem`
+- [x] `.meta` files for everything Unity imports (git packages are read-only), enforced by
+      `Tests~/Tools/check-metas.sh` in `build.sh`. `.qtn` metas point at the SDK's `QuantumQtnAssetImporter`.
+- [ ] **Verify in Unity:** git install with `?path=/Quantum~` works *(needs Unity; the only open item)*
+- [x] **Verify:** Quantum CodeGen picks up `.qtn` files inside `Packages/`: the SDK's
       `QuantumCodeGenQtn.Run()` finds them with `AssetDatabase.FindAssets("t:QuantumQtnAsset")`, which
-      includes packages. Confirm at the Unity checkpoint.
-- [x] **Verify:** where generated code lands — all `.qtn` files are generated together into
+      includes packages. Confirm in the same Unity check.
+- [x] **Verify:** where generated code lands: all `.qtn` files are generated together into
       `Assets/QuantumUser/Simulation/Generated` (plus `View/Generated`). So the package ships only `.qtn`
       and C#, and each project regenerates the code itself.
-- [ ] **Verify API names** (compile-check headlessly on 3.0.0, confirm on 3.0.13): `PhysicsBody3D`
-      rotation-freeze flags, gravity scale, `IsKinematic`, `AddLinearImpulse`, `Velocity`; runtime
-      `collider->Shape` swap + `ResetCenterOfMass` → `ResetInertia`
-- [ ] **Decide:** package route vs. drop-in fallback. Record the decision in this file.
+- [x] **Verify API names** (3.0.0, by reflection and `PhysicsApiTests`): `RotationFreeze`
+      (`RotationFreezeFlags.FreezeAll`), `GravityScale`, `IsKinematic`, `AddLinearImpulse`, `Velocity` (field),
+      writable `PhysicsCollider3D.Shape`, `ResetCenterOfMass` then `ResetInertia`. Capsules are
+      `Shape3D.CreateCapsule(radius, extent)`.
+- [x] **Decide:** package route (`Quantum~` as its own UPM package). Nothing found so far rules it out;
+      the drop-in folder remains the fallback if the Unity check fails.
 
-Checkpoint: headless gate green; empty package imports into a fresh Quantum 3.0.13 project and the
-dummy system ticks.
+Headless setup findings (details in `Tests~/README.md`):
+- A session needs, in code: `SimulationConfig` (entity capacities, 32 physics layers + collision matrix,
+  a default `PhysicsMaterial`), `SystemsConfig`, `Map`, `QuantumJsonSerializer` (needs Newtonsoft.Json),
+  and `FPLut` tables (generated with `FPLut.GenerateTables`, so no binary LUT files are needed).
+- Quantum 3 only polls input for players added with `QuantumGame.AddPlayer`.
+
+Checkpoint: headless gate green ✅ (10/10 tests, Debug and Release). Unity: package imports into a
+fresh Quantum 3.0.13 project via git URL, CodeGen picks up `PPC.qtn`, and a `PPCCharacter` entity ticks.
 
 ### Phase 1 — Skeleton *(entity spawns and stands still)*
 

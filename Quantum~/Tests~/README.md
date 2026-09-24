@@ -1,27 +1,66 @@
 # Headless tests for the Quantum port
 
-Generates and compiles the package's deterministic simulation code **without Unity**, using the
-.NET SDK and the non-Unity Quantum libraries that ship inside every Quantum 3 SDK. Unity ignores
-this folder (the trailing `~`), so none of it reaches package users.
+Generates, compiles and **runs** the package's deterministic simulation code **without Unity**,
+using the .NET SDK and the non-Unity Quantum libraries that ship inside every Quantum 3 SDK. Unity
+ignores this folder (the trailing `~`), so none of it reaches package users.
 
 ```bash
-./build.sh            # Debug
+./build.sh                 # Debug: build + tests
 ./build.sh Release
+SKIP_TESTS=1 ./build.sh    # build only
 ```
 
-A successful run prints `OK: .../Quantum.Simulation.dll`. Output goes to `.build/` (git-ignored).
+A successful run ends with `Passed: N` and no failures. Output goes to `.build/` (git-ignored).
 
 ## What it does
 
+0. Checks every file Unity imports from the package has a `.meta` (`Tools/check-metas.sh`; run it
+   with `--fix` to create missing ones). Git-installed packages are read-only, so Unity ignores
+   files without one.
 1. Unpacks `Editor/Dotnet/Quantum.Dotnet.<Config>.zip` from the SDK. These are the engine
    libraries Quantum's own "Export Dotnet Project" feature uses.
 2. Runs Quantum's `.qtn` code generator (`Tools/CodeGen`, a small wrapper around
    `Quantum.CodeGen.Qtn.dll`) on every `.qtn` under `Quantum~/Simulation/` plus `Fixtures/`.
 3. Compiles the SDK core simulation sources, the generated code, `Quantum~/Simulation/**/*.cs` and
    `Fixtures/**/*.cs` into `Quantum.Simulation.dll`, using C# 9 to match Unity.
+4. Runs the xUnit tests in `Tests/` against that assembly. They start real Quantum sessions.
 
-`Fixtures/` holds harness-only code (a smoke component and system) so the pipeline is checked even
-before the package has real simulation code. It never ships.
+`Fixtures/` holds harness-only simulation code that plays the role of "the game": an `input`
+definition (the package can't define one; Quantum allows one per game), a bootstrap system that
+lets tests build their scene, and probes. It never ships.
+
+## Writing tests
+
+`HeadlessSession` runs a real `SessionRunner` in Local mode with the asset database built in code:
+
+```csharp
+[Collection("Quantum")]   // sessions share static state, so they must not run in parallel
+public unsafe class MyTests {
+  [Fact]
+  public void Character_Walks_Forward() {
+    EntityRef e = default;
+    using var s = new HeadlessSession(
+      setup: f => { e = f.Create(); /* Set components... */ },          // runs on the first frame
+      input: (tick, player) => new Quantum.Input { Move = FPVector2.Up },  // scripted input
+      configureSystems: PPCSystems.AddTo);                                 // systems under test
+
+    s.Step(60);                                   // exactly 60 ticks (1 s at 60 Hz)
+    var t = s.Frame.Get<Transform3D>(e);          // read state from the verified frame
+    // s.Checksums holds one frame checksum per tick; run twice and compare for determinism
+  }
+}
+```
+
+Core systems added automatically: `CullingSystem3D`, `PhysicsSystem3D`, `EntityPrototypeSystem`,
+`PlayerConnectedSystem`, then `HarnessBootstrapSystem`, then whatever `configureSystems` adds.
+Physics settings match Unity's `QuantumDefaultConfigs` defaults (gravity −10, 32 layers all
+colliding, default material).
+
+Things a headless session needs that Unity normally provides, for reference:
+- `SimulationConfig.Entities` capacities, `Physics.Layers`/`LayerMatrix`, a default `PhysicsMaterial`
+- `QuantumJsonSerializer` as the asset serializer (depends on Newtonsoft.Json)
+- `FPLut` tables, generated on first run with `FPLut.GenerateTables` into the test output folder
+- `QuantumGame.AddPlayer` per player slot. Quantum 3 doesn't poll input for players that haven't been added.
 
 ## Requirements
 
@@ -69,7 +108,8 @@ version in `build.sh` when possible.
 
 ## Limits
 
-- It checks that code **generates and compiles**. It doesn't run Unity-side code (`View/`) or
-  import prefabs, scenes or assets.
-- Running frames headlessly (behaviour and determinism tests) is planned. See Phase 0 in
-  `../PLAN.md`.
+- It doesn't run Unity-side code (`View/`), import prefabs, scenes or assets, or check how things
+  look and feel. That's what the Unity checkpoint in each phase of `../PLAN.md` is for.
+- Scenes are built in code (entities and a code-built `Map`), not baked from Unity.
+- Determinism is checked within one machine and runtime. Cross-platform determinism is Quantum's
+  job; the tests catch non-determinism in *our* code (e.g. iteration-order bugs or float leaks).

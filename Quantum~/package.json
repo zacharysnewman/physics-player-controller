@@ -1,0 +1,12 @@
+{
+  "name": "com.zacharysnewman.ppc.quantum",
+  "version": "0.1.0-preview.0",
+  "displayName": "Physics Player Controller (Quantum 3)",
+  "description": "Deterministic port of the Physics Player Controller for Photon Quantum 3: a dynamic-body character controller driven by velocity layers. Requires the Photon Quantum 3 SDK (3.0.x) in the project.",
+  "unity": "2021.3",
+  "keywords": ["quantum", "photon", "character controller", "physics", "deterministic"],
+  "author": {
+    "name": "zacharysnewman",
+    "url": "https://github.com/zacharysnewman"
+  }
+}
