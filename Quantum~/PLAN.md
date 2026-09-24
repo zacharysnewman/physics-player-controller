@@ -225,19 +225,27 @@ fresh Quantum 3.0.13 project via git URL, CodeGen picks up `PPC.qtn`, and a `PPC
 Checkpoint: headless ✅ (`Phase1SkeletonTests`): configured from config, stands still on the floor
 without tipping or drifting, input arrives through the bridge, a heavy box pushes it.
 
-### Phase 2 — Probes & horizontal movement
+### Phase 2 — Probes & horizontal movement ✅
 
-- [ ] `PPCProbeSystem`: ground (multi-ray or shape cast), ground normal, slope angle, ceiling, wall;
-      layer masks from config. Fix the ray-origin bugs.
-- [ ] `PPCMovementLayerSystem`: camera-relative direction from input yaw; walk/run; acceleration,
-      deceleration, reverse deceleration, `maxAcceleration` clamp
-- [ ] Slope alignment (project onto ground plane), max slope angle
-- [ ] Step handling using real capsule dimensions (fix the half-height bug)
-- [ ] Air control factor (new config value; defaults to current behaviour)
-- [ ] External horizontal absorption: air drag + ground friction on the delta between last target and actual velocity
+- [x] `PPCProbeSystem`: ground and ceiling use the Unity layout (centre ray plus a ring of 16), walls use
+      4 axis rays; returns normal, slope angle and ground entity; `MaxSlopeAngle`; layer masks from the
+      config; the character's own collider and triggers are ignored (`PPCProbe.Raycast`).
+      **Fixed:** probe lengths follow the *current* capsule half-height, so they don't grow when crouched.
+- [x] `PPCMovementLayerSystem`: camera-relative direction from `Input.LookYaw`; walk/run; acceleration,
+      deceleration, faster reversal (dot < −0.1); `MaxVelocityChange` clamp; accelerates in the
+      platform's frame (ready for Phase 5)
+- [x] Slope alignment (ray ahead, project onto the ground plane, blend by `SlopeAlignmentStrength`).
+      Behaviour tests with gravity are in Phase 3.
+- [x] Steps: **fixed** to use the real capsule height (Unity hard-coded 1 m), plus a 1 cm minimum so
+      flat ground never causes tiny lifts, and a walkable-slope check on the step top
+- [x] Air control: `Movement.AirControl` (default 1 = Unity behaviour)
+- [x] External horizontal absorption: deviation from last tick's contribution beyond
+      `ExternalAbsorbThreshold`; linear friction on the ground, exponential drag in the air
+- [x] `PPCStateSystem`: the Unity state machine (Climbing > Crouching > Jumping/Falling > Running/Walking/Idle)
 
-Checkpoint: walk/run on flat, slopes, stairs; blocked by walls; slides off too-steep slopes; a side impulse
-decays per config.
+Checkpoint: headless ✅ (`Phase2MovementTests`, 17): probes (grounded, airborne, too steep, ceiling,
+wall), walk/run speeds and acceleration, camera yaw, deceleration, faster reversal, walls block, no
+diagonal speed-up, low step climbed, tall step blocks, air control, ground/air kick absorption and decay.
 
 ### Phase 3 — Vertical layer, jump, ceilings
 

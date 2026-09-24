@@ -1,16 +1,30 @@
 namespace Quantum {
-  /// <summary>
-  /// Derives <see cref="PPCCharacter.State"/> from the controller's other components.
-  /// Phase 0 stub: the inputs it reads (ground probes, jump, crouch, climb) arrive in Phases 1–6.
-  /// </summary>
-  public unsafe class PPCStateSystem : SystemMainThreadFilter<PPCStateSystem.Filter> {
-    public struct Filter {
-      public EntityRef Entity;
-      public PPCCharacter* Character;
-    }
+  using Photon.Deterministic;
 
-    public override void Update(Frame f, ref Filter filter) {
-      filter.Character->State = PPCState.Idle;
+  /// <summary>
+  /// Derives <see cref="PPCCharacter.State"/>, ported from the Unity PlayerController state machine.
+  /// Priority: Climbing, Crouching, airborne (Jumping/Falling), then Running/Walking/Idle.
+  /// </summary>
+  public unsafe class PPCStateSystem : PPCSystemBase {
+    static readonly FP MovingSpeed = FP._0_10;
+
+    protected override void Update(Frame f, ref PPCFilter filter, PPCConfig config) {
+      var c = filter.Character;
+      var velocity = filter.Body->Velocity;
+
+      PPCState state;
+      if (c->Climb.IsClimbing) {
+        state = PPCState.Climbing;
+      } else if (c->Crouch.IsCrouching) {
+        state = PPCState.Crouching;
+      } else if (!c->Ground.IsGrounded) {
+        state = velocity.Y > FP._0 || c->Jump.IsJumping ? PPCState.Jumping : PPCState.Falling;
+      } else if (new FPVector3(velocity.X, 0, velocity.Z).Magnitude > MovingSpeed) {
+        state = c->Input.Run ? PPCState.Running : PPCState.Walking;
+      } else {
+        state = PPCState.Idle;
+      }
+      c->State = state;
     }
   }
 }

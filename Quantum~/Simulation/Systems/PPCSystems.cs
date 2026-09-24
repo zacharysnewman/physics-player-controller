@@ -8,6 +8,8 @@ namespace Quantum {
     public static void AddTo(SystemsConfig config) {
       config.AddSystem<PPCSetupSystem>();
       config.AddSystem<PPCInputSystem>();
+      config.AddSystem<PPCProbeSystem>();
+      config.AddSystem<PPCMovementLayerSystem>();
       config.AddSystem<PPCAggregateSystem>();
       config.AddSystem<PPCStateSystem>();
     }

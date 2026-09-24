@@ -27,9 +27,9 @@ namespace PPC.Tests {
 
     public static AssetRef<PPCConfig> ConfigRef => new AssetRef<PPCConfig>(new AssetGuid(ConfigGuid));
 
-    /// <summary>Spawns a character whose capsule bottom rests at <paramref name="feet"/>.</summary>
+    /// <summary>Spawns a character (driven by player 0 unless told otherwise) whose feet rest at <paramref name="feet"/>.</summary>
     public static EntityRef SpawnCharacter(Frame f, FPVector3 feet, PlayerRef? player = null) =>
-      PPCSpawn.Character(f, ConfigRef, feet, player: player ?? default);
+      PPCSpawn.Character(f, ConfigRef, feet, player: player ?? (PlayerRef)0);
 
     /// <summary>Kinematic box whose top face is at <paramref name="topY"/>.</summary>
     public static EntityRef Box(Frame f, FPVector3 center, FPVector3 halfExtents) {

@@ -10,7 +10,7 @@ gate** (`Tests~/build.sh`: CodeGen, compile, tests; runs in the cloud) and the *
 |---|---|---|---|
 | 0 — Spikes & validation | ✅ 10/10 tests (Debug + Release) | ⏳ git install + CodeGen in `Packages/` | Package route chosen |
 | 1 — Skeleton | ✅ | ⏳ | Single `PPCConfig`; code spawning |
-| 2 — Probes & horizontal movement | — | — | |
+| 2 — Probes & horizontal movement | ✅ | ⏳ | Probe-length and step-height bugs fixed |
 | 3 — Vertical layer, jump, ceilings | — | — | |
 | 4 — Crouch | — | — | |
 | 5 — Moving platforms & external forces | — | — | |
@@ -19,6 +19,12 @@ gate** (`Tests~/build.sh`: CodeGen, compile, tests; runs in the cloud) and the *
 | 8 — Hardening & release | — | — | |
 
 Harness SDK: Quantum **3.0.0** Stable 1548 (`quantum-sdk-libs`). Package target: **3.0.13**.
+
+## Phase 2 — Probes & horizontal movement ✅
+
+- `PPCProbe`, `PPCProbeSystem`, `PPCMovementLayerSystem`, full `PPCStateSystem`.
+- Tests: `Phase2MovementTests` (17). Harness: `HarnessKickSystem` for scheduled external impulses.
+- Fixed from EVALUATION/BUGS: probe lengths follow the crouched height; step height uses the real capsule.
 
 ## Phase 1 — Skeleton ✅
 
