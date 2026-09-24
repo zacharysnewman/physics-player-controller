@@ -25,6 +25,9 @@ before the package has real simulation code. It never ships.
 
 ## Requirements
 
+In Claude Code cloud sessions, `.claude/hooks/session-start.sh` handles both requirements below
+automatically. It needs `quantum-sdk-libs` attached to the session or environment so it can clone it.
+
 ### .NET 8 SDK
 
 On Ubuntu 24.04 (including Claude Code cloud sessions), the Ubuntu archive has it:
