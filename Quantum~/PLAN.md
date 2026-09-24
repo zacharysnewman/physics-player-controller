@@ -156,7 +156,11 @@ Goal: prove the packaging and the risky APIs before writing real code.
       assembly GUIDs; `PPC.qtn` (`PPCState`, `PPCCharacter`); `PPCSystems.AddTo`; stub `PPCStateSystem`
 - [x] `.meta` files for everything Unity imports (git packages are read-only), enforced by
       `Tests~/Tools/check-metas.sh` in `build.sh`. `.qtn` metas point at the SDK's `QuantumQtnAssetImporter`.
-- [ ] **Verify in Unity:** git install with `?path=/Quantum~` works *(needs Unity; the only open item)*
+- [ ] **Verify in Unity:** git install with `?path=/Quantum~` works *(needs Unity; the only open item)*.
+      Unity's docs (via search; docs.unity3d.com is blocked here) confirm `?path=` must be repo-relative,
+      point at the folder holding `package.json`, and come before `#revision`, which our URL does.
+      Whether the folder may end in `~` is undocumented. Unity copies the subfolder into
+      `Library/PackageCache/<name>@<hash>`, so it should work, but it's unconfirmed.
 - [x] **Verify:** Quantum CodeGen picks up `.qtn` files inside `Packages/`: the SDK's
       `QuantumCodeGenQtn.Run()` finds them with `AssetDatabase.FindAssets("t:QuantumQtnAsset")`, which
       includes packages. Confirm in the same Unity check.
@@ -169,6 +173,20 @@ Goal: prove the packaging and the risky APIs before writing real code.
       `Shape3D.CreateCapsule(radius, extent)`.
 - [x] **Decide:** package route (`Quantum~` as its own UPM package). Nothing found so far rules it out;
       the drop-in folder remains the fallback if the Unity check fails.
+
+Findings from Photon's docs, release notes and the SDK source that shape later phases:
+- **Precedent:** Photon's KCC addon joins Quantum's assemblies with `.asmref` files the same way, and
+  since 3.0.5 the Quantum SDK itself can run as a local UPM package.
+- **Prototype MonoBehaviours:** CodeGen emits a Unity component per DSL component (`QPrototypePPCCharacter`)
+  into the *user's* `QuantumUser/View/Generated`, so its script GUID differs per project and prefabs
+  shipped by the package would break. The KCC addon hit this and now ships its generated prototype
+  scripts with fixed GUIDs (KCC 3.0.3 notes). Undocumented DSL controls, confirmed by running the
+  generator here: `[CodeGen(NoUnityPrototypeWrapper)]` suppresses the component, and
+  `[CodeGen(UnityWrapperFolder, "path")]` redirects it. In 3.1 these become `[CodeGen(NoMonoBehaviour)]`.
+  → Decide in Phase 1 (see below).
+- **Asset search paths:** Quantum's asset database only indexes `QuantumEditorSettings.AssetSearchPaths`,
+  which defaults to `["Assets"]`. Quantum assets (configs) shipped inside the package would be invisible.
+  → Ship config assets in `Samples~` (imported into `Assets/`), not in the package body.
 
 Headless setup findings (details in `Tests~/README.md`):
 - A session needs, in code: `SimulationConfig` (entity capacities, 32 physics layers + collision matrix,
@@ -188,6 +206,11 @@ fresh Quantum 3.0.13 project via git URL, CodeGen picks up `PPC.qtn`, and a `PPC
       `ISignalOnPlayerAdded` spawn example in the sample
 - [ ] Sample `input.qtn` + `PPCInputPoller` (Unity Input System → `Input`), including camera yaw
 - [ ] `PPCAggregateSystem` driving a constant zero target velocity; body with gravity disabled
+- [ ] **Decide** prototype MonoBehaviours (Phase 0 finding): ship them in `View/Generated` with fixed GUIDs
+      plus `[CodeGen(NoUnityPrototypeWrapper)]` on package components (recommended; what the KCC does),
+      with a harness check that the shipped files match what CodeGen would emit. Otherwise, let each
+      project generate them and keep package prefabs out of the package.
+- [ ] Default config assets live in `Samples~/Playground`, because of `AssetSearchPaths`
 - [ ] **Decide** the drive method: impulse `(target − v)·mass` vs. direct `body->Velocity = target`. Test both
       against other dynamic bodies (does the character still push/get pushed?)
 

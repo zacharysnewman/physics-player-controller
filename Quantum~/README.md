@@ -5,7 +5,7 @@ dynamic-body character controller driven by velocity layers, as an alternative t
 kinematic KCC addon.
 
 > **Status: preview, Phase 0.** Only the package skeleton exists. See [PLAN.md](PLAN.md) for the
-> roadmap.
+> roadmap and [PROGRESS.md](PROGRESS.md) for status.
 
 ## Requirements
 
