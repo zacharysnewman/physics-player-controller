@@ -20,7 +20,7 @@ namespace PPC.Tests {
     public const int ScenarioPlayers = 4;
 
     /// <summary>Floor, ramp, step, low bar, ladder to a ledge, a moving platform and an explosion.</summary>
-    static void ScenarioWorld(Frame f) {
+    internal static void ScenarioWorld(Frame f) {
       Floor(f, 0);
       var ramp = Box(f, new FPVector3(-6, 0, 6), new FPVector3(2, FP._0_50, 5));
       f.Unsafe.GetPointer<Transform3D>(ramp)->Rotation = FPQuaternion.Euler(-20, 0, 0);
@@ -44,7 +44,7 @@ namespace PPC.Tests {
     }
 
     /// <summary>Different deterministic input scripts per player, exercising every action.</summary>
-    static Quantum.Input ScenarioInput(int tick, int player) {
+    internal static Quantum.Input ScenarioInput(int tick, int player) {
       var phase = (tick / 40 + player) % 6;
       var yaw = (FP)((tick * (player + 1)) % 360);
       return phase switch {
