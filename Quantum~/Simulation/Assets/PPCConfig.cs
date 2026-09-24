@@ -69,6 +69,8 @@ namespace Quantum {
       public FP AirExternalDrag = FP._0_50;
       [Tooltip("Linear deceleration of external horizontal velocity while grounded (m/s²).")]
       public FP GroundExternalFriction = 15;
+      [Tooltip("Standing on another character moves you with it, like a moving platform. Off: you can stand on heads, but they move out from under you.")]
+      public bool CarriedByCharacters = false;
     }
 
     [Serializable]

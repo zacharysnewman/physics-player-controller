@@ -36,7 +36,11 @@ namespace Quantum {
 
       FPVector3 velocity;
       FP yawDelta;
-      if (f.Unsafe.TryGetPointer<PhysicsBody3D>(ground, out var body) && !body->IsKinematic) {
+      if (!config.Movement.CarriedByCharacters && f.Has<PPCCharacter>(ground)) {
+        // Standing on another character: solid ground, but it doesn't carry you.
+        velocity = FPVector3.Zero;
+        yawDelta = FP._0;
+      } else if (f.Unsafe.TryGetPointer<PhysicsBody3D>(ground, out var body) && !body->IsKinematic) {
         var r = characterPosition - platform->Position;
         velocity = body->Velocity + FPVector3.Cross(body->AngularVelocity, r);
         yawDelta = body->AngularVelocity.Y * dt * FP.Rad2Deg;
