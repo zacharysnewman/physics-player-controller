@@ -24,6 +24,15 @@ namespace Quantum {
       var dt = f.DeltaTime;
       var grounded = c->Ground.IsGrounded;
 
+      if (c->Climb.IsClimbing) {
+        // Exclusive climb layer is driving: hold, with the climb velocity as the baseline so letting
+        // go doesn't look like an external force.
+        h->Current = FPVector3.Zero;
+        h->External = FPVector3.Zero;
+        h->LastContribution = Flat(c->Climb.Velocity);
+        return;
+      }
+
       // External forces: whatever moved the body away from what we drove it towards last tick.
       var actual = Flat(filter.Body->Velocity);
       var externalDelta = actual - h->LastContribution;

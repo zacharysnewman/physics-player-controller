@@ -72,6 +72,7 @@ struct PPCClimbState {
   Boolean IsClimbing;
   EntityRef Ladder;
   FPVector3 Velocity;
+  EntityRef Released;          // ladder just let go of; not re-grabbed until the character leaves it
 }
 
 struct PPCPlatformState {

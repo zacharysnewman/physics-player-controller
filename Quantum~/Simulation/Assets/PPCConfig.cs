@@ -96,6 +96,10 @@ namespace Quantum {
     [Serializable]
     public class ClimbSettings {
       public FP Speed = 3;
+      [Tooltip("Layers searched for ladder triggers (entities with a PPCLadder component).")]
+      public int LayerMask = -1;
+      [Tooltip("Looking down more than this (degrees) makes forward input climb down. The Unity version flipped at exactly level.")]
+      public FP LookDownThreshold = 30;
       [Tooltip("Velocity applied when jumping off a ladder: Y = up, Z = away from the ladder (m/s).")]
       public FPVector3 JumpOffVelocity = new FPVector3(0, 4, 3);
       [Tooltip("How strongly the character is pulled onto the ladder's centre line (1/s). 0 = off.")]

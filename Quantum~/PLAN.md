@@ -314,14 +314,22 @@ carry without drift, walking is platform-relative, rotating disc carries around 
 reports yaw, elevator up and down stays grounded, jump-off keeps momentum, explosion pushes only
 nearby characters.
 
-### Phase 6 — Ladder climbing
+### Phase 6 — Ladder climbing ✅
 
-- [ ] Ladder detection (trigger signals or overlap query, config layer mask)
-- [ ] Exclusive climb layer: vertical from move input, horizontal suppressed
-- [ ] Snap to ladder face; exit at top/bottom; jump-off with configurable launch impulse
-- [ ] Events: `PPCClimbStarted`, `PPCClimbEnded`
+- [x] Ladder detection by component: a trigger collider on an entity with `PPCLadder` (overlap query each
+      tick, `Climb.LayerMask`). A ladder you let go of isn't re-grabbed until you've left it (Unity got
+      this from `OnTriggerEnter` semantics).
+- [x] Exclusive climb layer: forward/back climbs, strafing moves sideways; the other layers hold,
+      with the climb velocity as their baseline so letting go isn't treated as an external force
+- [x] **Fixed:** snap to the ladder face (`SnapStrength`, along the ladder's facing axis); jump-off
+      launch (`JumpOffVelocity`, up and away); look-down reversal needs `LookDownThreshold` (30°)
+      instead of flipping at level. The unused `playerToLadder` doesn't exist here.
+- [x] Let go on jump, on reaching the ground from above, or on leaving the volume (over the top).
+      Events `PPCClimbStarted` and `PPCClimbEnded`.
 
-Checkpoint: climb up/down, dismount at top onto a ledge, jump off sideways.
+Checkpoint: headless ✅ (`Phase6ClimbTests`, 8): grab and hold height, climb speed with face snap,
+look-down reversal, a slight glance down doesn't reverse, strafe, jump-off launches away without
+re-grabbing, climbing down to the floor lets go, climbing over the top lands on the ledge.
 
 ### Phase 7 — View layer
 

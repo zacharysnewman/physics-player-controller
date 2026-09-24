@@ -14,11 +14,16 @@ gate** (`Tests~/build.sh`: CodeGen, compile, tests; runs in the cloud) and the *
 | 3 — Vertical layer, jump, ceilings | ✅ | ⏳ | Double jump fixed; ground following + snap |
 | 4 — Crouch | ✅ | ⏳ | Landing-centre bug fixed |
 | 5 — Moving platforms & external forces | ✅ | ⏳ | Transform-delta for kinematic platforms |
-| 6 — Ladder climbing | — | — | |
+| 6 — Ladder climbing | ✅ | ⏳ | Snap, jump-off, look-down threshold fixed |
 | 7 — View layer | — | — | |
 | 8 — Hardening & release | — | — | |
 
 Harness SDK: Quantum **3.0.0** Stable 1548 (`quantum-sdk-libs`). Package target: **3.0.13**.
+
+## Phase 6 — Ladder climbing ✅
+
+- `PPCClimbSystem` (exclusive layer); `PPCLadder` component. Tests: `Phase6ClimbTests` (8).
+- Fixed from EVALUATION: face snapping, jump-off launch, look-down hair trigger.
 
 ## Phase 5 — Moving platforms & external forces ✅
 

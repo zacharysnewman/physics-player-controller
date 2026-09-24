@@ -23,6 +23,14 @@ namespace Quantum {
       var gravity = f.PhysicsSceneSettings->Gravity.Y * config.Body.GravityScale;
       var bodyY = filter.Body->Velocity.Y;
 
+      if (c->Climb.IsClimbing) {
+        // Exclusive climb layer is driving (see PPCMovementLayerSystem).
+        v->AccumulatedY = FP._0;
+        v->IsGrounded = c->Ground.IsGrounded;
+        v->LastTargetY = c->Climb.Velocity.Y;
+        return;
+      }
+
       // Platform vertical velocity (PPCPlatformSystem).
       v->LastPlatformY = v->PlatformY;
       v->PlatformY = c->Platform.BaseVelocity.Y;
