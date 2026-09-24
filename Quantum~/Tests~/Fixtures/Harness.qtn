@@ -1,0 +1,10 @@
+// Harness-only DSL. Plays the role of "the game" that imports the package:
+// Quantum allows a single global `input`, so the package never defines one; games (and this
+// harness) do.
+input {
+  FPVector2 Move;
+  FP LookYaw;
+  button Jump;
+  button Run;
+  button Crouch;
+}
