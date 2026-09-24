@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Compiles the package's deterministic simulation code outside Unity, the same way
+    Quantum's "Export Dotnet Project" does: SDK core simulation sources + CodeGen output
+    + everything under Quantum~/Simulation, against the non-Unity Quantum libraries.
+    Driven by ../build.sh, which supplies QuantumSdkDir, QuantumLibDir and GeneratedDir.
+  -->
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <!-- Match Unity's C# version so we don't use syntax Unity can't compile. -->
+    <LangVersion>9</LangVersion>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <AssemblyName>Quantum.Simulation</AssemblyName>
+    <DefineConstants>$(DefineConstants);QUANTUM_DOTNET</DefineConstants>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <NoWarn>$(NoWarn);CS0162;CS0414;CS0649;CS0169;CS0067</NoWarn>
+    <PackageRoot>$(MSBuildThisFileDirectory)../..</PackageRoot>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="$(QuantumSdkDir)/Simulation/**/*.cs" />
+    <Compile Include="$(GeneratedDir)/*.cs" />
+    <Compile Include="$(PackageRoot)/Simulation/**/*.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)../Fixtures/**/*.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="$(QuantumLibDir)/Quantum.Engine.dll" />
+    <Reference Include="$(QuantumLibDir)/Quantum.Deterministic.dll" />
+    <Reference Include="$(QuantumLibDir)/Quantum.Log.dll" />
+    <Reference Include="$(QuantumLibDir)/Quantum.Json.dll" />
+  </ItemGroup>
+</Project>

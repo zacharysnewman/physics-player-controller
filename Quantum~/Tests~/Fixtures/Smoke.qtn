@@ -1,0 +1,5 @@
+// Harness smoke test: proves CodeGen + compilation work before any real package code exists.
+component PPCHarnessSmoke {
+  FP Speed;
+  FPVector3 Velocity;
+}

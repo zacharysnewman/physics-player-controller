@@ -36,8 +36,9 @@ physics-player-controller/          ← existing package: com.zacharysnewman.ppc
     │   ├── Animation/
     │   └── Debug/
     ├── Editor/                     ← optional, joins Quantum.Unity.Editor
-    └── Samples~/
-        └── Playground/             ← test scene, prototypes, configs, sample input.qtn
+    ├── Samples~/
+    │   └── Playground/             ← test scene, prototypes, configs, sample input.qtn
+    └── Tests~/                     ← headless .NET harness (CodeGen + compile + tests), never shipped
 ```
 
 - The trailing `~` makes Unity ignore the folder when the **root** package is imported, so non-Quantum users
@@ -128,24 +129,42 @@ Exact placement relative to the core physics systems is decided in Phase 0/1 (pr
 
 ## Phases
 
-Every phase ends with a **checkpoint in Unity** (I can't compile or run Quantum in the cloud
-container — the SDK is an account-gated download). A checkpoint is: compiles cleanly, no Quantum
-determinism warnings, the listed behaviours are verified in the Playground scene.
+Every phase has two gates:
+
+1. **Headless gate (automated, runs in the cloud):** `Quantum~/Tests~/build.sh` generates code from the
+   `.qtn` files and compiles the simulation against the Quantum libraries, with no Unity involved
+   (see `Tests~/README.md`). Once Phase 0 adds a headless runner, this gate also runs the phase's
+   behaviour tests and a determinism check.
+2. **Unity checkpoint (manual):** imports cleanly, no Quantum determinism warnings, and the listed
+   behaviours are verified in the Playground scene. Only needed for what the headless gate can't
+   cover: view code, prefabs, feel.
+
+The headless harness currently builds against SDK **3.0.0** (from the private `quantum-sdk-libs`
+repo), while the package targets **3.0.13**. The Unity checkpoint is where 3.0.13 gets checked.
 
 ### Phase 0 — Spikes & validation *(small; unblocks everything)*
 
 Goal: prove the packaging and the risky APIs before writing real code.
 
+- [x] Headless build harness: `.qtn` CodeGen + simulation compile via .NET (`Tests~/build.sh`)
+- [ ] Headless runner: start a local session from the dotnet libraries, step N ticks with scripted input,
+      read component state back; compare checksums of two identical runs (determinism)
 - [ ] Create `Quantum~/package.json` (`com.zacharysnewman.ppc.quantum`, Unity 2021.3+ or whatever 3.0.13 requires)
 - [ ] Minimal `.asmref` → `Quantum.Simulation`, one `.qtn` with a dummy component, one empty system
 - [ ] **Verify:** git install with `?path=/Quantum~` works
-- [ ] **Verify:** Quantum CodeGen picks up `.qtn` files inside `Packages/` (not just `Assets/`)
-- [ ] **Verify:** generated code lands somewhere sensible (it may write into `Assets/QuantumUser/.../Generated`)
-- [ ] **Verify API names** on 3.0.13: `PhysicsBody3D` rotation-freeze flags, gravity scale, `IsKinematic`,
-      `AddLinearImpulse`, `Velocity`; runtime `collider->Shape` swap + `ResetCenterOfMass` → `ResetInertia`
+- [x] **Verify:** Quantum CodeGen picks up `.qtn` files inside `Packages/` — likely yes: the SDK's
+      `QuantumCodeGenQtn.Run()` finds them with `AssetDatabase.FindAssets("t:QuantumQtnAsset")`, which
+      includes packages. Confirm at the Unity checkpoint.
+- [x] **Verify:** where generated code lands — all `.qtn` files are generated together into
+      `Assets/QuantumUser/Simulation/Generated` (plus `View/Generated`). So the package ships only `.qtn`
+      and C#, and each project regenerates the code itself.
+- [ ] **Verify API names** (compile-check headlessly on 3.0.0, confirm on 3.0.13): `PhysicsBody3D`
+      rotation-freeze flags, gravity scale, `IsKinematic`, `AddLinearImpulse`, `Velocity`; runtime
+      `collider->Shape` swap + `ResetCenterOfMass` → `ResetInertia`
 - [ ] **Decide:** package route vs. drop-in fallback. Record the decision in this file.
 
-Checkpoint: empty package imports into a fresh Quantum 3.0.13 project and the dummy system ticks.
+Checkpoint: headless gate green; empty package imports into a fresh Quantum 3.0.13 project and the
+dummy system ticks.
 
 ### Phase 1 — Skeleton *(entity spawns and stands still)*
 
@@ -253,7 +272,8 @@ lag simulation tools).
 | Probe timing relative to the physics step | Try before-physics first; move to after-physics if grounding flickers |
 | Global `input` struct collision | `PPCInput` + mapping hook; sample ships an `input.qtn` |
 | API drift between 3.0.x patch releases | Pin to 3.0.13 in README; note the minimum version |
-| No compile/test in cloud | Unity checkpoint at the end of every phase |
+| Headless harness uses SDK 3.0.0, package targets 3.0.13 | Unity checkpoint every phase; add `3.0.13/` to `quantum-sdk-libs` when available |
+| Headless gate can't cover view code, prefabs or feel | Unity checkpoint at the end of every phase |
 
 ---
 
