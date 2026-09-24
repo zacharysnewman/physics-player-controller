@@ -42,6 +42,14 @@ namespace PPC.Tests {
       return max;
     }
 
+    /// <summary>Height of the capsule bottom (default config: half height 1 standing, 0.5 crouched).</summary>
+    public static float Feet(this HeadlessSession s, EntityRef e) =>
+      (s.Position(e).Y - (s.Character(e).Crouch.IsCrouching ? FP._0_50 : FP._1)).AsFloat;
+
+    /// <summary>Top of the capsule.</summary>
+    public static float Head(this HeadlessSession s, EntityRef e) =>
+      (s.Position(e).Y + (s.Character(e).Crouch.IsCrouching ? FP._0_50 : FP._1)).AsFloat;
+
     /// <summary>Seconds → ticks at the harness rate.</summary>
     public static int Ticks(float seconds) => (int)Math.Round(seconds * HeadlessSession.UpdateFps);
   }

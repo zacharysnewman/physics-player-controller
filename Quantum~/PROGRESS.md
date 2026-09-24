@@ -12,13 +12,17 @@ gate** (`Tests~/build.sh`: CodeGen, compile, tests; runs in the cloud) and the *
 | 1 — Skeleton | ✅ | ⏳ | Single `PPCConfig`; code spawning |
 | 2 — Probes & horizontal movement | ✅ | ⏳ | Probe-length and step-height bugs fixed |
 | 3 — Vertical layer, jump, ceilings | ✅ | ⏳ | Double jump fixed; ground following + snap |
-| 4 — Crouch | — | — | |
+| 4 — Crouch | ✅ | ⏳ | Landing-centre bug fixed |
 | 5 — Moving platforms & external forces | — | — | |
 | 6 — Ladder climbing | — | — | |
 | 7 — View layer | — | — | |
 | 8 — Hardening & release | — | — | |
 
 Harness SDK: Quantum **3.0.0** Stable 1548 (`quantum-sdk-libs`). Package target: **3.0.13**.
+
+## Phase 4 — Crouch ✅
+
+- `PPCCrouchSystem`. Tests: `Phase4CrouchTests` (9). Fixed: mid-air crouch capsule centre after landing.
 
 ## Phase 3 — Vertical layer, jump, ceilings ✅
 

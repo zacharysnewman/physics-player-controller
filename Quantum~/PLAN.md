@@ -275,16 +275,23 @@ hop while held, buffered press, too-early press forgotten, coyote jump, coyote e
 ceiling stops the jump, launch pad, jump during a launch keeps the larger velocity, ramp up and down
 stays grounded with the along-slope speed.
 
-### Phase 4 — Crouch
+### Phase 4 — Crouch ✅
 
-- [ ] `PPCCrouchSystem`: toggle/hold from input; swap capsule shape (`collider->Shape`) then
-      `ResetCenterOfMass` → `ResetInertia`
-- [ ] Keep feet planted when shrinking on ground; shrink toward the head in mid-air (fix landing-centre bug)
-- [ ] Stand-up blocked by ceiling (overlap check)
-- [ ] Speed multiplier into the movement layer; mid-air crouch boost
+- [x] `PPCCrouchSystem`: hold-to-crouch like Unity (press crouches, release stands when there's room);
+      capsule shape swap, then `ResetCenterOfMass` → `ResetInertia`
+- [x] Feet stay planted when crouching on the ground; in mid-air the capsule shrinks towards the head.
+      **Fixed** the landing bug: the capsule is always centred on the entity (the entity moves by the
+      height difference), and standing up grows from the feet when grounded, or down first then up in
+      the air.
+- [x] Stand-up check: overlap test of a slightly slimmer standing capsule (more robust than Unity's
+      ceiling rays)
+- [x] Speed multiplier `Crouch.Speed / WalkSpeed`; `Crouch.MidAirBoost`; `PPCCrouchChanged` event
+- Note: the Unity version lerped the capsule size over ~0.1 s. Here it changes in one tick (simulation
+  state should be discrete); the view can smooth the camera.
 
-Checkpoint: crouch under a low bar, can't stand up beneath it, crouch-jump reaches a higher ledge,
-capsule is correct after landing.
+Checkpoint: headless ✅ (`Phase4CrouchTests`, 9): feet planted, stands back up, slower crouch walk,
+blocked standing under a bar, stays crouched under it and stands once clear, mid-air tuck keeps the
+head, crouch jump gains ~1 m of clearance, mid-air boost, landing crouched then standing from the feet.
 
 ### Phase 5 — Moving platforms & external forces
 
