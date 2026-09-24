@@ -197,24 +197,33 @@ Headless setup findings (details in `Tests~/README.md`):
 Checkpoint: headless gate green ✅ (10/10 tests, Debug and Release). Unity: package imports into a
 fresh Quantum 3.0.13 project via git URL, CodeGen picks up `PPC.qtn`, and a `PPCCharacter` entity ticks.
 
-### Phase 1 — Skeleton *(entity spawns and stands still)*
+### Phase 1 — Skeleton ✅ *(entity spawns and stands still)*
 
-- [ ] DSL: `PPCCharacter` (config refs, state), `PPCInput` struct, `PPCVelocityAccumulator`, `PPCGroundState`
-- [ ] Config assets: `PPCMovementConfig`, `PPCJumpConfig`, `PPCCrouchConfig`, `PPCClimbConfig`,
-      `PPCProbeConfig` (was `GroundCheckerConfig`), all `FP`, same defaults as the Unity version
-- [ ] Spawning: entity prototype with `Transform3D` + `PhysicsCollider3D` (capsule) + `PhysicsBody3D` + `PPCCharacter`;
-      `ISignalOnPlayerAdded` spawn example in the sample
-- [ ] Sample `input.qtn` + `PPCInputPoller` (Unity Input System → `Input`), including camera yaw
-- [ ] `PPCAggregateSystem` driving a constant zero target velocity; body with gravity disabled
-- [ ] **Decide** prototype MonoBehaviours (Phase 0 finding): ship them in `View/Generated` with fixed GUIDs
-      plus `[CodeGen(NoUnityPrototypeWrapper)]` on package components (recommended; what the KCC does),
-      with a harness check that the shipped files match what CodeGen would emit. Otherwise, let each
-      project generate them and keep package prefabs out of the package.
-- [ ] Default config assets live in `Samples~/Playground`, because of `AssetSearchPaths`
-- [ ] **Decide** the drive method: impulse `(target − v)·mass` vs. direct `body->Velocity = target`. Test both
-      against other dynamic bodies (does the character still push/get pushed?)
+- [x] DSL (`PPC.qtn`): one `PPCCharacter` component holding the config ref, `PPCInput`, previous input,
+      state, and a section per layer (`Ground`, `Horizontal`, `Vertical`, `Jump`, `Crouch`, `Climb`,
+      `Platform`). All systems share one filter (`PPCFilter`). Runtime sections are
+      `[ExcludeFromPrototype]`, so the inspector only shows `Config`. Plus `PPCPlayerLink`, `PPCLadder`
+      and events (`PPCJumped`, `PPCLanded`, `PPCCrouchChanged`, `PPCClimbStarted`, `PPCClimbEnded`).
+- [x] Config: **one** `PPCConfig` asset with sections (`Body`, `Movement`, `Probes`, `Jump`, `Crouch`,
+      `Climb`, `Platforms`) mirroring the Unity ScriptableObjects and their defaults. One asset ref per
+      character instead of five.
+- [x] Input: `PPCInputBridge` partial hook, implemented by the game in the same assembly (the harness
+      fixture does this). Unlinked characters (bots) take `PPCCharacter.Input` as written.
+- [x] Spawning: `PPCSetupSystem` (`ISignalOnComponentAdded<PPCCharacter>`) builds the dynamic body
+      (rotation frozen, gravity 0, no sleeping) and capsule from the config, so prototypes only need
+      `PPCCharacter`. `PPCSpawn.Character(...)` spawns from code with an optional player and view.
+- [x] `PPCAggregateSystem` sums the layers (or the exclusive climb layer) and drives the body.
+- [x] **Decided** the drive method: direct `body->Velocity = target` (equivalent to Unity's
+      `AddForce(Δv/dt, Acceleration)`). Other bodies still push the character (tested).
+- [x] **Decided** prototype MonoBehaviours: each project generates its own. Shipping them means also
+      shipping the generated adapter class, because `NoUnityPrototypeWrapper` suppresses that too
+      (found by running the generator), and keeping extracted generated code in sync. Nothing in the
+      package references them: the sample spawns from code, and entity view prefabs don't need them.
+- [ ] Default config asset in `Samples~/Playground` (because of `AssetSearchPaths`), in Phase 7
+- [ ] Sample `input.qtn` + Unity input poller, in Phase 7 (view code)
 
-Checkpoint: character spawns, stands on the floor, doesn't tip, doesn't drift; a thrown box can nudge it.
+Checkpoint: headless ✅ (`Phase1SkeletonTests`): configured from config, stands still on the floor
+without tipping or drifting, input arrives through the bridge, a heavy box pushes it.
 
 ### Phase 2 — Probes & horizontal movement
 

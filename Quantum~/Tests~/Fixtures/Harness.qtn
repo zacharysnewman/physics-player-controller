@@ -4,6 +4,7 @@
 input {
   FPVector2 Move;
   FP LookYaw;
+  FP LookPitch;
   button Jump;
   button Run;
   button Crouch;

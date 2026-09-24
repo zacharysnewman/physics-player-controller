@@ -9,7 +9,7 @@ gate** (`Tests~/build.sh`: CodeGen, compile, tests; runs in the cloud) and the *
 | Phase | Headless gate | Unity checkpoint | Notes |
 |---|---|---|---|
 | 0 — Spikes & validation | ✅ 10/10 tests (Debug + Release) | ⏳ git install + CodeGen in `Packages/` | Package route chosen |
-| 1 — Skeleton | — | — | Next |
+| 1 — Skeleton | ✅ | ⏳ | Single `PPCConfig`; code spawning |
 | 2 — Probes & horizontal movement | — | — | |
 | 3 — Vertical layer, jump, ceilings | — | — | |
 | 4 — Crouch | — | — | |
@@ -19,6 +19,13 @@ gate** (`Tests~/build.sh`: CodeGen, compile, tests; runs in the cloud) and the *
 | 8 — Hardening & release | — | — | |
 
 Harness SDK: Quantum **3.0.0** Stable 1548 (`quantum-sdk-libs`). Package target: **3.0.13**.
+
+## Phase 1 — Skeleton ✅
+
+- DSL, `PPCConfig`, `PPCInputBridge`, `PPCSetupSystem`, `PPCSpawn`, `PPCInputSystem`, `PPCAggregateSystem`.
+- Tests: `Phase1SkeletonTests` (4) plus updated `PackageTests`.
+- Decisions: direct velocity drive; one config asset; per-project prototype scripts with code spawning.
+  See PLAN.md.
 
 ## Phase 0 — Spikes & validation
 

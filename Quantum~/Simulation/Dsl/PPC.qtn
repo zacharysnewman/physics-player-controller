@@ -1,5 +1,6 @@
 // Physics Player Controller — simulation state.
-// Note: the package never defines `input`; Quantum allows only one per game (see PLAN.md).
+// The package never defines `input`; Quantum allows only one per game. Games feed PPCInput through
+// PPCInputBridge (see PPCInputBridge.cs) or write PPCCharacter.Input directly (e.g. bots).
 
 enum PPCState {
   Idle,
@@ -12,6 +13,117 @@ enum PPCState {
   Climbing
 }
 
+// Control input for one tick. Buttons are held state; systems detect presses by comparing with the
+// previous tick.
+struct PPCInput {
+  FPVector2 Move;      // x = right, y = forward (camera-relative), length <= 1
+  FP LookYaw;          // camera yaw in degrees (world space)
+  FP LookPitch;        // camera pitch in degrees, positive = looking up
+  Boolean Jump;
+  Boolean Run;
+  Boolean Crouch;
+}
+
+// Probe results (PPCProbeSystem).
+struct PPCGroundInfo {
+  Boolean IsGrounded;
+  Boolean WasGrounded;
+  FPVector3 Normal;
+  FP SlopeAngle;
+  EntityRef Entity;
+  Boolean IsCeilingBlocked;
+  Boolean IsTouchingWall;
+  FPVector3 WallNormal;
+}
+
+// Horizontal velocity layer (PPCMovementLayerSystem).
+struct PPCHorizontalLayer {
+  FPVector3 Current;           // player-driven horizontal velocity
+  FPVector3 External;          // absorbed external horizontal velocity (explosions, pushes)
+  FPVector3 LastContribution;  // what this layer drove the body towards last tick
+  FPVector3 Target;            // requested velocity (debug / animation)
+  FP SpeedMultiplier;          // crouch slows this down
+}
+
+// Vertical velocity layer (PPCVerticalLayerSystem).
+struct PPCVerticalLayer {
+  FP AccumulatedY;
+  FP PlatformY;
+  FP LastPlatformY;
+  FP LastTargetY;
+  Boolean IsGrounded;
+}
+
+struct PPCJumpState {
+  FP BufferTimer;
+  FP CoyoteTimer;
+  Boolean IsJumping;
+  Boolean JumpedThisAirtime;   // blocks coyote jumps after a real jump
+  Boolean JumpedThisTick;
+}
+
+struct PPCCrouchState {
+  Boolean IsCrouching;
+}
+
+// Exclusive climb layer (PPCClimbSystem): while climbing it replaces all other layers.
+struct PPCClimbState {
+  Boolean IsClimbing;
+  EntityRef Ladder;
+  FPVector3 Velocity;
+}
+
+struct PPCPlatformState {
+  EntityRef Entity;
+  FPVector3 PreviousPosition;
+  FPQuaternion PreviousRotation;
+  FPVector3 BaseVelocity;
+  FP YawDelta;                 // platform yaw change this tick (degrees), for the camera
+}
+
 component PPCCharacter {
-  PPCState State;
+  AssetRef<PPCConfig> Config;
+  [ExcludeFromPrototype] PPCInput Input;
+  [ExcludeFromPrototype] PPCInput PreviousInput;
+  [ExcludeFromPrototype] PPCState State;
+  [ExcludeFromPrototype] PPCGroundInfo Ground;
+  [ExcludeFromPrototype] PPCHorizontalLayer Horizontal;
+  [ExcludeFromPrototype] PPCVerticalLayer Vertical;
+  [ExcludeFromPrototype] PPCJumpState Jump;
+  [ExcludeFromPrototype] PPCCrouchState Crouch;
+  [ExcludeFromPrototype] PPCClimbState Climb;
+  [ExcludeFromPrototype] PPCPlatformState Platform;
+  [ExcludeFromPrototype] FPVector3 TargetVelocity;   // final velocity the body was driven towards
+}
+
+// Links a character to the player whose input drives it.
+component PPCPlayerLink {
+  PlayerRef Player;
+}
+
+// Marks a trigger collider as a ladder (PPCClimbSystem).
+component PPCLadder {
+}
+
+event PPCJumped {
+  EntityRef Entity;
+}
+
+event PPCLanded {
+  EntityRef Entity;
+  FP ImpactSpeed;
+}
+
+event PPCCrouchChanged {
+  EntityRef Entity;
+  Boolean IsCrouching;
+}
+
+event PPCClimbStarted {
+  EntityRef Entity;
+  EntityRef Ladder;
+}
+
+event PPCClimbEnded {
+  EntityRef Entity;
 }

@@ -29,7 +29,8 @@ namespace PPC.Tests {
     /// <param name="input">Scripted input: (tick, player) → input.</param>
     /// <param name="configureSystems">Adds the systems under test; core systems are added first.</param>
     public HeadlessSession(Action<Frame> setup, Func<int, int, Quantum.Input> input = null,
-                           Action<SystemsConfig> configureSystems = null, int playerCount = 1, int seed = 0) {
+                           Action<SystemsConfig> configureSystems = null, int playerCount = 1, int seed = 0,
+                           params AssetObject[] extraAssets) {
       EnsureLut();
       _input = input;
 
@@ -65,8 +66,9 @@ namespace PPC.Tests {
       var map = AssetObject.Create<Map>();
       Identify(map, 3, "Harness/Map");
 
-      _resources = new ResourceManagerStatic(new AssetObject[] { simulationConfig, systemsConfig, map, physicsMaterial },
-                                             DotNetRunnerFactory.CreateNativeAllocator(), true);
+      var assets = new List<AssetObject> { simulationConfig, systemsConfig, map, physicsMaterial };
+      assets.AddRange(extraAssets);
+      _resources = new ResourceManagerStatic(assets.ToArray(), DotNetRunnerFactory.CreateNativeAllocator(), true);
 
       var callbacks = new CallbackDispatcher();
       callbacks.Subscribe(this, (CallbackPollInput c) => {
@@ -132,7 +134,7 @@ namespace PPC.Tests {
       HarnessBootstrapSystem.Setup = null;
     }
 
-    static void Identify(AssetObject asset, long guid, string path) {
+    public static void Identify(AssetObject asset, long guid, string path) {
       asset.Identifier = new AssetObjectIdentifier { Guid = new AssetGuid(guid), Path = path };
     }
 
