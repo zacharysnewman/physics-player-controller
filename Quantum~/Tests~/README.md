@@ -23,15 +23,35 @@ A successful run ends with `Passed: N` and no failures. Output goes to `.build/`
    `Quantum.CodeGen.Qtn.dll`) on every `.qtn` under `Quantum~/Simulation/` plus `Fixtures/`.
 3. Compiles the SDK core simulation sources, the generated code, `Quantum~/Simulation/**/*.cs` and
    `Fixtures/**/*.cs` into `Quantum.Simulation.dll`, using C# 9 to match Unity.
-4. Runs the xUnit tests in `Tests/` against that assembly. They start real Quantum sessions.
+4. Compiles the Playground sample's simulation code against the package, the way a user's project
+   would (with its own `input` instead of the fixtures).
+5. Runs the xUnit tests in `Tests/` against the assembly from step 3. They start real Quantum sessions.
 
 `Fixtures/` holds harness-only simulation code that plays the role of "the game": an `input`
 definition (the package can't define one; Quantum allows one per game), a bootstrap system that
 lets tests build their scene, and probes. It never ships.
 
+## Test suites
+
+| File | Covers |
+|---|---|
+| `HarnessTests` | The harness itself: stepping, input delivery, determinism and its control |
+| `PackageTests` | Registration, `PPCSystemGroup` equivalence, missing-config safety |
+| `PhysicsApiTests` | The Quantum physics API the port relies on |
+| `Phase1SkeletonTests` … `Phase6ClimbTests` | Each phase's behaviour (see `../PLAN.md`) |
+| `Phase8HardeningTests` | Four-player full-feature determinism; 16-character cost |
+
+`Tools/cross-config-check.sh` runs the four-player scenario on the Debug and the Release Quantum
+libraries and checks the per-tick checksums match.
+
+The harness fixture sets `#pragma max_players 16` for the cost test. That's a game-level setting;
+the package doesn't set it.
+
 ## Writing tests
 
-`HeadlessSession` runs a real `SessionRunner` in Local mode with the asset database built in code:
+`HeadlessSession` runs a real `SessionRunner` in Local mode with the asset database built in code.
+For controller tests, `PPCTest.Session(...)` wraps it with the default config, the controller
+systems and the kick/mover fixtures (see `Phase*Tests.cs` for examples).
 
 ```csharp
 [Collection("Quantum")]   // sessions share static state, so they must not run in parallel

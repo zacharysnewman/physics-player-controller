@@ -16,9 +16,26 @@ gate** (`Tests~/build.sh`: CodeGen, compile, tests; runs in the cloud) and the *
 | 5 — Moving platforms & external forces | ✅ | ⏳ | Transform-delta for kinematic platforms |
 | 6 — Ladder climbing | ✅ | ⏳ | Snap, jump-off, look-down threshold fixed |
 | 7 — View layer | ✅ sample sim compiles | ⏳ view scripts need Unity | Not compilable here |
-| 8 — Hardening & release | — | — | |
+| 8 — Hardening & release | ✅ 72 tests; Debug == Release | ⏳ then tag `quantum-v0.1.0` | 3.3 ms/tick for 16 chars |
 
 Harness SDK: Quantum **3.0.0** Stable 1548 (`quantum-sdk-libs`). Package target: **3.0.13**.
+
+## Phase 8 — Hardening ✅
+
+- Four-player full-feature scenario is deterministic (600 ticks), and identical on the Debug and
+  Release libraries (`Tools/cross-config-check.sh`).
+- 16 characters: 3.3 ms/tick Release, 5.4 ms Debug (whole session).
+- Simulation code audited for non-deterministic constructs: none.
+
+## Unity checkpoint — what to verify
+
+The headless gate covers the simulation. In Unity (Quantum 3.0.x), please check:
+
+1. Install via git URL (`?path=/Quantum~#<branch>`), run Qtn CodeGen: no errors; `PPCCharacter` etc. generated.
+2. The view scripts (`PPCCameraView`, `PPCAnimatorView`, `PPCDebugView`) and the Playground's
+   `PlaygroundInputPoller` compile. They couldn't be compiled here.
+3. Playground per `Samples~/Playground/README.md`: walk/run/jump/crouch/climb feel, camera, crouch
+   eye height, animator parameters, moving platform.
 
 ## Phase 7 — View layer ✅ (Unity compile pending)
 

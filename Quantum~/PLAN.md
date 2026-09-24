@@ -355,17 +355,21 @@ re-grabbing, climbing down to the floor lets go, climbing over the top lands on 
 Checkpoint: headless ✅ (sample simulation compiles, `PPCSystemGroup` equivalence test). Unity:
 the view scripts compile; the Playground runs with camera, animator and crouch eye height.
 
-### Phase 8 — Hardening & release
+### Phase 8 — Hardening & release ✅ *(release tag after the Unity checkpoint)*
 
-- [ ] Determinism check: run two clients (or the multi-client / replay tools) and compare checksums over a
-      scripted path through the Playground
-- [ ] Optional headless run via Quantum's exported dotnet simulation project + replay runner
-- [ ] Performance: 16+ characters, profile with the Quantum graph profiler
-- [ ] `README.md` (install, input hook, SystemsConfig setup, config reference), `CHANGELOG.md`, samples
-- [ ] Root `README`/`CHANGELOG` mention the Quantum package
-- [ ] Tag `quantum-v0.1.0`
-
----
+- [x] Determinism: `Full_Scenario_With_Four_Players_Is_Deterministic`: 4 players with different
+      scripted inputs across a world with every feature (ramp, step, low bar, ladder + ledge, rotating
+      moving platform, explosion) for 600 ticks. Identical per-tick checksums on repeat runs.
+- [x] Cross-build determinism: `Tests~/Tools/cross-config-check.sh` runs that scenario on the Debug and
+      Release Quantum libraries. Identical checksums over 600 ticks.
+- [x] Determinism audit of `Simulation/`: no float/double, `System.Math`, randomness, clocks or
+      unordered collections
+- [x] Performance: 16 characters cost **3.3 ms/tick** (Release) / 5.4 ms (Debug) for the whole session
+      on the CI machine. `Sixteen_Characters_Cost` fails above 16.7 ms. Main cost: ~40 rays per
+      character per tick (17-ray ground and ceiling rings, as in Unity). Future optimisation: shape
+      casts instead of rings.
+- [x] `README.md`, `CHANGELOG.md`, `PROGRESS.md`, sample README
+- [ ] Unity checkpoint for all phases (see `PROGRESS.md`), then tag `quantum-v0.1.0`
 
 ## Risks & open questions
 
@@ -378,6 +382,7 @@ the view scripts compile; the Playground runs with camera, animator and crouch e
 | Global `input` struct collision | `PPCInput` + mapping hook; sample ships an `input.qtn` |
 | API drift between 3.0.x patch releases | Pin to 3.0.13 in README; note the minimum version |
 | Headless harness uses SDK 3.0.0, package targets 3.0.13 | Unity checkpoint every phase; add `3.0.13/` to `quantum-sdk-libs` when available |
+| View code isn't compiled headlessly | APIs checked against SDK source; Unity checkpoint |
 | Headless gate can't cover view code, prefabs or feel | Unity checkpoint at the end of every phase |
 
 ---
