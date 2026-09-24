@@ -40,7 +40,10 @@ namespace Quantum {
       c->Ground.WasGrounded = c->Ground.IsGrounded;
 
       // Ground
-      var groundDistance = halfHeight + probes.GroundProbeMargin;
+      // While grounded, reach down a whole step so walking down stairs and off small ledges keeps the
+      // character on the ground (Source's StayOnGround) instead of a short fall from each step.
+      var reach = c->Ground.IsGrounded ? FPMath.Max(probes.GroundProbeMargin, config.Movement.MaxStepHeight) : probes.GroundProbeMargin;
+      var groundDistance = halfHeight + reach;
       if (RingCast(f, filter.Entity, center, FPVector3.Down, groundDistance, ringRadius, probes.GroundLayerMask, out var ground, out var groundHitDistance)) {
         c->Ground.Normal = ground.Normal;
         c->Ground.Gap = groundHitDistance - halfHeight;

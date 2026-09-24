@@ -18,6 +18,7 @@ gate** (`Tests~/build.sh`: CodeGen, compile, tests; runs in the cloud) and the *
 | 7 — View layer | ✅ sample sim compiles | ⏳ view scripts need Unity | Not compilable here |
 | 8 — Hardening & release | ✅ Debug == Release | ⏳ then tag `quantum-v0.1.0` | 16 chars ≈ 3–4.5 ms/tick |
 | Post-review cleanup | ✅ 80 tests; golden trace | ⏳ | Refactor, optional config, recommended feel |
+| Post-review round 2 | ✅ 95 tests | ⏳ camera step smoothing | Shared grounded, stacking, Source defaults, stairs |
 
 Harness SDK: Quantum **3.0.0** Stable 1548 (`quantum-sdk-libs`). Package target: **3.0.13**.
 
@@ -33,6 +34,32 @@ player's position and state per tick of the four-player scenario):
   tests run under the Unity parity preset; `ConfigPresetTests` cover the new defaults.
 - Performance: no measurable change (machine noise is larger than the probe savings).
 - Open for discussion: one shared "grounded" (review item 12); shape casts instead of ray rings (13).
+
+## Post-review round 2 ✅
+
+- **Item 12, one shared grounded:** `Ground.IsGrounded` is off from the takeoff tick. Golden re-recorded:
+  23 takeoff ticks now read Jumping, 7 post-launch ticks Falling.
+- **Characters aren't platforms** by default (`Movement.CarriedByCharacters`). `CharacterStackingTests`.
+- **Source/Halo 3 defaults** (see README → Tuning). Sources: Valve's source-sdk-2013 (`gamemovement.cpp`,
+  `movevars_shared.cpp`, `hl2_player.cpp`); Halo 3 speeds from community measurements (HaloRuns, Bungie
+  forums), which Bungie never published.
+- **Item 13, shape casts (experiment, not adopted).** A sphere-cast ground probe was compared with the
+  ray ring on stairs and ledges (`StepSmoothnessTests` scenarios, recommended feel):
+
+  | Down 0.2/0.3 m stairs, walking | Airborne ticks | Largest one-tick drop |
+  |---|---|---|
+  | Rays (before) | 19 | 0.145 m |
+  | Sphere cast | 5 | 0.108 m |
+  | Rays + step-down snap (adopted) | **0** | 0.200 m (a snap; the camera smooths it) |
+
+  The sphere cast rounds edges, but it still left the ground on every scenario (2–18 ticks), made going
+  *up* stairs briefly airborne (3–8 ticks), and costs more. Snapping down a step while grounded (Source's
+  `StayOnGround`) fixed the real problem with the existing rays. Also tried and dropped: rising onto
+  steps at a set speed instead of the one-tick lift. At 3 m/s the character stalled against the step face
+  (down to 0.3 m/s) and spent up to 70 ticks airborne; at 6 m/s it got stuck on 0.4 m steps.
+- **Stairs now:** up and down 0.2 m and 0.4 m steps at full walk and run speed with zero airborne ticks;
+  the one-tick lift/snap is smoothed by `PPCCameraView` (Source's `SmoothViewOnStairs`; needs checking in
+  Unity). Golden re-recorded: player 3 now snaps from the 0.5 m platform to the floor instead of falling.
 
 ## Phase 8 — Hardening ✅
 

@@ -42,6 +42,9 @@ settings (`#pragma max_players 16`). None of it ships.
 | `Phase8HardeningTests` | Four-player full-feature determinism; 16-character cost |
 | `GoldenTraceTests` | Behaviour lock: the four-player scenario matches `Golden/scenario-trace.txt` within 1 mm |
 | `ConfigPresetTests` | Recommended defaults, the Unity parity preset, crouch ignoring run |
+| `GroundedConsistencyTests` | One shared "grounded": jumping and launching states, platform jump-off |
+| `CharacterStackingTests` | Standing on heads; not carried unless `CarriedByCharacters` |
+| `StepSmoothnessTests` | Stairs and ledges at full speed without leaving the ground; writes `step-report.txt` |
 
 The behaviour tests use the **Unity parity** preset (`PPCTestWorld.DefaultAssets`), since they were
 written against the Unity package's numbers. When a change is *meant* to alter behaviour, regenerate

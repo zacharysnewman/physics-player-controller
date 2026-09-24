@@ -23,6 +23,12 @@ namespace Quantum {
     public float EyeBelowTop = 0.15f;
     [Tooltip("How quickly the eye follows crouch height changes (1/s). The simulation's crouch is instant.")]
     public float HeightSmoothing = 10f;
+    [Tooltip("Smooth the camera over steps (the simulation lifts the character onto a step, or snaps it down one, in a single tick).")]
+    public bool SmoothSteps = true;
+    [Tooltip("Slowest speed the camera catches up with a step (m/s); it also keeps up with the character's horizontal speed. Source: 150 units/s.")]
+    public float StepSmoothSpeed = 3.8f;
+    [Tooltip("The camera never lags more than this behind the character (m). Source: its step size, 18 units.")]
+    public float MaxStepLag = 0.45f;
     public bool LockCursor = true;
 
     /// <summary>The camera of the (first) local player's character, if any.</summary>
@@ -36,6 +42,9 @@ namespace Quantum {
 
     float _eyeHeight;
     int _lastFrame = -1;
+    float _feetY;             // smoothed feet height for step smoothing
+    bool _smoothStepsNow;     // grounded on static ground this frame
+    float _catchUpSpeed;
 
     /// <summary>Applies a look delta (mouse counts or stick × time).</summary>
     public void Look(Vector2 delta) {
@@ -54,6 +63,7 @@ namespace Quantum {
         Pitch = character.Input.LookPitch.AsFloat;
       }
       _eyeHeight = TargetEyeHeight(frame);
+      _feetY = FeetY(frame);
       if (LockCursor) {
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
@@ -77,14 +87,38 @@ namespace Quantum {
       _lastFrame = frame.Number;
 
       _eyeHeight = Mathf.Lerp(_eyeHeight, TargetEyeHeight(frame), 1f - Mathf.Exp(-HeightSmoothing * Time.deltaTime));
+
+      // Step smoothing (Source: C_BasePlayer::SmoothViewOnStairs): only on the ground, and only on static
+      // ground, so lifts and jumps aren't smoothed.
+      _smoothStepsNow = SmoothSteps && character.Ground.IsGrounded && !character.Climb.IsClimbing &&
+                        character.Platform.GroundVelocity == Photon.Deterministic.FPVector3.Zero;
+      var velocity = character.TargetVelocity;
+      _catchUpSpeed = Mathf.Max(StepSmoothSpeed, new Vector2(velocity.X.AsFloat, velocity.Z.AsFloat).magnitude);
     }
 
     public override void OnLateUpdateView() {
       if (!IsLocal || Camera == null) return;
+      var position = EntityView.transform.position;
+      var feet = PredictedFrame != null ? FeetY(PredictedFrame, position.y) : position.y;
+      if (_smoothStepsNow) {
+        _feetY = Mathf.MoveTowards(_feetY, feet, _catchUpSpeed * Time.deltaTime);
+        _feetY = Mathf.Clamp(_feetY, feet - MaxStepLag, feet + MaxStepLag);
+      } else {
+        _feetY = feet;
+      }
       Camera.transform.SetPositionAndRotation(
-        EntityView.transform.position + Vector3.up * _eyeHeight,
+        position + Vector3.up * (_eyeHeight + _feetY - feet),
         Quaternion.Euler(-Pitch, Yaw, 0f));
     }
+
+    float HalfHeight(Frame frame) =>
+      frame.TryGet<PPCCharacter>(EntityRef, out var character)
+        ? PPCConfig.Resolve(frame, character.Config).HalfHeight(character.Crouch.IsCrouching).AsFloat
+        : 0f;
+
+    // Feet height from the view's (interpolated) centre, so crouching, which moves the centre, isn't a "step".
+    float FeetY(Frame frame, float centerY) => centerY - HalfHeight(frame);
+    float FeetY(Frame frame) => FeetY(frame, EntityView.transform.position.y);
 
     float TargetEyeHeight(Frame frame) {
       if (!frame.TryGet<PPCCharacter>(EntityRef, out var character)) return 0f;

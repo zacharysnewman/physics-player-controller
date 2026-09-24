@@ -79,7 +79,7 @@ namespace Quantum {
 
     [Serializable]
     public class ProbeSettings {
-      [Tooltip("How far below the feet the ground is still detected (m).")]
+      [Tooltip("How far below the feet the ground is detected while airborne (m). While grounded the probe reaches down Movement.MaxStepHeight, to stay on the ground going down steps.")]
       public FP GroundProbeMargin = FP.FromString("0.15");
       [Tooltip("How far above the head a ceiling is detected (m).")]
       public FP CeilingProbeMargin = FP._0_10;
