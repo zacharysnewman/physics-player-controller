@@ -7,8 +7,10 @@ namespace Quantum {
   /// ScriptableObjects (PlayerMovementConfig, GroundCheckerConfig, PlayerJumpConfig, ...).
   /// A character with no config uses <see cref="Default"/>.
   /// <para>
-  /// The defaults are the recommended feel (<see cref="ApplyRecommendedFeel"/>). The Unity package's
-  /// original numbers are one call (or right-click on the asset) away: <see cref="ApplyUnityParity"/>.
+  /// The defaults are the recommended feel (<see cref="ApplyRecommendedFeel"/>), derived from the Source
+  /// engine's movement (Source SDK 2013 defaults, 1 unit = 1 inch, scaled to a 2 m character) and
+  /// cross-checked against Halo 3. The Unity package's original numbers are one call (or right-click on
+  /// the asset) away: <see cref="ApplyUnityParity"/>.
   /// </para>
   /// </summary>
   [Serializable]
@@ -47,26 +49,28 @@ namespace Quantum {
       public int Layer = 0;
       [Tooltip("Physics material for the character. Leave empty for a frictionless material (recommended: friction slows sliding along walls).")]
       public AssetRef<PhysicsMaterial> Material;
-      [Tooltip("Multiplier on the physics gravity for the vertical layer.")]
-      public FP GravityScale = FP._1;
+      [Tooltip("Multiplier on the physics gravity for the vertical layer. 2 × Quantum's default -10 = 20 m/s², Source's 800 units/s².")]
+      public FP GravityScale = FP._2;
     }
 
     [Serializable]
     public class MovementSettings {
+      [Tooltip("Walk speed (m/s). Source: Half-Life 2 run speed, 190 units/s ≈ 4.8 m/s.")]
       public FP WalkSpeed = 5;
-      public FP RunSpeed = 7;
-      [Tooltip("Acceleration towards the target velocity while there is move input (m/s²).")]
-      public FP Acceleration = 40;
-      [Tooltip("Deceleration when there is no move input (m/s²).")]
-      public FP Deceleration = 40;
-      [Tooltip("Acceleration used when input points against the current velocity (m/s²).")]
-      public FP ReverseDeceleration = 80;
+      [Tooltip("Run speed (m/s). Source: HL2 sprint, 320 units/s ≈ 8.1 m/s; Halo 3 base speed ≈ 7.7 m/s.")]
+      public FP RunSpeed = 8;
+      [Tooltip("Acceleration towards the target velocity while there is move input (m/s²). Source: sv_accelerate 10 × speed.")]
+      public FP Acceleration = 50;
+      [Tooltip("Deceleration when there is no move input (m/s²). Source: sv_friction 4 with sv_stopspeed 100 stops from walk speed in ~0.4 s.")]
+      public FP Deceleration = 12;
+      [Tooltip("Acceleration used when input points against the current velocity (m/s²). Source: friction plus acceleration.")]
+      public FP ReverseDeceleration = 60;
       [Tooltip("Scales acceleration while airborne. 1 = same as on the ground.")]
-      public FP AirControl = FP.FromString("0.4");
-      [Tooltip("Tallest step the character climbs automatically (m).")]
-      public FP MaxStepHeight = FP.FromString("0.35");
-      [Tooltip("Exponential horizontal drag on external velocity while airborne (fraction lost per second).")]
-      public FP AirExternalDrag = FP._0_50;
+      public FP AirControl = FP.FromString("0.2");
+      [Tooltip("Tallest step the character climbs automatically (m). Source: sv_stepsize 18 units ≈ 0.46 m.")]
+      public FP MaxStepHeight = FP.FromString("0.45");
+      [Tooltip("Exponential horizontal drag on external velocity while airborne (fraction lost per second). 0 = momentum is kept until landing, as in Source and Halo.")]
+      public FP AirExternalDrag = 0;
       [Tooltip("Linear deceleration of external horizontal velocity while grounded (m/s²).")]
       public FP GroundExternalFriction = 15;
       [Tooltip("Standing on another character moves you with it, like a moving platform. Off: you can stand on heads, but they move out from under you.")]
@@ -98,8 +102,8 @@ namespace Quantum {
     [Serializable]
     public class CrouchSettings {
       public FP Height = FP._1;
-      [Tooltip("Movement speed while crouched (m/s). Running has no effect while crouched.")]
-      public FP Speed = 2;
+      [Tooltip("Movement speed while crouched (m/s). Running has no effect while crouched. Source: ⅓ of run speed.")]
+      public FP Speed = FP.FromString("1.6");
       [Tooltip("Upward velocity added when crouching in mid-air (m/s). 0 = off.")]
       public FP MidAirBoost = 0;
     }
@@ -135,24 +139,30 @@ namespace Quantum {
 #if QUANTUM_UNITY
     [UnityEngine.ContextMenu("Apply Recommended Feel")]
 #endif
-    public void ApplyRecommendedFeel() => ApplyFeel(new MovementSettings(), new JumpSettings());
+    public void ApplyRecommendedFeel() => ApplyFeel(new BodySettings(), new MovementSettings(), new JumpSettings(), new CrouchSettings());
 
     /// <summary>
     /// The Unity package's original numbers: run 10 m/s, 10 m/s² acceleration, full air control, 0.5 m
-    /// steps, 5 m jumps. (Behaviour differences listed in the changelog, such as crouch ignoring run,
-    /// still apply.)
+    /// steps, 5 m jumps, gravity × 1, air drag 0.5 on pushes, crouch 2 m/s. (Behaviour differences listed
+    /// in the changelog, such as crouch ignoring run, still apply.)
     /// </summary>
 #if QUANTUM_UNITY
     [UnityEngine.ContextMenu("Apply Unity Parity")]
 #endif
     public void ApplyUnityParity() => ApplyFeel(
+      new BodySettings { GravityScale = FP._1 },
       new MovementSettings {
         WalkSpeed = 5, RunSpeed = 10, Acceleration = 10, Deceleration = 10, ReverseDeceleration = 20,
-        AirControl = FP._1, MaxStepHeight = FP._0_50,
+        AirControl = FP._1, MaxStepHeight = FP._0_50, AirExternalDrag = FP._0_50, GroundExternalFriction = 15,
       },
-      new JumpSettings { Height = 5 });
+      new JumpSettings { Height = 5 },
+      new CrouchSettings { Speed = 2 });
 
-    void ApplyFeel(MovementSettings movement, JumpSettings jump) {
+    void ApplyFeel(BodySettings body, MovementSettings movement, JumpSettings jump, CrouchSettings crouch) {
+      Body.GravityScale = body.GravityScale;
+      Movement.AirExternalDrag = movement.AirExternalDrag;
+      Movement.GroundExternalFriction = movement.GroundExternalFriction;
+      Crouch.Speed = crouch.Speed;
       Movement.WalkSpeed = movement.WalkSpeed;
       Movement.RunSpeed = movement.RunSpeed;
       Movement.Acceleration = movement.Acceleration;
